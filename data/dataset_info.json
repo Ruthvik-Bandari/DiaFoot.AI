@@ -1,0 +1,106 @@
+{
+  "datasets": {
+    "fuseg": {
+      "name": "FUSeg 2021 - Foot Ulcer Segmentation Challenge",
+      "description": "1,210 foot ulcer images with segmentation masks from 889 patients",
+      "url": "https://github.com/uwm-bigdata/wound-segmentation",
+      "type": "git",
+      "size": "~200 MB",
+      "task": "Segmentation",
+      "images": 1210,
+      "access": "open",
+      "subdir": "data/Foot Ulcer Segmentation Challenge"
+    },
+    "azh_segmentation": {
+      "name": "AZH Wound Segmentation Dataset",
+      "description": "1,109 foot ulcer images with segmentation masks",
+      "url": "https://github.com/uwm-bigdata/wound-segmentation",
+      "type": "git",
+      "size": "~150 MB",
+      "task": "Segmentation",
+      "images": 1109,
+      "access": "open",
+      "subdir": "data/wound_dataset"
+    },
+    "azh_classification": {
+      "name": "AZH Wound Classification Dataset",
+      "description": "730 wound images classified into 4 types: diabetic, pressure, surgical, venous",
+      "url": "https://github.com/uwm-bigdata/wound-classification-using-images-and-locations",
+      "type": "git",
+      "size": "~100 MB",
+      "task": "Classification",
+      "images": 730,
+      "access": "open",
+      "subdir": "data"
+    },
+    "azh_localization": {
+      "name": "AZH Wound Localization Dataset",
+      "description": "1,010 wound images with bounding boxes and body location labels",
+      "url": "https://github.com/uwm-bigdata/wound_localization",
+      "type": "git",
+      "size": "~120 MB",
+      "task": "Detection + Classification",
+      "images": 1010,
+      "access": "open",
+      "subdir": "data"
+    },
+    "wound_tissue": {
+      "name": "WoundTissue Dataset",
+      "description": "147 wound images with 6-class tissue segmentation (granulation, necrosis, slough, maceration, tendon, bone)",
+      "url": "https://github.com/akabircs/WoundTissue",
+      "type": "git",
+      "size": "~50 MB",
+      "task": "Tissue Classification/Segmentation",
+      "images": 147,
+      "access": "open",
+      "subdir": "data"
+    },
+    "medetec": {
+      "name": "Medetec Wound Database",
+      "description": "~592 images of various wound types (diabetic, pressure, venous ulcers)",
+      "url": "http://www.medetec.co.uk/files/medetec-image-databases.html",
+      "type": "manual",
+      "size": "~100 MB",
+      "task": "Classification",
+      "images": 592,
+      "access": "open",
+      "instructions": "\nMANUAL DOWNLOAD REQUIRED:\n1. Visit: http://www.medetec.co.uk/files/medetec-image-databases.html\n2. Download the wound image categories you need\n3. Extract to: data/raw/medetec/\n        "
+    },
+    "kaggle_dfu": {
+      "name": "Kaggle DFU Dataset",
+      "description": "518 diabetic foot images (440 normal, 78 ulcer)",
+      "url": "https://www.kaggle.com/datasets/laithjj/diabetic-foot-ulcer-dfu",
+      "type": "kaggle",
+      "size": "~80 MB",
+      "task": "Classification",
+      "images": 518,
+      "access": "kaggle_account",
+      "kaggle_dataset": "laithjj/diabetic-foot-ulcer-dfu",
+      "instructions": "\nKAGGLE DOWNLOAD:\n1. Install Kaggle CLI: pip install kaggle\n2. Setup API: Place kaggle.json in ~/.kaggle/\n3. Run: kaggle datasets download -d laithjj/diabetic-foot-ulcer-dfu\n4. Or use this script with --dataset kaggle_dfu\n        "
+    },
+    "chronic_wound_db": {
+      "name": "Chronic Wound Database (Poland)",
+      "description": "188 multimodal cases (RGB + Thermal + Depth)",
+      "url": "https://chronicwounddatabase.eu/",
+      "type": "manual",
+      "size": "~500 MB",
+      "task": "Segmentation (Multimodal)",
+      "images": 188,
+      "access": "registration",
+      "instructions": "\nMANUAL DOWNLOAD REQUIRED:\n1. Visit: https://chronicwounddatabase.eu/\n2. Register for access\n3. Download the dataset\n4. Extract to: data/raw/chronic_wound_db/\n        "
+    },
+    "dfuc": {
+      "name": "DFUC 2020/2022/2024 Datasets",
+      "description": "Official MICCAI challenge datasets (4,000+ images each)",
+      "url": "https://dfu-challenge.github.io/",
+      "type": "license",
+      "size": "~2 GB total",
+      "task": "Detection, Segmentation",
+      "images": "4000+ per challenge",
+      "access": "license_agreement",
+      "instructions": "\nLICENSE AGREEMENT REQUIRED:\n1. Visit: https://dfu-challenge.github.io/\n2. Click \"Apply for Datasets\": http://www2.docm.mmu.ac.uk/STAFF/M.Yap/dataset.php\n3. Fill out the license agreement form\n4. You will receive download links via email (usually within 1-2 business days)\n5. Extract to: data/raw/dfuc/\n\nThis is the HIGHEST QUALITY dataset available - highly recommended!\n        "
+    }
+  },
+  "data_directory": "/Users/ruthvikbandari/Downloads/DiaFootAI/data",
+  "total_estimated_images": 5504
+}

@@ -1,0 +1,55 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Data (too large for git)
+data/raw/
+data/processed/
+*.zip
+*.tar.gz
+
+# Model weights (too large)
+outputs/*/best_model.pt
+outputs/*/checkpoint_*.pt
+*.pt
+*.pth
+*.onnx
+
+# Keep output directories but not contents
+outputs/**/
+!outputs/.gitkeep
+
+# Results images
+outputs/test_results/
+outputs/enhanced_results/
+outputs/final_results/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+wandb/
+
+# Secrets
+.env
+*.key
