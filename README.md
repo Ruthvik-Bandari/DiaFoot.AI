@@ -1,179 +1,199 @@
-# DiaFootAI — Diabetic Foot Wound Assessment System
+# 🦶 DiaFoot.AI
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Development](https://img.shields.io/badge/Status-Development-orange.svg)]()
+**Deep Learning for Diabetic Foot Ulcer Segmentation**
 
-## Mission
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Enable any healthcare worker with a smartphone to accurately assess diabetic foot wounds, detect infections early, and prevent amputations in underserved communities.
+A state-of-the-art wound segmentation system using U-Net++ with EfficientNet-B4 encoder, achieving **84.93% IoU** and **91.73% Dice** score on the FUSeg dataset.
 
-## Overview
+![DiaFoot.AI Demo](docs/demo.png)
 
-DiaFootAI is an AI-powered system that analyzes smartphone images of diabetic foot wounds to provide:
+## 🎯 Performance
 
-- **Wound Segmentation**: Precise boundary detection for accurate area measurement
-- **Tissue Classification**: Identify granulation, slough, necrotic, and epithelial tissue
-- **Infection Detection**: Early warning signs of infection requiring urgent referral
-- **Healing Tracking**: Monitor wound progression over time
-- **Risk Stratification**: Prioritize cases needing immediate attention
+| Metric | Score | vs SOTA |
+|--------|-------|---------|
+| **IoU** | 0.8493 | 97% of DFUC 2022 Winner |
+| **Dice** | 0.9173 | 99% of target |
+| **Inference** | ~50ms | Real-time capable |
 
-## Key Features
-
-| Feature | Description |
-|---------|-------------|
-| Offline-First | Works without internet connectivity |
-| Low-Resource Optimized | Runs on mid-range Android devices |
-| Dark Skin Tone Support | Trained on diverse skin tones for equitable performance |
-| Clinical Decision Support | Evidence-based recommendations |
-| Multi-Language | Support for Hindi, English, and regional languages |
-
-## Project Structure
-
+## 🏗️ Architecture
 ```
-DiaFootAI/
-├── configs/                 # Configuration files
-│   └── config.yaml         # Main configuration
-├── data/
-│   ├── raw/                # Original downloaded datasets
-│   ├── processed/          # Preprocessed data ready for training
-│   ├── annotations/        # Annotation files (JSON, masks)
-│   └── external/           # External datasets
-├── models/
-│   ├── checkpoints/        # Training checkpoints
-│   ├── exported/           # Production-ready models (TFLite, CoreML)
-│   └── configs/            # Model architecture configs
-├── src/
-│   ├── data/               # Data loading and preprocessing
-│   ├── models/             # Model architectures
-│   ├── training/           # Training loops and utilities
-│   ├── inference/          # Inference pipelines
-│   ├── evaluation/         # Metrics and evaluation
-│   └── utils/              # Helper functions
-├── notebooks/              # Jupyter notebooks for exploration
-├── scripts/                # Standalone scripts
-├── tests/                  # Unit and integration tests
-├── app/
-│   ├── android/            # Android application
-│   └── ios/                # iOS application
-└── docs/                   # Documentation
+Input Image (RGB)
+      ↓
+┌─────────────────────┐
+│  CLAHE Enhancement  │  ← Contrast enhancement
+└─────────────────────┘
+      ↓
+┌─────────────────────┐
+│    U-Net++          │
+│  EfficientNet-B4    │  ← Pretrained encoder
+│    Encoder          │
+└─────────────────────┘
+      ↓
+┌─────────────────────┐
+│  Post-processing    │  ← Remove noise, fill holes
+└─────────────────────┘
+      ↓
+Wound Segmentation Mask
 ```
 
-## Installation
+## 🚀 Quick Start
 
-### Prerequisites
-
-- Python 3.10 or higher
-- macOS with Apple Silicon (M1/M2/M3/M4) for MLX support
-- Git
-
-### Setup
-
+### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/DiaFootAI.git
-cd DiaFootAI
+# Clone repository
+git clone https://github.com/Ruthvik-Bandari/DiaFoot.AI.git
+cd DiaFoot.AI
 
 # Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On macOS/Linux
+python3.11 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Verify installation
-python -c "import torch; print(f'PyTorch: {torch.__version__}')"
-python -c "import mlx; print('MLX installed successfully')"
 ```
 
-## Quick Start
-
-### 1. Download Dataset
-
+### Download Dataset
 ```bash
-python scripts/download_dataset.py --dataset dfuc2022
+python scripts/download_datasets.py --all
 ```
 
-### 2. Preprocess Data
-
+### Training
 ```bash
-python scripts/preprocess_data.py --config configs/config.yaml
+# Basic training
+python scripts/train_simple.py
+
+# Advanced training (Focal Tversky + EMA)
+python scripts/train_advanced.py
 ```
 
-### 3. Train Model
+### Inference
+```python
+from src.inference.optimized_pipeline import load_pipeline
+from PIL import Image
+import numpy as np
 
-```bash
-python scripts/train.py --config configs/config.yaml --model segmentation
+# Load pipeline
+pipeline = load_pipeline("outputs/fuseg_simple/best_model.pt")
+
+# Predict
+image = np.array(Image.open("wound_image.jpg").convert("RGB"))
+result = pipeline.predict(image)
+
+# Get results
+mask = result["mask"]                    # Binary segmentation
+wound_pct = result["wound_percentage"]   # Wound coverage %
+confidence = result["confidence"]        # Model confidence
 ```
 
-### 4. Run Inference
-
-```bash
-python scripts/inference.py --image path/to/wound_image.jpg
+## 📁 Project Structure
+```
+DiaFoot.AI/
+├── src/
+│   ├── models/
+│   │   └── segmentation.py      # U-Net++ model
+│   ├── data/
+│   │   ├── dataset.py           # Data loading
+│   │   └── augmentation.py      # Augmentations
+│   ├── training/
+│   │   └── trainer.py           # Training logic
+│   └── inference/
+│       ├── enhanced_pipeline.py # Full pipeline
+│       └── optimized_pipeline.py# Production pipeline
+├── scripts/
+│   ├── train_simple.py          # Basic training
+│   ├── train_advanced.py        # Advanced training
+│   ├── download_datasets.py     # Dataset download
+│   └── test_model.py            # Model testing
+├── configs/
+│   └── config.yaml              # Configuration
+├── outputs/                     # Trained models
+└── data/                        # Datasets
 ```
 
-## Models
+## 🔬 Technical Details
 
-| Model | Task | Architecture | Size | Accuracy |
-|-------|------|--------------|------|----------|
-| Quality Checker | Image quality assessment | MobileNetV3-Small | 6 MB | - |
-| Segmenter | Wound boundary detection | U-Net++ (EfficientNet-B4) | 25 MB | IoU: TBD |
-| Tissue Classifier | Tissue type classification | EfficientNet-B3 + ViT | 35 MB | Acc: TBD |
-| Infection Detector | Infection risk scoring | ResNet-50 + Attention | 20 MB | Sens: TBD |
+### Training Configuration
 
-## Datasets
+| Parameter | Value |
+|-----------|-------|
+| Architecture | U-Net++ |
+| Encoder | EfficientNet-B4 (ImageNet pretrained) |
+| Input Size | 512 × 512 |
+| Batch Size | 8 |
+| Optimizer | AdamW |
+| Learning Rate | 1e-4 (basic), 3e-4 (advanced) |
+| Loss | Dice + BCE / Focal Tversky + BCE |
+| Epochs | 100-150 |
 
-| Dataset | Size | Description | Status |
-|---------|------|-------------|--------|
-| DFUC 2022 | 15,683 | Diabetic foot ulcer classification | Planned |
-| FUSeg 2021 | 1,210 | Foot ulcer segmentation | Planned |
-| Medetec | 500+ | Various chronic wounds | Planned |
-| Custom (India) | 500+ | Indian population data | Collection TBD |
+### Inference Enhancements
 
-## Development Roadmap
+- **CLAHE Preprocessing**: Adaptive histogram equalization for contrast
+- **Test Time Augmentation**: Horizontal/vertical flips averaged
+- **Post-processing**: Small region removal, hole filling, boundary smoothing
 
-- [ ] **Month 1**: Dataset preparation, baseline models
-- [ ] **Month 2**: Core segmentation model
-- [ ] **Month 3**: Tissue classification, infection detection
-- [ ] **Month 4**: Mobile app development
-- [ ] **Month 5**: Integration and testing
-- [ ] **Month 6**: Clinical pilot
-- [ ] **Month 7**: Iteration and refinement
-- [ ] **Month 8**: Open source release
+## 📊 Datasets
 
-## Contributing
+| Dataset | Images | Used For |
+|---------|--------|----------|
+| FUSeg 2021 | 1,210 | Training & Validation |
+| AZH Wound | 2,849 | Additional training |
+| DFUC 2022 | 15,683 | (Requires license) |
 
-We welcome contributions! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+## 📈 Results
 
-## License
+### Validation Performance
+```
+Epoch 62: Best Model
+├── IoU:  0.8493
+├── Dice: 0.9173
+├── Train Loss: 0.0486
+└── Val Loss: 0.0630
+```
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+### Test Performance (with optimizations)
+```
+Average IoU:  0.8097
+Average Dice: 0.8915
+```
 
-## Citation
+## 🛠️ Requirements
 
-If you use this work in your research, please cite:
+- Python 3.11+
+- PyTorch 2.0+
+- segmentation-models-pytorch
+- albumentations
+- OpenCV
+- NumPy
 
+See `requirements.txt` for full list.
+
+## 📝 Citation
+
+If you use this work, please cite:
 ```bibtex
-@software{diafootai2025,
-  title = {DiaFootAI: Diabetic Foot Wound Assessment System},
-  author = {Ruthvik},
-  year = {2025},
-  url = {https://github.com/yourusername/DiaFootAI}
+@software{diafootai2026,
+  author = {Ruthvik Bandari},
+  title = {DiaFoot.AI: Deep Learning for Diabetic Foot Ulcer Segmentation},
+  year = {2026},
+  url = {https://github.com/Ruthvik-Bandari/DiaFoot.AI}
 }
 ```
 
-## Acknowledgments
+## 📄 License
 
-- DFUC Challenge organizers for the dataset
-- Medical partners for clinical guidance
-- Open source community for foundational tools
+MIT License - see [LICENSE](LICENSE) for details.
 
-## Contact
+## 🙏 Acknowledgments
 
-- **Developer**: Ruthvik
-- **Email**: [your-email]
-- **LinkedIn**: [your-linkedin]
+- FUSeg Challenge organizers
+- segmentation-models-pytorch library
+- Northeastern University AAI6620 Course
 
 ---
 
-**Disclaimer**: DiaFootAI is intended as a screening aid and decision support tool. It is not a replacement for professional medical diagnosis. Always consult qualified healthcare providers for medical decisions.
+**Author**: Ruthvik Bandari  
+**Course**: AAI6620 Computer Vision, Northeastern University  
+**Date**: January 2026
