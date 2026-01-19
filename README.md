@@ -32,19 +32,19 @@ A state-of-the-art deep learning system for automatic segmentation of diabetic f
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      DiaFoot.AI Pipeline                     │
+│                      DiaFoot.AI Pipeline                    │
 ├─────────────────────────────────────────────────────────────┤
-│  Input Image (512×512)                                       │
-│       ↓                                                      │
+│  Input Image (512×512)                                      │
+│       ↓                                                     │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  U-Net++ with EfficientNet-B4 Encoder               │    │
-│  │  - ImageNet pretrained weights                       │    │
-│  │  - 20.8M parameters                                  │    │
+│  │  - ImageNet pretrained weights                      │    │
+│  │  - 20.8M parameters                                 │    │
 │  └─────────────────────────────────────────────────────┘    │
-│       ↓                                                      │
-│  Test Time Augmentation (8 transforms)                       │
-│       ↓                                                      │
-│  Binary Segmentation Mask                                    │
+│       ↓                                                     │
+│  Test Time Augmentation (8 transforms)                      │
+│       ↓                                                     │
+│  Binary Segmentation Mask                                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -305,7 +305,7 @@ This project is licensed under the **Creative Commons Attribution-NonCommercial 
 
 See [LICENSE](LICENSE) for details.
 
-For commercial licensing, contact: bandari.r@northeastern.edu
+For commercial licensing, contact: bandari.ru@northeastern.edu
 
 ## Acknowledgments
 
@@ -321,7 +321,7 @@ Northeastern University, College of Professional Studies
 
 - GitHub: [@Ruthvik-Bandari](https://github.com/Ruthvik-Bandari)
 - LinkedIn: [Ruthvik Bandari](https://linkedin.com/in/ruthvik-bandari)
-- Email: bandari.r@northeastern.edu
+- Email: bandari.ru@northeastern.edu
 
 ---
 
