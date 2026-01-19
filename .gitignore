@@ -1,55 +1,56 @@
-# Virtual environment
-venv/
-.venv/
-env/
-
-# Python cache
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
 
-# Data (too large for git)
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Data files (too large for git)
 data/raw/
 data/processed/
 *.zip
 *.tar.gz
 
-# Model weights (too large)
+# Model checkpoints (large files)
 outputs/*/best_model.pt
 outputs/*/checkpoint_*.pt
-*.pt
-*.pth
-*.onnx
+outputs/crossval/*.pt
+outputs/exported/*.onnx
+outputs/exported/*.pt
 
-# Keep output directories but not contents
-outputs/**/
+# Keep directory structure
 !outputs/.gitkeep
-
-# Results images
-outputs/test_results/
-outputs/enhanced_results/
-outputs/final_results/
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
+!data/.gitkeep
 
 # Logs
+logs/
 *.log
 wandb/
 
+# Temporary files
+tmp/
+temp/
+
+# Large visualization outputs
+outputs/visualizations/*.png
+
 # Secrets
 .env
+*.pem
 *.key
+outputs/**/*.pt
+outputs/**/*.onnx
+outputs/visualizations/

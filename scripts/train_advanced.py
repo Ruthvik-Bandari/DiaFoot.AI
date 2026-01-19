@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """
-Advanced Training Script for DiaFootAI
-=======================================
-
-Includes:
-- Focal Tversky Loss (better for imbalanced data)
-- Exponential Moving Average (EMA)
-- Differential Learning Rate
-- Cosine Annealing with Warm Restarts
-
-Author: Ruthvik
+Advanced Training with Focal Tversky WARMUP
+- Epochs 1-10: Use Dice+BCE (gets model to reasonable state)
+- Epochs 11+: Gradually introduce Focal Tversky
 """
 
 import sys
@@ -21,233 +14,214 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import numpy as np
-import json
 
 from src.data.dataset import FUSeg2021Dataset
 from src.data.augmentation import get_training_augmentation, get_validation_augmentation
 from src.models.segmentation import SegmentationModel
 
 
+class DiceBCELoss(nn.Module):
+    """Standard loss - works from scratch"""
+    def forward(self, pred, target):
+        pred_sig = torch.sigmoid(pred)
+        bce = F.binary_cross_entropy(pred_sig, target, reduction="mean")
+        smooth = 1e-5
+        inter = (pred_sig.view(-1) * target.view(-1)).sum()
+        dice = 1 - (2 * inter + smooth) / (pred_sig.view(-1).sum() + target.view(-1).sum() + smooth)
+        return 0.7 * dice + 0.3 * bce
+
+
 class FocalTverskyLoss(nn.Module):
-    def __init__(self, alpha=0.3, beta=0.7, gamma=0.75, smooth=1e-5):
+    """Focal Tversky - only works after warmup"""
+    def __init__(self, alpha=0.3, beta=0.7, gamma=0.75):
         super().__init__()
-        self.alpha = alpha
-        self.beta = beta
-        self.gamma = gamma
-        self.smooth = smooth
+        self.alpha = alpha  # FP weight
+        self.beta = beta    # FN weight (higher = focus on recall)
+        self.gamma = gamma  # Focal parameter
     
     def forward(self, pred, target):
-        pred = torch.sigmoid(pred)
-        pred_flat = pred.view(-1)
-        target_flat = target.view(-1)
+        pred = torch.sigmoid(pred).view(-1)
+        target = target.view(-1)
+        smooth = 1e-5
         
-        tp = (pred_flat * target_flat).sum()
-        fp = ((1 - target_flat) * pred_flat).sum()
-        fn = (target_flat * (1 - pred_flat)).sum()
+        tp = (pred * target).sum()
+        fp = ((1 - target) * pred).sum()
+        fn = (target * (1 - pred)).sum()
         
-        tversky = (tp + self.smooth) / (tp + self.alpha * fp + self.beta * fn + self.smooth)
-        return torch.pow((1 - tversky), self.gamma)
+        tversky = (tp + smooth) / (tp + self.alpha * fp + self.beta * fn + smooth)
+        
+        # Focal component - but clamped to prevent instability
+        focal = torch.pow(torch.clamp(1 - tversky, min=0.01), self.gamma)
+        
+        return focal
 
 
-class CombinedLoss(nn.Module):
-    def __init__(self, tversky_weight=0.7, bce_weight=0.3):
+class WarmupFocalTverskyLoss(nn.Module):
+    """
+    Combines Dice+BCE with Focal Tversky using warmup schedule.
+    
+    - Epochs 1-10: 100% Dice+BCE, 0% Focal Tversky
+    - Epochs 11-30: Gradually increase Focal Tversky
+    - Epochs 31+: 30% Dice+BCE, 70% Focal Tversky
+    """
+    def __init__(self):
         super().__init__()
-        self.tversky_weight = tversky_weight
-        self.bce_weight = bce_weight
-        self.focal_tversky = FocalTverskyLoss()
-        self.bce = nn.BCEWithLogitsLoss()
+        self.dice_bce = DiceBCELoss()
+        self.focal_tversky = FocalTverskyLoss(alpha=0.3, beta=0.7, gamma=0.75)
+        self.current_epoch = 0
+    
+    def set_epoch(self, epoch):
+        self.current_epoch = epoch
     
     def forward(self, pred, target):
-        return self.tversky_weight * self.focal_tversky(pred, target) + self.bce_weight * self.bce(pred, target)
+        dice_bce_loss = self.dice_bce(pred, target)
+        
+        if self.current_epoch < 10:
+            # Pure Dice+BCE for first 10 epochs
+            return dice_bce_loss
+        elif self.current_epoch < 30:
+            # Gradually introduce Focal Tversky
+            ft_weight = (self.current_epoch - 10) / 20 * 0.7  # 0 to 0.7
+            ft_loss = self.focal_tversky(pred, target)
+            return (1 - ft_weight) * dice_bce_loss + ft_weight * ft_loss
+        else:
+            # Full Focal Tversky blend
+            ft_loss = self.focal_tversky(pred, target)
+            return 0.3 * dice_bce_loss + 0.7 * ft_loss
 
 
 class EMA:
     def __init__(self, model, decay=0.999):
-        self.model = model
         self.decay = decay
-        self.shadow = {}
+        self.shadow = {n: p.data.clone() for n, p in model.named_parameters() if p.requires_grad}
         self.backup = {}
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                self.shadow[name] = param.data.clone()
     
-    def update(self):
-        for name, param in self.model.named_parameters():
-            if param.requires_grad:
-                self.shadow[name] = self.decay * self.shadow[name] + (1 - self.decay) * param.data
+    def update(self, model):
+        for n, p in model.named_parameters():
+            if p.requires_grad:
+                self.shadow[n] = self.decay * self.shadow[n] + (1 - self.decay) * p.data
     
-    def apply_shadow(self):
-        for name, param in self.model.named_parameters():
-            if param.requires_grad:
-                self.backup[name] = param.data.clone()
-                param.data = self.shadow[name]
+    def apply(self, model):
+        for n, p in model.named_parameters():
+            if p.requires_grad:
+                self.backup[n] = p.data.clone()
+                p.data = self.shadow[n]
     
-    def restore(self):
-        for name, param in self.model.named_parameters():
-            if param.requires_grad:
-                param.data = self.backup[name]
-
-
-def compute_metrics(pred, target, threshold=0.5):
-    pred_binary = (torch.sigmoid(pred) > threshold).float()
-    smooth = 1e-5
-    tp = (pred_binary * target).sum()
-    fp = (pred_binary * (1 - target)).sum()
-    fn = ((1 - pred_binary) * target).sum()
-    
-    iou = (tp + smooth) / (tp + fp + fn + smooth)
-    dice = (2 * tp + smooth) / (2 * tp + fp + fn + smooth)
-    
-    return {"iou": iou.item(), "dice": dice.item()}
+    def restore(self, model):
+        for n, p in model.named_parameters():
+            if p.requires_grad:
+                p.data = self.backup[n]
 
 
 def train():
-    BATCH_SIZE = 8
-    EPOCHS = 150
-    LR = 3e-4
-    MIN_LR = 1e-6
-    IMAGE_SIZE = 512
-    PATIENCE = 25
-    EMA_DECAY = 0.999
-    
-    DEVICE = torch.device(
-        "mps" if torch.backends.mps.is_available() 
-        else "cuda" if torch.cuda.is_available() 
-        else "cpu"
-    )
-    
+    DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print("=" * 60)
-    print("DiaFootAI Advanced Training")
+    print("DiaFootAI Advanced Training - Focal Tversky with Warmup")
     print("=" * 60)
     print(f"Device: {DEVICE}")
-    print(f"Loss: Focal Tversky + BCE")
-    print(f"EMA Decay: {EMA_DECAY}")
-    print(f"Differential LR: Encoder {LR*0.1:.0e}, Decoder {LR:.0e}")
+    print("Loss Schedule:")
+    print("  Epochs 1-10:  100% Dice+BCE (warmup)")
+    print("  Epochs 11-30: Gradual transition to Focal Tversky")
+    print("  Epochs 31+:   70% Focal Tversky + 30% Dice+BCE")
+    print("EMA: Enabled (0.999)")
+    print("Differential LR: Encoder 1e-5, Decoder 1e-4")
     print("=" * 60)
     
     data_root = Path("data/raw/fuseg/wound-segmentation/data/Foot Ulcer Segmentation Challenge")
+    train_ds = FUSeg2021Dataset(str(data_root), "train", get_training_augmentation(512))
+    val_ds = FUSeg2021Dataset(str(data_root), "validation", get_validation_augmentation(512))
     
-    train_dataset = FUSeg2021Dataset(str(data_root), "train", get_training_augmentation(IMAGE_SIZE))
-    val_dataset = FUSeg2021Dataset(str(data_root), "validation", get_validation_augmentation(IMAGE_SIZE))
-    
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, drop_last=True)
-    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
-    
-    print(f"Train: {len(train_dataset)}, Val: {len(val_dataset)}")
+    train_loader = DataLoader(train_ds, batch_size=8, shuffle=True, num_workers=0, drop_last=True)
+    val_loader = DataLoader(val_ds, batch_size=8, shuffle=False, num_workers=0)
+    print(f"Train: {len(train_ds)}, Val: {len(val_ds)}")
     
     model = SegmentationModel(
         architecture="unetplusplus",
         encoder_name="efficientnet-b4",
         encoder_weights="imagenet",
+        in_channels=3,
         num_classes=1,
     ).to(DEVICE)
     
-    criterion = CombinedLoss()
+    criterion = WarmupFocalTverskyLoss()
     
-    encoder_params = list(model.model.encoder.parameters())
-    decoder_params = list(model.model.decoder.parameters()) + list(model.model.segmentation_head.parameters())
-    
+    enc_params = list(model.model.encoder.parameters())
+    dec_params = list(model.model.decoder.parameters()) + list(model.model.segmentation_head.parameters())
     optimizer = torch.optim.AdamW([
-        {"params": encoder_params, "lr": LR * 0.1},
-        {"params": decoder_params, "lr": LR},
+        {"params": enc_params, "lr": 1e-5},
+        {"params": dec_params, "lr": 1e-4}
     ], weight_decay=1e-4)
-    
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2, eta_min=MIN_LR)
-    ema = EMA(model, decay=EMA_DECAY)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-6)
+    ema = EMA(model)
     
     output_dir = Path("outputs/fuseg_advanced")
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    best_iou = 0
-    patience_counter = 0
-    history = {"train_loss": [], "val_loss": [], "val_iou": [], "val_dice": []}
+    best_iou, patience = 0, 0
     
-    for epoch in range(EPOCHS):
+    for epoch in range(100):
+        criterion.set_epoch(epoch)
+        
+        # Determine current loss mode
+        if epoch < 10:
+            loss_mode = "Dice+BCE"
+        elif epoch < 30:
+            ft_pct = int((epoch - 10) / 20 * 70)
+            loss_mode = f"FT:{ft_pct}%"
+        else:
+            loss_mode = "FT:70%"
+        
         model.train()
         train_loss = 0
-        
-        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
-        for batch in pbar:
-            images = batch["image"].to(DEVICE)
-            masks = batch["mask"].to(DEVICE)
-            
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/100 [{loss_mode}]"):
+            images, masks = batch["image"].to(DEVICE), batch["mask"].to(DEVICE)
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, masks)
             loss.backward()
-            
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-            ema.update()
-            
+            ema.update(model)
             train_loss += loss.item()
-            pbar.set_postfix({"loss": f"{loss.item():.4f}"})
-        
         train_loss /= len(train_loader)
         scheduler.step()
         
-        ema.apply_shadow()
+        ema.apply(model)
         model.eval()
-        
-        val_loss = 0
-        val_iou = 0
-        val_dice = 0
-        
+        val_iou, val_dice, n = 0, 0, 0
         with torch.no_grad():
             for batch in val_loader:
-                images = batch["image"].to(DEVICE)
-                masks = batch["mask"].to(DEVICE)
-                
-                outputs = model(images)
-                loss = criterion(outputs, masks)
-                
-                val_loss += loss.item()
-                metrics = compute_metrics(outputs, masks)
-                val_iou += metrics["iou"]
-                val_dice += metrics["dice"]
-        
-        val_loss /= len(val_loader)
-        val_iou /= len(val_loader)
-        val_dice /= len(val_loader)
-        
-        ema.restore()
-        
-        history["train_loss"].append(train_loss)
-        history["val_loss"].append(val_loss)
-        history["val_iou"].append(val_iou)
-        history["val_dice"].append(val_dice)
+                images, masks = batch["image"].to(DEVICE), batch["mask"].to(DEVICE)
+                pred = torch.sigmoid(model(images))
+                pred_bin = (pred > 0.5).float()
+                smooth = 1e-5
+                inter = (pred_bin * masks).sum()
+                union = pred_bin.sum() + masks.sum() - inter
+                val_iou += ((inter + smooth) / (union + smooth)).item()
+                val_dice += ((2 * inter + smooth) / (pred_bin.sum() + masks.sum() + smooth)).item()
+                n += 1
+        val_iou /= n
+        val_dice /= n
+        ema.restore(model)
         
         lr = optimizer.param_groups[1]["lr"]
-        print(f"Epoch {epoch+1}/{EPOCHS} | train_loss: {train_loss:.4f} | val_loss: {val_loss:.4f} | "
-              f"val_iou: {val_iou:.4f} | val_dice: {val_dice:.4f} | lr: {lr:.2e}")
+        print(f"Epoch {epoch+1} | loss: {train_loss:.4f} | val_iou: {val_iou:.4f} | val_dice: {val_dice:.4f} | lr: {lr:.2e}")
         
         if val_iou > best_iou:
             best_iou = val_iou
-            patience_counter = 0
-            ema.apply_shadow()
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "val_iou": val_iou,
-                "val_dice": val_dice,
-            }, output_dir / "best_model.pt")
-            ema.restore()
-            print(f"  ✅ Saved best model (IoU: {best_iou:.4f})")
+            patience = 0
+            ema.apply(model)
+            torch.save({"epoch": epoch, "model_state_dict": model.state_dict(), "val_iou": val_iou, "val_dice": val_dice}, output_dir / "best_model.pt")
+            ema.restore(model)
+            print(f"  ✅ Saved best (IoU: {best_iou:.4f})")
         else:
-            patience_counter += 1
-            if patience_counter >= PATIENCE:
-                print(f"\n⏹️ Early stopping at epoch {epoch+1}")
+            patience += 1
+            if patience >= 25:
+                print("Early stopping!")
                 break
     
-    print("\n" + "=" * 60)
-    print(f"Training Complete! Best IoU: {best_iou:.4f}")
-    print(f"Model saved to: {output_dir / 'best_model.pt'}")
-    print("=" * 60)
-    
-    with open(output_dir / "history.json", "w") as f:
-        json.dump(history, f, indent=2)
+    print(f"\nDone! Best IoU: {best_iou:.4f}")
+    print(f"Model: {output_dir}/best_model.pt")
 
 
 if __name__ == "__main__":

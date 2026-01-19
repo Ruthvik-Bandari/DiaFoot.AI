@@ -1,22 +1,9 @@
 """
-Data Augmentation Module (Albumentations 2.x Compatible)
-=========================================================
+Data Augmentation Module
+=========================
 
 State-of-the-art augmentation pipelines for diabetic foot wound images.
 Includes skin tone diversity augmentation for Fitzpatrick scale fairness.
-
-Updated for Albumentations 2.x API (January 2025):
-- PadIfNeeded: value -> fill, mask_value -> fill_mask
-- ShiftScaleRotate: replaced with Affine
-- OpticalDistortion: removed shift_limit (not valid in 2.x)
-- GaussNoise: var_limit -> std_range (different distribution)
-- ImageCompression: quality_lower/quality_upper -> quality_range
-- CoarseDropout: complete parameter overhaul
-  - min_holes/max_holes -> num_holes_range
-  - min_height/max_height -> hole_height_range (now fractions 0-1)
-  - min_width/max_width -> hole_width_range (now fractions 0-1)
-  - fill_value -> fill
-  - mask_fill_value -> fill_mask
 
 Author: Ruthvik
 """
@@ -43,15 +30,6 @@ def get_training_augmentation(
     - Skin tone diversity augmentation
     - Quality simulation (noise, blur, compression)
     - CutOut for regularization
-    
-    Args:
-        image_size: Target image size (default 512)
-        mean: Normalization mean values
-        std: Normalization std values
-        config: Optional config dictionary for customization
-    
-    Returns:
-        Albumentations Compose pipeline
     """
     transforms = [
         # Resize with aspect ratio preservation
@@ -60,41 +38,29 @@ def get_training_augmentation(
             min_height=image_size,
             min_width=image_size,
             border_mode=cv2.BORDER_CONSTANT,
-            fill=0,           # Updated from 'value'
-            fill_mask=0       # Updated from 'mask_value'
+            value=0,
+            mask_value=0
         ),
         
         # === Geometric Transforms ===
         A.RandomRotate90(p=0.5),
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.3),
-        
-        # Replaced ShiftScaleRotate with Affine (2.x API)
-        A.Affine(
-            scale=(0.8, 1.2),
-            translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-            rotate=(-30, 30),
-            shear=(-5, 5),
+        A.ShiftScaleRotate(
+            shift_limit=0.1,
+            scale_limit=0.2,
+            rotate_limit=30,
             border_mode=cv2.BORDER_CONSTANT,
             p=0.7
         ),
-        
         A.OneOf([
             A.ElasticTransform(
                 alpha=120,
                 sigma=120 * 0.05,
                 p=1.0
             ),
-            A.GridDistortion(
-                num_steps=5,
-                distort_limit=0.3,
-                p=1.0
-            ),
-            # Removed shift_limit - not valid in Albumentations 2.x
-            A.OpticalDistortion(
-                distort_limit=0.3,
-                p=1.0
-            ),
+            A.GridDistortion(p=1.0),
+            A.OpticalDistortion(distort_limit=0.3, shift_limit=0.1, p=1.0),
         ], p=0.3),
         
         # === Skin Tone Diversity (Fitzpatrick Scale) ===
@@ -158,10 +124,7 @@ def get_training_augmentation(
         # === Quality/Noise Simulation ===
         # Simulates real-world smartphone capture conditions
         A.OneOf([
-            # Updated: var_limit -> std_range (Albumentations 2.x)
-            # std_range uses standard deviation (0-1 range typical)
-            # Old var_limit=(10, 50) roughly maps to std_range=(0.02, 0.1)
-            A.GaussNoise(std_range=(0.02, 0.1), p=1.0),
+            A.GaussNoise(var_limit=(10.0, 50.0), p=1.0),
             A.ISONoise(color_shift=(0.01, 0.05), intensity=(0.1, 0.5), p=1.0),
             A.MultiplicativeNoise(multiplier=(0.9, 1.1), p=1.0),
         ], p=0.3),
@@ -172,21 +135,18 @@ def get_training_augmentation(
             A.MedianBlur(blur_limit=3, p=1.0),
         ], p=0.2),
         
-        # Updated: quality_lower/quality_upper -> quality_range
-        A.ImageCompression(
-            quality_range=(70, 100),
-            compression_type="jpeg",
-            p=0.3
-        ),
+        A.ImageCompression(quality_lower=70, quality_upper=100, p=0.3),
         
         # === Regularization ===
-        # Updated: Complete CoarseDropout parameter overhaul for 2.x
         A.CoarseDropout(
-            num_holes_range=(1, 8),          # Replaces min_holes/max_holes
-            hole_height_range=(0.02, 0.08),  # Replaces min_height/max_height (now fractions)
-            hole_width_range=(0.02, 0.08),   # Replaces min_width/max_width (now fractions)
-            fill=0,                          # Replaces fill_value
-            fill_mask=0,                     # Replaces mask_fill_value
+            max_holes=8,
+            max_height=32,
+            max_width=32,
+            min_holes=1,
+            min_height=8,
+            min_width=8,
+            fill_value=0,
+            mask_fill_value=0,
             p=0.3
         ),
         
@@ -205,14 +165,6 @@ def get_validation_augmentation(
 ) -> A.Compose:
     """
     Get validation augmentation pipeline (minimal transforms).
-    
-    Args:
-        image_size: Target image size
-        mean: Normalization mean values
-        std: Normalization std values
-    
-    Returns:
-        Albumentations Compose pipeline
     """
     return A.Compose([
         A.LongestMaxSize(max_size=image_size),
@@ -220,8 +172,8 @@ def get_validation_augmentation(
             min_height=image_size,
             min_width=image_size,
             border_mode=cv2.BORDER_CONSTANT,
-            fill=0,
-            fill_mask=0
+            value=0,
+            mask_value=0
         ),
         A.Normalize(mean=mean, std=std),
         ToTensorV2(),
@@ -236,16 +188,6 @@ def get_tta_augmentation(
     """
     Get Test Time Augmentation (TTA) transforms.
     Returns list of transforms for ensemble prediction.
-    
-    Can boost IoU by 1-2% during inference.
-    
-    Args:
-        image_size: Target image size
-        mean: Normalization mean values
-        std: Normalization std values
-    
-    Returns:
-        List of Albumentations Compose pipelines
     """
     base_transform = [
         A.LongestMaxSize(max_size=image_size),
@@ -253,8 +195,8 @@ def get_tta_augmentation(
             min_height=image_size,
             min_width=image_size,
             border_mode=cv2.BORDER_CONSTANT,
-            fill=0,
-            fill_mask=0
+            value=0,
+            mask_value=0
         ),
     ]
     
@@ -271,11 +213,11 @@ def get_tta_augmentation(
         # Vertical flip
         A.Compose(base_transform + [A.VerticalFlip(p=1.0)] + normalize),
         # Rotate 90
-        A.Compose(base_transform + [A.Rotate(limit=(90, 90), p=1.0, border_mode=cv2.BORDER_CONSTANT)] + normalize),
+        A.Compose(base_transform + [A.Rotate(limit=(90, 90), p=1.0)] + normalize),
         # Rotate 180
-        A.Compose(base_transform + [A.Rotate(limit=(180, 180), p=1.0, border_mode=cv2.BORDER_CONSTANT)] + normalize),
+        A.Compose(base_transform + [A.Rotate(limit=(180, 180), p=1.0)] + normalize),
         # Rotate 270
-        A.Compose(base_transform + [A.Rotate(limit=(270, 270), p=1.0, border_mode=cv2.BORDER_CONSTANT)] + normalize),
+        A.Compose(base_transform + [A.Rotate(limit=(270, 270), p=1.0)] + normalize),
         # Slight scale up
         A.Compose(base_transform + [A.RandomScale(scale_limit=(0.1, 0.1), p=1.0)] + normalize),
         # Slight scale down
@@ -289,10 +231,6 @@ class MixUpCutMix:
     """
     MixUp and CutMix augmentation for classification/segmentation.
     Improves model generalization and calibration.
-    
-    References:
-    - MixUp: https://arxiv.org/abs/1710.09412
-    - CutMix: https://arxiv.org/abs/1905.04899
     """
     
     def __init__(
@@ -302,13 +240,6 @@ class MixUpCutMix:
         mixup_prob: float = 0.5,
         cutmix_prob: float = 0.5,
     ):
-        """
-        Args:
-            mixup_alpha: Beta distribution parameter for MixUp
-            cutmix_alpha: Beta distribution parameter for CutMix
-            mixup_prob: Probability of applying MixUp
-            cutmix_prob: Probability of applying CutMix
-        """
         self.mixup_alpha = mixup_alpha
         self.cutmix_alpha = cutmix_alpha
         self.mixup_prob = mixup_prob
@@ -322,11 +253,6 @@ class MixUpCutMix:
     ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray], float]:
         """
         Apply MixUp or CutMix augmentation.
-        
-        Args:
-            images: Batch of images (B, C, H, W)
-            masks: Batch of masks (B, H, W) - optional
-            labels: Batch of labels - optional
         
         Returns:
             images: Augmented images
@@ -403,9 +329,6 @@ def get_augmentation_from_config(config: Dict[str, Any], mode: str = "train") ->
     Args:
         config: Configuration dictionary from YAML
         mode: One of "train", "val", or "test"
-    
-    Returns:
-        Albumentations Compose pipeline
     """
     aug_config = config.get("augmentation", {})
     dataset_config = config.get("dataset", {}).get("image", {})
@@ -420,155 +343,3 @@ def get_augmentation_from_config(config: Dict[str, Any], mode: str = "train") ->
         return get_validation_augmentation(image_size, mean, std)
     else:
         return get_validation_augmentation(image_size, mean, std)
-
-
-# =============================================================================
-# Additional utility functions
-# =============================================================================
-
-def get_light_augmentation(
-    image_size: int = 512,
-    mean: List[float] = [0.485, 0.456, 0.406],
-    std: List[float] = [0.229, 0.224, 0.225],
-) -> A.Compose:
-    """
-    Light augmentation pipeline for fine-tuning or when data is diverse.
-    Less aggressive than full training augmentation.
-    
-    Args:
-        image_size: Target image size
-        mean: Normalization mean values
-        std: Normalization std values
-    
-    Returns:
-        Albumentations Compose pipeline
-    """
-    return A.Compose([
-        A.LongestMaxSize(max_size=image_size),
-        A.PadIfNeeded(
-            min_height=image_size,
-            min_width=image_size,
-            border_mode=cv2.BORDER_CONSTANT,
-            fill=0,
-            fill_mask=0
-        ),
-        A.HorizontalFlip(p=0.5),
-        A.VerticalFlip(p=0.2),
-        A.Affine(
-            scale=(0.9, 1.1),
-            rotate=(-15, 15),
-            border_mode=cv2.BORDER_CONSTANT,
-            p=0.5
-        ),
-        A.RandomBrightnessContrast(
-            brightness_limit=0.1,
-            contrast_limit=0.1,
-            p=0.3
-        ),
-        A.Normalize(mean=mean, std=std),
-        ToTensorV2(),
-    ])
-
-
-def inverse_tta_predictions(
-    predictions: List[np.ndarray],
-    original_shape: Tuple[int, int]
-) -> List[np.ndarray]:
-    """
-    Inverse TTA transforms to align predictions back to original orientation.
-    
-    Args:
-        predictions: List of predictions from TTA transforms
-        original_shape: Original image shape (H, W)
-    
-    Returns:
-        List of aligned predictions ready for averaging
-    """
-    aligned = []
-    
-    # Original - no change needed
-    aligned.append(predictions[0])
-    
-    # Horizontal flip - flip back
-    aligned.append(np.fliplr(predictions[1]))
-    
-    # Vertical flip - flip back
-    aligned.append(np.flipud(predictions[2]))
-    
-    # Rotate 90 - rotate back -90
-    aligned.append(np.rot90(predictions[3], k=-1))
-    
-    # Rotate 180 - rotate back -180
-    aligned.append(np.rot90(predictions[4], k=-2))
-    
-    # Rotate 270 - rotate back -270
-    aligned.append(np.rot90(predictions[5], k=-3))
-    
-    # Scale transforms - resize back to original
-    for i in [6, 7]:
-        if predictions[i].shape[:2] != original_shape:
-            aligned.append(cv2.resize(
-                predictions[i],
-                (original_shape[1], original_shape[0]),
-                interpolation=cv2.INTER_LINEAR
-            ))
-        else:
-            aligned.append(predictions[i])
-    
-    return aligned
-
-
-if __name__ == "__main__":
-    """Test that all transforms work without warnings."""
-    import warnings
-    
-    print("Testing Albumentations 2.x API transforms...")
-    print("=" * 60)
-    
-    # Capture warnings
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        
-        # Create dummy data
-        image = np.random.randint(0, 256, (256, 256, 3), dtype=np.uint8)
-        mask = np.random.randint(0, 2, (256, 256), dtype=np.uint8)
-        
-        # Test each augmentation pipeline
-        transforms_to_test = [
-            ("Training", get_training_augmentation(256)),
-            ("Validation", get_validation_augmentation(256)),
-            ("Light", get_light_augmentation(256)),
-        ]
-        
-        for name, transform in transforms_to_test:
-            try:
-                result = transform(image=image, mask=mask)
-                print(f"✅ {name} augmentation: OK")
-                print(f"   Image shape: {result['image'].shape}, Mask shape: {result['mask'].shape}")
-            except Exception as e:
-                print(f"❌ {name} augmentation: FAILED - {e}")
-        
-        # Test TTA
-        tta_transforms = get_tta_augmentation(256)
-        print(f"✅ TTA: {len(tta_transforms)} transforms created")
-        
-        # Test MixUp/CutMix
-        mixup_cutmix = MixUpCutMix()
-        batch_images = np.random.randn(4, 3, 256, 256).astype(np.float32)
-        batch_masks = np.random.randint(0, 2, (4, 256, 256)).astype(np.float32)
-        aug_images, aug_masks, _, lam = mixup_cutmix(batch_images, batch_masks)
-        print(f"✅ MixUp/CutMix: OK (lambda={lam:.3f})")
-        
-        # Check for deprecation warnings
-        deprecation_warnings = [warning for warning in w if issubclass(warning.category, DeprecationWarning)]
-        user_warnings = [warning for warning in w if "not valid" in str(warning.message).lower()]
-        
-        if deprecation_warnings or user_warnings:
-            print("\n⚠️  Warnings detected:")
-            for warning in deprecation_warnings + user_warnings:
-                print(f"   - {warning.message}")
-        else:
-            print("\n✅ No deprecation warnings!")
-    
-    print("=" * 60)
-    print("All transforms tested successfully!")
