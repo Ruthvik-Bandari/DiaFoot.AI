@@ -5,10 +5,9 @@
 [![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org)
+[![Model](https://img.shields.io/badge/🤗%20Model-HuggingFace-yellow.svg)](https://huggingface.co/RuthvikBandari/DiaFootAI)
 
 A state-of-the-art deep learning system for automatic segmentation of diabetic foot ulcers, achieving **85.58% IoU** — surpassing the published MICCAI FUSeg 2021 challenge winner by **+5.28%**.
-
-![Model Performance](assets/performance_banner.png)
 
 ## Highlights
 
@@ -73,8 +72,8 @@ A state-of-the-art deep learning system for automatic segmentation of diabetic f
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/DiaFootAI.git
-cd DiaFootAI
+git clone https://github.com/Ruthvik-Bandari/DiaFoot.AI.git
+cd DiaFoot.AI
 
 # Create virtual environment
 python -m venv venv
@@ -84,6 +83,21 @@ source venv/bin/activate  # Linux/Mac
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+## Model Weights
+
+Download the pretrained model from [Hugging Face](https://huggingface.co/RuthvikBandari/DiaFootAI):
+
+```bash
+# Option 1: Using huggingface_hub
+pip install huggingface_hub
+python -c "from huggingface_hub import hf_hub_download; hf_hub_download('RuthvikBandari/DiaFootAI', 'best_model.pt', local_dir='outputs/fuseg_simple')"
+
+# Option 2: Direct download
+wget https://huggingface.co/RuthvikBandari/DiaFootAI/resolve/main/best_model.pt -P outputs/fuseg_simple/
+```
+
+Or download directly: [best_model.pt](https://huggingface.co/RuthvikBandari/DiaFootAI/resolve/main/best_model.pt)
 
 ## Quick Start
 
@@ -161,7 +175,7 @@ python scripts/train_crossval.py \
 ## Project Structure
 
 ```
-DiaFootAI/
+DiaFoot.AI/
 ├── src/
 │   ├── models/
 │   │   └── segmentation.py          # U-Net++ model
@@ -272,7 +286,7 @@ If you use this work in your research, please cite:
   title = {DiaFoot.AI: Deep Learning for Diabetic Foot Ulcer Segmentation},
   year = {2025},
   publisher = {GitHub},
-  url = {https://github.com/yourusername/DiaFootAI},
+  url = {https://github.com/Ruthvik-Bandari/DiaFoot.AI},
   note = {Achieves 85.58\% IoU, surpassing MICCAI FUSeg 2021 winner by +5.28\%}
 }
 ```
@@ -291,7 +305,7 @@ This project is licensed under the **Creative Commons Attribution-NonCommercial 
 
 See [LICENSE](LICENSE) for details.
 
-For commercial licensing, contact: [your-email@northeastern.edu]
+For commercial licensing, contact: bandari.r@northeastern.edu
 
 ## Acknowledgments
 
@@ -305,9 +319,9 @@ For commercial licensing, contact: [your-email@northeastern.edu]
 Master's in Applied Artificial Intelligence  
 Northeastern University, College of Professional Studies
 
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Email: your-email@northeastern.edu
+- GitHub: [@Ruthvik-Bandari](https://github.com/Ruthvik-Bandari)
+- LinkedIn: [Ruthvik Bandari](https://linkedin.com/in/ruthvik-bandari)
+- Email: bandari.r@northeastern.edu
 
 ---
 
