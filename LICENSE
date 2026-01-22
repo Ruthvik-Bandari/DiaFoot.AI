@@ -38,24 +38,24 @@ ATTRIBUTION REQUIREMENTS
 
 When using this work, you must provide the following attribution:
 
-  1. Credit the author: Ruthvik Bandari
-  2. Link to the original repository: https://github.com/yourusername/DiaFootAI
+  1. Credit the author: Ruthvik Nath Bandari
+  2. Link to the original repository: https://github.com/Ruthvik-Bandari/DiaFoot.AI.git
   3. Indicate if modifications were made
   4. Include a copy of this license or a link to it
 
 Example attribution:
 
-  "DiaFoot.AI by Ruthvik Bandari (https://github.com/yourusername/DiaFootAI), 
+  "DiaFoot.AI by Ruthvik Bandari (https://github.com/Ruthvik-Bandari/DiaFoot.AI.git), 
   licensed under CC BY-NC 4.0. [Modified/Unmodified]"
 
 For academic use, please cite:
 
   @software{bandari2025diafootai,
-    author = {Bandari, Ruthvik},
+    author = {Bandari, Ruthvik Nath},
     title = {DiaFoot.AI: Deep Learning for Diabetic Foot Ulcer Segmentation},
     year = {2025},
     publisher = {GitHub},
-    url = {https://github.com/yourusername/DiaFootAI}
+    url = {https://github.com/Ruthvik-Bandari/DiaFoot.AI.git}
   }
 
 ================================================================================
@@ -64,9 +64,9 @@ COMMERCIAL USE
 
 For commercial licensing inquiries, please contact:
 
-  Ruthvik Bandari
-  Email: [your-email@northeastern.edu]
-  LinkedIn: [your-linkedin-profile]
+  Ruthvik Nath Bandari
+  Email: [bandari.ru@northeastern.edu]
+  LinkedIn: [https://www.linkedin.com/in/ruthvik-nath-bandari-908b00247/]
 
 ================================================================================
 
