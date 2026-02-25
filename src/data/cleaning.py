@@ -141,10 +141,14 @@ class DataQualityAuditor:
         }
         if widths:
             stats["width"] = {
-                "min": min(widths), "max": max(widths), "mean": sum(widths) / len(widths),
+                "min": min(widths),
+                "max": max(widths),
+                "mean": sum(widths) / len(widths),
             }
             stats["height"] = {
-                "min": min(heights), "max": max(heights), "mean": sum(heights) / len(heights),
+                "min": min(heights),
+                "max": max(heights),
+                "mean": sum(heights) / len(heights),
             }
             stats["size_kb"] = {
                 "min": round(min(sizes_kb), 1),
