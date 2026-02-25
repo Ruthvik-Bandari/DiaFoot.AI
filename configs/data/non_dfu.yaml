@@ -1,0 +1,20 @@
+# Non-DFU Foot Conditions Dataset (Hard Negatives, target: 2,000-5,000)
+name: non_dfu
+target_count: 3000
+category: non_dfu
+has_masks: partial             # Wound boundary where applicable, labeled "non-DFU"
+sources:
+  - dermnet_foot_subset
+  - fitzpatrick17k_foot_subset
+  - sd198
+  - isic_foot_lesions
+conditions:
+  - callus_corn
+  - blister
+  - bruise_contusion
+  - athletes_foot_tinea
+  - diabetic_dermopathy
+  - minor_cut_scrape
+  - surgical_wound
+  - burn
+raw_dir: data/raw/non_dfu

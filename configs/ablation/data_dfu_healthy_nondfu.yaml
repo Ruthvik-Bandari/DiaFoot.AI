@@ -1,0 +1,3 @@
+# Ablation: data_dfu_healthy_nondfu
+_base_: ../training/baseline.yaml
+experiment_name: ablation-data_dfu_healthy_nondfu

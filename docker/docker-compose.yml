@@ -1,0 +1,16 @@
+# DiaFoot.AI v2 — Docker Compose
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.serve
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../exports:/app/exports:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

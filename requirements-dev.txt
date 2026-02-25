@@ -1,0 +1,11 @@
+# DiaFoot.AI v2 — Dev Dependencies
+-r requirements.txt
+
+ruff==0.15.2
+mypy==1.14.1
+pytest==8.3.4
+pytest-cov==6.0.0
+pre-commit==4.1.0
+ipykernel==6.29.5
+jupyterlab==4.3.5
+nbstripout==0.8.1

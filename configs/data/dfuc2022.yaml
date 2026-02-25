@@ -1,0 +1,10 @@
+# DFUC 2022 Dataset Configuration (4,000 DFU images)
+name: dfuc2022
+source: https://dfu-challenge.github.io/
+num_images: 4000
+category: dfu
+has_masks: true
+has_wagner_grades: partial
+image_format: jpg
+mask_format: png
+raw_dir: data/raw/dfu/dfuc2022

@@ -1,0 +1,3 @@
+# Ablation: loss_dice_boundary
+_base_: ../training/baseline.yaml
+experiment_name: ablation-loss_dice_boundary

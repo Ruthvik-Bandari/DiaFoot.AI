@@ -1,0 +1,24 @@
+# DiaFoot.AI v2 — Inference Container (ONNX Runtime, slim)
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN pip install uv
+
+COPY requirements.txt pyproject.toml ./
+RUN uv pip install --system \
+    fastapi[standard]==0.133.0 \
+    uvicorn[standard]==0.34.0 \
+    onnxruntime==1.21.0 \
+    pydantic==2.10.6 \
+    Pillow==11.1.0 \
+    numpy==2.2.3 \
+    pyyaml==6.0.2
+
+COPY src/deploy/ src/deploy/
+COPY src/inference/ src/inference/
+COPY configs/deploy/ configs/deploy/
+COPY exports/ exports/
+
+EXPOSE 8000
+CMD ["uvicorn", "src.deploy.app:app", "--host", "0.0.0.0", "--port", "8000"]

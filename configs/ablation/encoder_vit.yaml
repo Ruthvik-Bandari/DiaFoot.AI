@@ -1,0 +1,3 @@
+# Ablation: encoder_vit
+_base_: ../training/baseline.yaml
+experiment_name: ablation-encoder_vit

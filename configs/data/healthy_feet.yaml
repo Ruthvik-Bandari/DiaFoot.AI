@@ -1,0 +1,15 @@
+# Healthy Feet Dataset Configuration (target: 2,000-5,000)
+name: healthy_feet
+target_count: 3000
+category: healthy
+has_masks: false               # All-zero masks (no wound)
+sources:
+  - stony_brook_foot_dataset
+  - public_podiatry_databases
+  - curated_web_scraping
+requirements:
+  diverse_skin_tones: true     # Fitzpatrick I-VI
+  multiple_angles: true        # dorsal, plantar, lateral
+  varying_lighting: true
+  includes_diabetic_no_ulcer: true
+raw_dir: data/raw/healthy

@@ -1,0 +1,3 @@
+# Ablation: loss_focal_tversky
+_base_: ../training/baseline.yaml
+experiment_name: ablation-loss_focal_tversky

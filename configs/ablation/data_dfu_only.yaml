@@ -1,0 +1,7 @@
+# Ablation: DFU-only data (no healthy/non-DFU — reproduces v1 bias)
+_base_: ../training/baseline.yaml
+experiment_name: ablation-data-dfu-only
+data:
+  dataset: dfu_only
+  categories: [dfu]
+  # No healthy feet, no non-DFU — tests impact of negative examples

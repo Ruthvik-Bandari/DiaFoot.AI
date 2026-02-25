@@ -1,0 +1,10 @@
+# FUSeg Dataset Configuration (1,210 DFU images)
+name: fuseg
+source: https://github.com/uwm-bigdata/wound-segmentation/tree/master/data/Foot%20Ulcer%20Segmentation%20Challenge
+num_images: 1210
+category: dfu
+has_masks: true
+has_wagner_grades: false       # Must be annotated in Phase 1
+image_format: png
+mask_format: png
+raw_dir: data/raw/dfu/fuseg

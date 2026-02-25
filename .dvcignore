@@ -1,0 +1,9 @@
+# DVC ignore — exclude from DVC tracking
+.git
+.github
+.venv
+__pycache__
+*.pyc
+logs/
+wandb/
+.ipynb_checkpoints

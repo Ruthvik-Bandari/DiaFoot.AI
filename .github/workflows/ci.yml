@@ -1,0 +1,66 @@
+# DiaFoot.AI v2 — CI Pipeline
+name: CI
+
+on:
+  push:
+    branches: [main, v2-rebuild]
+  pull_request:
+    branches: [main, v2-rebuild]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - name: Ruff lint
+        run: uvx ruff@0.15.2 check src/ tests/ scripts/
+      - name: Ruff format check
+        run: uvx ruff@0.15.2 format --check src/ tests/ scripts/
+
+  type-check:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - name: Install deps & type-check
+        run: |
+          uv venv
+          uv pip install mypy pydantic types-PyYAML
+          source .venv/bin/activate
+          mypy src/ --config-file pyproject.toml --ignore-missing-imports
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - name: Install & test
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
+          source .venv/bin/activate
+          pytest tests/ -m "not gpu and not slow" --tb=short -q
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/

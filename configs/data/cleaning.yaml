@@ -1,0 +1,19 @@
+# Data Quality Thresholds (CleanVision + Cleanlab)
+cleanvision:
+  blurry_threshold: 0.3
+  dark_threshold: 0.05
+  light_threshold: 0.95
+  duplicate_hash_threshold: 0.95
+  near_duplicate_threshold: 0.90
+  low_information_threshold: 0.15
+  odd_aspect_ratio_threshold: 3.0
+  odd_size_threshold: [64, 64]  # Min size
+
+cleanlab:
+  label_confidence_threshold: 0.5
+  outlier_threshold: 0.3
+  auto_remove: false           # Always manual review first
+
+manual_review:
+  top_flagged_per_category: 50  # Review top-50 flagged images per category
+  categories: [remove, re_annotate, keep]

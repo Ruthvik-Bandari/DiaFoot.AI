@@ -1,0 +1,32 @@
+# Combined Multi-Class Dataset Configuration
+name: combined
+categories:
+  dfu:
+    configs: [fuseg, dfuc2022]
+    target_count: 5000-15000
+  healthy:
+    configs: [healthy_feet]
+    target_count: 2000-5000
+  non_dfu:
+    configs: [non_dfu]
+    target_count: 2000-5000
+
+splits:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  stratify_by:
+    - ita_category            # Skin tone balance
+    - class_label             # healthy / non-DFU / DFU
+    - wagner_grade            # Within DFU class
+  patient_aware: true         # No patient overlap across splits
+
+preprocessing:
+  image_size: [512, 512]
+  normalization: imagenet     # mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+
+class_mapping:
+  0: background
+  1: healthy_skin
+  2: non_dfu_condition
+  3: dfu_wound

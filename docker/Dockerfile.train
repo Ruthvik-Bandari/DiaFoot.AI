@@ -1,0 +1,24 @@
+# DiaFoot.AI v2 — Training Container (H100 GPU)
+FROM nvcr.io/nvidia/pytorch:24.12-py3
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast package management
+RUN pip install uv
+
+# Copy dependency files first (Docker cache layer)
+COPY requirements.txt pyproject.toml ./
+RUN uv pip install --system -r requirements.txt
+
+# Copy source code
+COPY . .
+
+# Install project
+RUN uv pip install --system -e .
+
+ENTRYPOINT ["python", "scripts/train.py"]

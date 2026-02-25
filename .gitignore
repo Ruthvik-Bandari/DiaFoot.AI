@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Data (DVC-tracked, not git)
+data/raw/
+data/cleaned/
+data/processed/
+data/splits/
+data/synthetic/
+!data/metadata/
+
+# Checkpoints & Exports
+checkpoints/
+exports/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+
+# Logs
+logs/
+wandb/
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.secrets.baseline
+
+# DVC cache
+.dvc/cache/
+.dvc/tmp/
+
+# Coverage
+htmlcov/
+.coverage

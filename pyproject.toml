@@ -1,0 +1,236 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "diafootai"
+version = "2.0.0"
+description = "Production-grade Diabetic Foot Ulcer Detection, Segmentation & Wagner Staging"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.14"
+authors = [{ name = "Ruthvik Bandari", email = "bandari.r@northeastern.edu" }]
+keywords = [
+    "diabetic-foot-ulcer",
+    "medical-imaging",
+    "wound-segmentation",
+    "deep-learning",
+    "computer-vision",
+    "pytorch",
+    "clinical-ai",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+]
+
+# ── Core Dependencies (pinned to latest verified Feb 2026) ──────────────────
+dependencies = [
+    # Deep Learning — PyTorch 2.10.0 (Jan 2026), BFloat16 native on H100
+    "torch>=2.10.0,<2.11",
+    "torchvision>=0.25.0,<0.26",
+    "torchaudio>=2.10.0,<2.11",
+
+    # Medical Imaging — MONAI 1.5.2 (Jan 2026)
+    "monai[all]>=1.5.2,<1.6",
+
+    # 2D Segmentation — SMP 0.5.0 (Aug 2025), 12 archs + 800+ encoders via timm
+    "segmentation-models-pytorch>=0.5.0,<0.6",
+
+    # Vision Backbone & Pretrained Weights
+    "timm>=1.0.0,<2.0",
+
+    # Augmentation — MIT-licensed v1.x only (v2.0+ is AGPL, avoid)
+    "albumentations>=1.4.0,<2.0",
+
+    # Data Quality & Label Audit
+    "cleanvision>=0.3.0,<0.4",
+    "cleanlab>=2.6.0,<3.0",
+
+    # Experiment Tracking
+    "wandb>=0.19.0,<1.0",
+
+    # Inference & Export
+    "onnxruntime>=1.20.0,<2.0",
+    "onnx>=1.17.0,<2.0",
+
+    # API & Serving — FastAPI 0.133.0 (Feb 24, 2026)
+    "fastapi[standard]>=0.133.0",
+    "pydantic>=2.10.0,<3.0",
+    "uvicorn[standard]>=0.34.0",
+
+    # Scientific & Image Processing
+    "numpy>=2.0.0,<3.0",
+    "scipy>=1.14.0,<2.0",
+    "scikit-learn>=1.6.0,<2.0",
+    "scikit-image>=0.24.0,<1.0",
+    "opencv-python-headless>=4.11.0",
+    "Pillow>=11.0.0",
+    "SimpleITK>=2.4.0",
+
+    # Test-Time Augmentation
+    "ttach>=0.0.3",
+
+    # Metrics
+    "torchmetrics>=1.6.0,<2.0",
+
+    # Visualization
+    "matplotlib>=3.10.0",
+    "seaborn>=0.13.0",
+
+    # Configuration & CLI
+    "pyyaml>=6.0.0",
+    "rich>=13.9.0",
+    "typer>=0.15.0",
+
+    # Data Versioning
+    "dvc[s3]>=3.56.0,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.15.2",                # Latest Feb 2026, replaces black+isort+flake8
+    "mypy>=1.14.0",
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "pre-commit>=4.0.0",
+    "ipykernel>=6.29.0",
+    "jupyterlab>=4.3.0",
+    "nbstripout>=0.8.0",
+]
+demo = [
+    "gradio>=5.12.0",
+    "streamlit>=1.41.0",
+]
+registry = [
+    "mlflow>=2.20.0,<3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Ruthvik-Bandari/DiaFoot.AI"
+Repository = "https://github.com/Ruthvik-Bandari/DiaFoot.AI"
+Issues = "https://github.com/Ruthvik-Bandari/DiaFoot.AI/issues"
+
+[project.scripts]
+diafootai-train = "scripts.train:main"
+diafootai-eval = "scripts.evaluate:main"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Tool Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+fix = true
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "S",      # flake8-bandit (security)
+    "A",      # flake8-builtins
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "T20",    # flake8-print
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "RUF",    # Ruff-specific rules
+    "PT",     # flake8-pytest-style
+    "D",      # pydocstyle
+    "ANN",    # flake8-annotations
+]
+ignore = [
+    "D100",   # Missing module docstring (too noisy early on)
+    "D104",   # Missing public package docstring
+    "ANN101", # Missing type annotation for `self`
+    "ANN102", # Missing type annotation for `cls`
+    "S101",   # Use of `assert` — needed in tests
+    "D203",   # Conflicts with D211
+    "D213",   # Conflicts with D212
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "ANN", "D"]
+"notebooks/**/*.py" = ["T20", "ANN", "D"]
+"scripts/**/*.py" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "albumentations.*",
+    "cv2.*",
+    "monai.*",
+    "segmentation_models_pytorch.*",
+    "cleanvision.*",
+    "cleanlab.*",
+    "ttach.*",
+    "wandb.*",
+    "SimpleITK.*",
+    "timm.*",
+    "onnxruntime.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "-q",
+    "--cov=src",
+    "--cov-report=term-missing",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "gpu: marks tests that require GPU",
+    "integration: marks integration tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pkg_resources.*",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*", "notebooks/*", "scripts/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

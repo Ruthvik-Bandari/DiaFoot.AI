@@ -1,0 +1,8 @@
+# U-Net++ Baseline (single-task segmentation)
+architecture: unetpp
+encoder_name: efficientnet-b4
+encoder_weights: imagenet
+in_channels: 3
+classes: 4
+decoder_attention_type: scse
+deep_supervision: true

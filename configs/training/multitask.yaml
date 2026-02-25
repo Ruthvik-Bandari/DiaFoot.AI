@@ -1,0 +1,73 @@
+# DiaFoot.AI v2 — Multi-Task Training (Classify → Segment → Stage)
+seed: 42
+project_name: DiaFootAI-v2
+experiment_name: multitask-unetpp-effb4
+
+data:
+  dataset: combined
+  root_dir: data/processed
+  splits_dir: data/splits
+  image_size: [512, 512]
+  num_classes: 4
+  batch_size: 24             # Slightly smaller for multi-head memory
+  num_workers: 16
+  pin_memory: true
+  persistent_workers: true
+
+model:
+  architecture: unetpp_multitask
+  encoder_name: efficientnet-b4
+  encoder_weights: imagenet
+  in_channels: 3
+  segmentation_classes: 4
+  classification_classes: 3  # Healthy | Non-DFU | DFU
+  staging_classes: 6         # Wagner 0-5
+  decoder_attention_type: pscse
+  deep_supervision: true
+
+training:
+  epochs: 100
+  precision: bf16-mixed
+  compile: true
+  compile_mode: reduce-overhead
+  optimizer:
+    name: adamw
+    lr: 1.0e-4
+    weight_decay: 1.0e-2
+  scheduler:
+    name: cosine_annealing
+    T_max: 100
+    warmup_epochs: 10
+  multitask:
+    task_weights:
+      classification: 1.0
+      segmentation: 2.0
+      staging: 1.0
+    dynamic_weighting: gradnorm  # gradnorm | uncertainty | fixed
+    curriculum:
+      classifier_warmup_epochs: 10
+      segmentation_unfreeze_epoch: 10
+      staging_unfreeze_epoch: 20
+  loss:
+    segmentation: dice_boundary
+    classification: focal
+    staging: label_smoothing_ce
+    label_smoothing: 0.1
+  ema:
+    enabled: true
+    decay: 0.999
+  gradient_clip: 1.0
+  gradient_accumulation_steps: 2
+
+evaluation:
+  metrics: [dice, iou, hd95, nsd, accuracy, f1, auroc, wagner_accuracy]
+
+logging:
+  wandb:
+    project: DiaFootAI-v2
+    entity: null
+    log_model: true
+
+hardware:
+  tf32: true
+  cudnn_benchmark: true

@@ -1,0 +1,10 @@
+# FastAPI Deployment Configuration
+api:
+  host: 0.0.0.0
+  port: 8000
+  workers: 4
+  cors_origins: ["*"]
+  max_image_size_mb: 20
+  rate_limit: 100             # requests per minute
+  model_dir: exports/
+  log_level: info

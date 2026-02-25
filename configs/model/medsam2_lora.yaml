@@ -1,0 +1,13 @@
+# MedSAM2 + LoRA Fine-Tuning
+architecture: medsam2_lora
+pretrained: medsam2_vit_h     # Load MedSAM2 pretrained weights
+lora:
+  rank: 8
+  alpha: 16
+  target_modules: [q_proj, v_proj]
+  dropout: 0.05
+decoder:
+  freeze: false               # Fully fine-tune mask decoder
+prompt:
+  type: auto_bbox             # Auto bounding box from mask annotations
+  class_conditioned: true     # Embed Wagner grade as text prompt

@@ -1,0 +1,16 @@
+# U-Net++ Multi-Task (classify + segment + stage)
+architecture: unetpp_multitask
+encoder_name: efficientnet-b4
+encoder_weights: imagenet
+in_channels: 3
+segmentation_classes: 4
+classification_classes: 3    # Healthy | Non-DFU | DFU
+staging_classes: 6           # Wagner 0-5
+decoder_attention_type: pscse
+deep_supervision: true
+classification_head:
+  dropout: 0.3
+  pooling: gap               # Global Average Pooling
+staging_head:
+  dropout: 0.3
+  input: roi_pooled           # Features from predicted wound region

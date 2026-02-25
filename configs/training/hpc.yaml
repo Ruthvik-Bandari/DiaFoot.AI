@@ -1,0 +1,26 @@
+# DiaFoot.AI v2 — H100 HPC-Specific Settings
+# Merge with any training config: --config configs/training/baseline.yaml --override configs/training/hpc.yaml
+
+hardware:
+  precision: bf16-mixed       # Native BFloat16 on H100 — no GradScaler needed
+  compile: true
+  compile_mode: reduce-overhead
+  compile_backend: inductor
+  tf32: true                  # Free 3x speedup on matmuls
+  cudnn_benchmark: true       # Auto-tune conv algorithms
+  deterministic: false
+
+dataloader:
+  num_workers: 16             # Saturate CPU-GPU pipeline
+  pin_memory: true
+  persistent_workers: true    # Avoid worker restart overhead
+  prefetch_factor: 4
+
+optimization:
+  batch_size_single_gpu: 32   # H100 80GB VRAM at 512x512
+  batch_size_ddp_per_gpu: 32  # Scale linearly across GPUs
+  gradient_accumulation: 1    # Increase if OOM
+
+distributed:
+  backend: nccl
+  find_unused_parameters: false

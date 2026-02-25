@@ -1,0 +1,3 @@
+# Ablation: attention_pscse
+_base_: ../training/baseline.yaml
+experiment_name: ablation-attention_pscse

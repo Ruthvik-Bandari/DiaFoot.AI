@@ -1,0 +1,56 @@
+# DiaFoot.AI v2 — Advanced Full Pipeline Config (Multi-GPU DDP)
+seed: 42
+project_name: DiaFootAI-v2
+experiment_name: advanced-full-pipeline
+
+data:
+  dataset: combined
+  root_dir: data/processed
+  splits_dir: data/splits
+  image_size: [512, 512]
+  num_classes: 4
+  batch_size: 64
+  num_workers: 16
+  pin_memory: true
+  persistent_workers: true
+
+model:
+  architecture: unetpp_multitask
+  encoder_name: efficientnet-b7
+  encoder_weights: imagenet
+  in_channels: 3
+  segmentation_classes: 4
+  classification_classes: 3
+  staging_classes: 6
+  decoder_attention_type: pscse
+  deep_supervision: true
+  boundary_refinement: true
+
+training:
+  epochs: 150
+  precision: bf16-mixed
+  compile: true
+  distributed: ddp
+  optimizer:
+    name: adamw
+    lr: 3.0e-4
+    weight_decay: 1.0e-2
+  scheduler:
+    name: cosine_annealing
+    T_max: 150
+    warmup_epochs: 15
+  loss:
+    segmentation: dice_boundary
+    classification: focal
+    staging: label_smoothing_ce
+  ema:
+    enabled: true
+    decay: 0.9995
+  gradient_clip: 1.0
+  cross_validation:
+    enabled: true
+    folds: 5
+
+hardware:
+  tf32: true
+  cudnn_benchmark: true

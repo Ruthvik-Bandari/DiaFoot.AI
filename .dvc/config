@@ -1,0 +1,7 @@
+[core]
+    autostage = true
+    analytics = false
+['remote "storage"']
+    url = s3://diafootai-data
+    # Configure with: dvc remote modify storage access_key_id <KEY>
+    # Or use environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY

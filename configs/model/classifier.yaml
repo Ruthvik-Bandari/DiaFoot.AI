@@ -1,0 +1,10 @@
+# Triage Classifier (Gateway — segmentation only runs if DFU detected)
+architecture: classifier
+backbone: efficientnet_v2_m
+pretrained: imagenet
+num_classes: 3               # Healthy | Non-DFU | DFU
+head:
+  pooling: gap
+  dropout: 0.3
+  hidden_dim: 512
+confidence_threshold: 0.95   # Skip segmentation if Healthy > 95%

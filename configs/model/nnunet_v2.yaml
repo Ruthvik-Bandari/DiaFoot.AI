@@ -1,0 +1,5 @@
+# nnU-Net v2 Multi-Class Configuration
+architecture: nnunet_v2
+auto_configure: true
+task_type: multi_class
+classes: [background, healthy_skin, non_dfu, dfu_grade0, dfu_grade1, dfu_grade2, dfu_grade3, dfu_grade4, dfu_grade5]

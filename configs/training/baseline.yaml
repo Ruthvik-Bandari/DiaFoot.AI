@@ -1,0 +1,71 @@
+# DiaFoot.AI v2 — Baseline Training Configuration
+seed: 42
+project_name: DiaFootAI-v2
+experiment_name: baseline-unetpp-effb4
+
+data:
+  dataset: combined
+  root_dir: data/processed
+  splits_dir: data/splits
+  image_size: [512, 512]
+  num_classes: 4             # background, healthy, non-DFU, DFU
+  batch_size: 32
+  num_workers: 16
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 4
+
+model:
+  architecture: unetpp
+  encoder_name: efficientnet-b4
+  encoder_weights: imagenet
+  in_channels: 3
+  classes: 4
+  decoder_attention_type: scse
+  deep_supervision: true
+
+training:
+  epochs: 100
+  precision: bf16-mixed
+  compile: true
+  compile_mode: reduce-overhead
+  optimizer:
+    name: adamw
+    lr: 1.0e-4
+    weight_decay: 1.0e-2
+    betas: [0.9, 0.999]
+  scheduler:
+    name: cosine_annealing
+    T_max: 100
+    eta_min: 1.0e-7
+    warmup_epochs: 10
+  loss:
+    segmentation: dice_boundary
+    classification: focal
+    boundary_warmup_epoch: 30
+    boundary_alpha_max: 1.0
+  ema:
+    enabled: true
+    decay: 0.999
+  gradient_clip: 1.0
+
+evaluation:
+  metrics: [dice, iou, hd95, nsd, assd, accuracy, f1, auroc]
+  nsd_tolerance_mm: [2, 5]
+
+logging:
+  wandb:
+    project: DiaFootAI-v2
+    entity: null
+    log_model: true
+    log_frequency: 50
+  checkpoint:
+    save_top_k: 3
+    monitor: val/dice
+    mode: max
+    save_dir: checkpoints/
+
+hardware:
+  tf32: true
+  cudnn_benchmark: true
+  deterministic: false

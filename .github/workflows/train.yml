@@ -1,0 +1,40 @@
+# DiaFoot.AI v2 — Training Pipeline Trigger
+# This workflow validates configs and creates a training manifest.
+# Actual GPU training runs on HPC via SLURM (not GitHub Actions).
+
+name: Training Pipeline
+
+on:
+  push:
+    tags: ["train-*"]
+  workflow_dispatch:
+    inputs:
+      config:
+        description: "Training config path (e.g., configs/training/baseline.yaml)"
+        required: true
+        type: string
+
+jobs:
+  validate-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - name: Validate training config
+        run: |
+          uv venv
+          uv pip install pyyaml
+          source .venv/bin/activate
+          python -c "
+          import yaml, sys, pathlib
+          config_path = '${{ github.event.inputs.config || 'configs/training/baseline.yaml' }}'
+          p = pathlib.Path(config_path)
+          if not p.exists():
+              print(f'ERROR: Config {config_path} not found')
+              sys.exit(1)
+          with open(p) as f:
+              cfg = yaml.safe_load(f)
+          print(f'Config validated: {config_path}')
+          print(yaml.dump(cfg, default_flow_style=False))
+          "

@@ -1,0 +1,64 @@
+# DiaFoot.AI v2 — Pre-commit Configuration
+# Install: pre-commit install
+# Run all: pre-commit run --all-files
+# Update:  pre-commit autoupdate
+
+repos:
+  # ── Ruff: Linting + Formatting (replaces black, isort, flake8) ────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.2
+    hooks:
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # ── Type Checking ─────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.10.0
+          - types-PyYAML>=6.0.0
+        args: [--config-file=pyproject.toml]
+        pass_filenames: false
+
+  # ── General Hooks ─────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]      # Allow custom YAML tags in configs
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=5000]  # Block files >5MB (use DVC for data)
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  # ── Notebook Hygiene ──────────────────────────────────────────────────────
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.8.1
+    hooks:
+      - id: nbstripout
+
+  # ── Security: detect secrets in code ──────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: package.lock.json
+
+  # ── PyTorch: enforce weights_only=True in torch.load ──────────────────────
+  - repo: local
+    hooks:
+      - id: torch-load-safety
+        name: Check torch.load uses weights_only=True
+        entry: bash -c 'grep -rn "torch\.load(" --include="*.py" | grep -v "weights_only" | grep -v "# torch-load-ok" && echo "ERROR: torch.load() must use weights_only=True (or add # torch-load-ok comment)" && exit 1 || exit 0'
+        language: system
+        pass_filenames: false
