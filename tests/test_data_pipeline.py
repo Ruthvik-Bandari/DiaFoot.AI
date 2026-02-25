@@ -1,7 +1,6 @@
 """DiaFoot.AI v2 — Data Pipeline Tests (Phase 1, Commit 2)."""
 
 import json
-import tempfile
 from pathlib import Path
 
 import numpy as np

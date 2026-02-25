@@ -35,7 +35,7 @@ def main() -> None:
         print(f"ERROR: Config file not found: {config_path}")
         sys.exit(1)
 
-    print(f"DiaFoot.AI v2 Training")
+    print("DiaFoot.AI v2 Training")
     print(f"  Config: {config_path} | Device: {args.device} | Seed: {args.seed}")
 
     # TODO: Phase 3 (Commits 13-18)

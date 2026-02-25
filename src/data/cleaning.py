@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import typing
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -84,7 +85,7 @@ class DataQualityAuditor:
         dataset_name: Human-readable name for the dataset being audited.
     """
 
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif"}
+    IMAGE_EXTENSIONS: typing.ClassVar[set[str]] = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif"}
 
     def __init__(
         self,
@@ -92,6 +93,7 @@ class DataQualityAuditor:
         config: AuditConfig | None = None,
         dataset_name: str | None = None,
     ) -> None:
+        """Initialize the auditor with image directory and config."""
         self.image_dir = Path(image_dir)
         self.config = config or AuditConfig()
         self.dataset_name = dataset_name or self.image_dir.name
@@ -138,8 +140,12 @@ class DataQualityAuditor:
             "formats": formats,
         }
         if widths:
-            stats["width"] = {"min": min(widths), "max": max(widths), "mean": sum(widths) / len(widths)}
-            stats["height"] = {"min": min(heights), "max": max(heights), "mean": sum(heights) / len(heights)}
+            stats["width"] = {
+                "min": min(widths), "max": max(widths), "mean": sum(widths) / len(widths),
+            }
+            stats["height"] = {
+                "min": min(heights), "max": max(heights), "mean": sum(heights) / len(heights),
+            }
             stats["size_kb"] = {
                 "min": round(min(sizes_kb), 1),
                 "max": round(max(sizes_kb), 1),
@@ -178,7 +184,9 @@ class DataQualityAuditor:
 
             # Extract issue results
             issue_df = lab.issues
-            issue_types = [col.replace("_issue", "") for col in issue_df.columns if col.endswith("_issue")]
+            issue_types = [
+                col.replace("_issue", "") for col in issue_df.columns if col.endswith("_issue")
+            ]
 
             for issue_type in issue_types:
                 col = f"{issue_type}_issue"
@@ -241,33 +249,36 @@ class DataQualityAuditor:
     def print_summary(self) -> None:
         """Print a human-readable summary of the audit."""
         if self.report is None:
-            print("No report available. Run run_audit() first.")
+            print("No report available. Run run_audit() first.")  # noqa: T201
             return
 
         r = self.report
-        print(f"\n{'═' * 60}")
-        print(f"Data Quality Report: {r.dataset_name}")
-        print(f"{'═' * 60}")
-        print(f"Total images: {r.total_images}")
+        print(f"\n{'═' * 60}")  # noqa: T201
+        print(f"Data Quality Report: {r.dataset_name}")  # noqa: T201
+        print(f"{'═' * 60}")  # noqa: T201
+        print(f"Total images: {r.total_images}")  # noqa: T201
 
         if r.image_stats:
             s = r.image_stats
             if "width" in s:
-                print(f"Image size: {s['width']['min']}–{s['width']['max']} x {s['height']['min']}–{s['height']['max']}")
+                w_min, w_max = s["width"]["min"], s["width"]["max"]
+                h_min, h_max = s["height"]["min"], s["height"]["max"]
+                print(f"Image size: {w_min}-{w_max} x {h_min}-{h_max}")  # noqa: T201
             if "size_kb" in s:
-                print(f"File size: {s['size_kb']['min']}–{s['size_kb']['max']} KB (avg {s['size_kb']['mean']} KB)")
+                sk = s["size_kb"]
+                print(f"File size: {sk['min']}-{sk['max']} KB (avg {sk['mean']} KB)")  # noqa: T201
             if s.get("corrupt_files"):
-                print(f"Corrupt files: {len(s['corrupt_files'])}")
+                print(f"Corrupt files: {len(s['corrupt_files'])}")  # noqa: T201
 
         if r.summary:
-            print(f"\nIssues detected:")
+            print("\nIssues detected:")  # noqa: T201
             for issue_type, count in sorted(r.summary.items()):
                 pct = (count / r.total_images * 100) if r.total_images > 0 else 0
-                print(f"  {issue_type}: {count} ({pct:.1f}%)")
+                print(f"  {issue_type}: {count} ({pct:.1f}%)")  # noqa: T201
         else:
-            print("\nNo issues detected.")
+            print("\nNo issues detected.")  # noqa: T201
 
-        print(f"{'═' * 60}\n")
+        print(f"{'═' * 60}\n")  # noqa: T201
 
 
 def audit_all_dfu_datasets(

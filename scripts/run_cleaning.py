@@ -75,7 +75,7 @@ def main() -> None:
             config=config,
             dataset_name=args.name or data_path.name,
         )
-        report = auditor.run_audit()
+        auditor.run_audit()
         auditor.print_summary()
 
         output_path = Path(args.output_dir) / f"quality_report_{auditor.dataset_name}.json"

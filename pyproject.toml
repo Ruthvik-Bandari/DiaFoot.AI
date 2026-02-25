@@ -155,8 +155,6 @@ select = [
 ignore = [
     "D100",   # Missing module docstring (too noisy early on)
     "D104",   # Missing public package docstring
-    "ANN101", # Missing type annotation for `self`
-    "ANN102", # Missing type annotation for `cls`
     "S101",   # Use of `assert` — needed in tests
     "D203",   # Conflicts with D211
     "D213",   # Conflicts with D212
