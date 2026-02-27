@@ -1,32 +1,67 @@
 {
   "dataset_name": "healthy_feet",
-  "total_images": 543,
+  "total_images": 3300,
   "summary": {
-    "is_odd_size": 19,
+    "is_odd_size": 543,
+    "is_blurry": 1,
     "is_exact_duplicates": 516,
     "is_near_duplicates": 8
   },
   "issues": {
     "is_odd_size": [
+      "kaggle_normal_0000.jpg",
+      "kaggle_normal_0001.jpg",
+      "kaggle_normal_0002.jpg",
+      "kaggle_normal_0003.jpg",
+      "kaggle_normal_0004.jpg",
+      "kaggle_normal_0005.jpg",
+      "kaggle_normal_0006.jpg",
+      "kaggle_normal_0007.jpg",
+      "kaggle_normal_0008.jpg",
+      "kaggle_normal_0009.jpg",
+      "kaggle_normal_0010.jpg",
+      "kaggle_normal_0011.jpg",
+      "kaggle_normal_0012.jpg",
+      "kaggle_normal_0013.jpg",
+      "kaggle_normal_0014.jpg",
+      "kaggle_normal_0015.jpg",
+      "kaggle_normal_0016.jpg",
+      "kaggle_normal_0017.jpg",
+      "kaggle_normal_0018.jpg",
+      "kaggle_normal_0019.jpg",
+      "kaggle_normal_0020.jpg",
+      "kaggle_normal_0021.jpg",
+      "kaggle_normal_0022.jpg",
+      "kaggle_normal_0023.jpg",
+      "kaggle_normal_0024.jpg",
+      "kaggle_normal_0025.jpg",
+      "kaggle_normal_0026.jpg",
+      "kaggle_normal_0027.jpg",
+      "kaggle_normal_0028.jpg",
+      "kaggle_normal_0029.jpg",
+      "kaggle_normal_0030.jpg",
+      "kaggle_normal_0031.jpg",
+      "kaggle_normal_0032.jpg",
+      "kaggle_normal_0033.jpg",
+      "kaggle_normal_0034.jpg",
+      "kaggle_normal_0035.jpg",
+      "kaggle_normal_0036.jpg",
       "kaggle_normal_0037.jpg",
+      "kaggle_normal_0038.jpg",
+      "kaggle_normal_0039.jpg",
+      "kaggle_normal_0040.jpg",
       "kaggle_normal_0041.jpg",
-      "kaggle_normal_0098.jpg",
-      "kaggle_normal_0118.jpg",
-      "kaggle_normal_0178.jpg",
-      "kaggle_normal_0189.jpg",
-      "kaggle_normal_0227.jpg",
-      "kaggle_normal_0230.jpg",
-      "kaggle_normal_0237.jpg",
-      "kaggle_normal_0250.jpg",
-      "kaggle_normal_0253.jpg",
-      "kaggle_normal_0254.jpg",
-      "kaggle_normal_0298.jpg",
-      "kaggle_normal_0316.jpg",
-      "kaggle_normal_0328.jpg",
-      "kaggle_normal_0397.jpg",
-      "kaggle_normal_0439.jpg",
-      "kaggle_normal_0445.jpg",
-      "kaggle_normal_0451.jpg"
+      "kaggle_normal_0042.jpg",
+      "kaggle_normal_0043.jpg",
+      "kaggle_normal_0044.jpg",
+      "kaggle_normal_0045.jpg",
+      "kaggle_normal_0046.jpg",
+      "kaggle_normal_0047.jpg",
+      "kaggle_normal_0048.jpg",
+      "kaggle_normal_0049.jpg"
+    ],
+    "is_blurry": [
+      "Female_normal-066.jpg"
     ],
     "is_exact_duplicates": [
       "kaggle_normal_0001.jpg",
@@ -92,25 +127,25 @@
     ]
   },
   "image_stats": {
-    "count": 543,
+    "count": 3300,
     "corrupt_files": [],
     "formats": {
-      "JPEG": 543
+      "JPEG": 3300
     },
     "width": {
       "min": 220,
-      "max": 310,
-      "mean": 224.96869244935544
+      "max": 331,
+      "mean": 313.5530303030303
     },
     "height": {
       "min": 220,
-      "max": 316,
-      "mean": 225.0718232044199
+      "max": 331,
+      "mean": 313.57
     },
     "size_kb": {
       "min": 7.6,
-      "max": 47.7,
-      "mean": 18.3
+      "max": 81.8,
+      "mean": 33.8
     }
   }
 }

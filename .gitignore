@@ -54,3 +54,7 @@ Thumbs.db
 # Coverage
 htmlcov/
 .coverage
+DFU/
+archive.zip
+*.zip
+wound image dataset/
