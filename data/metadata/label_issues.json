@@ -1,0 +1,74 @@
+{
+  "datasets": {
+    "fuseg_train": {
+      "total_masks": 810,
+      "valid": 810,
+      "invalid": 0,
+      "empty_masks": 19,
+      "coverage_stats": {
+        "mean_pct": 1.29,
+        "median_pct": 0.72,
+        "min_pct": 0.0,
+        "max_pct": 13.23,
+        "std_pct": 1.59
+      },
+      "issues": {}
+    },
+    "fuseg_validation": {
+      "total_masks": 200,
+      "valid": 200,
+      "invalid": 0,
+      "empty_masks": 5,
+      "coverage_stats": {
+        "mean_pct": 1.22,
+        "median_pct": 0.72,
+        "min_pct": 0.0,
+        "max_pct": 7.69,
+        "std_pct": 1.5
+      },
+      "issues": {}
+    },
+    "azh_azh": {
+      "total": 0
+    },
+    "non_dfu": {
+      "total_masks": 2686,
+      "valid": 0,
+      "invalid": 2686,
+      "empty_masks": 0,
+      "coverage_stats": {},
+      "issues": {
+        "not_binary": {
+          "count": 2686,
+          "examples": [
+            "wound_mask-0001.jpg",
+            "wound_mask-0002.jpg",
+            "wound_mask-0003.jpg",
+            "wound_mask-0004.jpg",
+            "wound_mask-0005.jpg",
+            "wound_mask-0006.jpg",
+            "wound_mask-0007.jpg",
+            "wound_mask-0008.jpg",
+            "wound_mask-0009.jpg",
+            "wound_mask-0010.jpg"
+          ]
+        }
+      }
+    },
+    "healthy": {
+      "total_masks": 3300,
+      "valid": 3300,
+      "invalid": 0,
+      "empty_masks": 3300,
+      "coverage_stats": {
+        "mean_pct": 0.0,
+        "median_pct": 0.0,
+        "min_pct": 0.0,
+        "max_pct": 0.0,
+        "std_pct": 0.0
+      },
+      "issues": {}
+    }
+  },
+  "wagner_grade_entries": 1210
+}
