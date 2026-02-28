@@ -1,0 +1,61 @@
+{
+  "datasets": {
+    "fuseg": {
+      "total_analyzed": 810,
+      "failed": 0,
+      "ita_stats": {
+        "mean": -50.55,
+        "median": -70.21,
+        "std": 46.87,
+        "min": -90.0,
+        "max": 90.0
+      },
+      "category_distribution": {
+        "Very Light": 56,
+        "Light": 18,
+        "Intermediate": 14,
+        "Tan": 17,
+        "Brown": 72,
+        "Dark": 633
+      }
+    },
+    "healthy": {
+      "total_analyzed": 3300,
+      "failed": 0,
+      "ita_stats": {
+        "mean": 62.0,
+        "median": 79.18,
+        "std": 43.34,
+        "min": -172.87,
+        "max": 167.87
+      },
+      "category_distribution": {
+        "Very Light": 2472,
+        "Light": 170,
+        "Intermediate": 110,
+        "Tan": 148,
+        "Brown": 220,
+        "Dark": 180
+      }
+    },
+    "non_dfu": {
+      "total_analyzed": 2686,
+      "failed": 0,
+      "ita_stats": {
+        "mean": -7.02,
+        "median": -4.36,
+        "std": 46.44,
+        "min": -169.84,
+        "max": 167.34
+      },
+      "category_distribution": {
+        "Very Light": 240,
+        "Light": 204,
+        "Intermediate": 225,
+        "Tan": 401,
+        "Brown": 685,
+        "Dark": 931
+      }
+    }
+  }
+}
