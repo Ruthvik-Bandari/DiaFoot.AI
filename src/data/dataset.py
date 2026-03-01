@@ -9,7 +9,10 @@ import csv
 import json
 import logging
 from collections import defaultdict
+from typing import Any
 from pathlib import Path
+
+import random
 
 import numpy as np
 
@@ -46,7 +49,7 @@ def create_stratified_splits(
     val_ratio: float = 0.15,
     test_ratio: float = 0.15,
     seed: int = 42,
-) -> dict:
+) -> dict[str, Any]:
     """Create doubly-stratified train/val/test splits.
 
     Stratified by:
@@ -76,7 +79,7 @@ def create_stratified_splits(
 
     # Collect all images by class
     categories = ["dfu", "healthy", "non_dfu"]
-    all_entries: list[dict] = []
+    all_entries: list[dict[str, Any]] = []
 
     for category in categories:
         img_dir = processed_dir / category / "images"
@@ -101,17 +104,17 @@ def create_stratified_splits(
         return {"error": "no images found"}
 
     # Group by (class, ita_category) for stratification
-    groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    groups: defaultdict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for entry in all_entries:
         key = (entry["class"], entry["ita_category"])
         groups[key].append(entry)
 
-    train_entries: list[dict] = []
-    val_entries: list[dict] = []
-    test_entries: list[dict] = []
+    train_entries: list[dict[str, Any]] = []
+    val_entries: list[dict[str, Any]] = []
+    test_entries: list[dict[str, Any]] = []
 
     for (_cls, _ita), entries in sorted(groups.items()):
-        rng.shuffle(entries)
+        rng.shuffle(entries)  # type: ignore[arg-type]
         n = len(entries)
         n_train = max(1, int(n * train_ratio))
         n_val = max(1, int(n * val_ratio)) if n > 2 else 0
@@ -160,8 +163,8 @@ def create_stratified_splits(
         for e in entries:
             class_counts[e["class"]] += 1
             ita_counts[e["ita_category"]] += 1
-        stats["class_distribution"][split_name] = dict(class_counts)
-        stats["ita_distribution"][split_name] = dict(ita_counts)
+        stats["class_distribution"][split_name] = dict(class_counts)  # type: ignore[index]
+        stats["ita_distribution"][split_name] = dict(ita_counts)  # type: ignore[index]
 
     # Save stats
     stats_path = splits_dir / "split_stats.json"

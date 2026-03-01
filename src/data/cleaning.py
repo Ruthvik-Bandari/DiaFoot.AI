@@ -105,7 +105,7 @@ class DataQualityAuditor:
 
     def _find_images(self) -> list[Path]:
         """Recursively find all image files in the directory."""
-        images = []
+        images: list[Path] = []
         for ext in self.IMAGE_EXTENSIONS:
             images.extend(self.image_dir.rglob(f"*{ext}"))
             images.extend(self.image_dir.rglob(f"*{ext.upper()}"))

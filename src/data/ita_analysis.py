@@ -21,6 +21,7 @@ import json
 import logging
 import math
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -114,7 +115,7 @@ def compute_ita(image_path: str | Path, mask_path: str | Path | None = None) -> 
                     .convert("L")
                     .resize(
                         (img.shape[1], img.shape[0]),
-                        Image.NEAREST,
+                        Image.Resampling.NEAREST,
                     )
                 )
             skin_mask = wound_mask == 0  # Non-wound pixels
@@ -167,7 +168,7 @@ def analyze_dataset_ita(
     mask_dir: str | Path | None = None,
     output_csv: str | Path | None = None,
     max_samples: int | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Compute ITA scores for all images in a directory.
 
     Args:
@@ -191,7 +192,7 @@ def analyze_dataset_ita(
 
     mask_dir_path = Path(mask_dir) if mask_dir else None
 
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
     for img_path in images:
         # Try to find matching mask
         mask_path = None
@@ -246,7 +247,7 @@ def analyze_dataset_ita(
 def run_ita_analysis(
     data_root: str | Path = "data/raw",
     output_dir: str | Path = "data/metadata",
-) -> dict:
+) -> dict[str, Any]:
     """Run ITA analysis across all dataset categories.
 
     Args:
@@ -260,7 +261,7 @@ def run_ita_analysis(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    combined: dict = {"datasets": {}}
+    combined: dict[str, Any] = {"datasets": {}}
 
     # Analyze each dataset
     datasets = [
@@ -269,7 +270,7 @@ def run_ita_analysis(
         ("non_dfu", data_root / "non_dfu", "images", "masks"),
     ]
 
-    all_ita_rows: list[dict] = []
+    all_ita_rows: list[dict[str, Any]] = []
 
     for name, base_dir, img_sub, mask_sub in datasets:
         img_dir = base_dir / img_sub if (base_dir / img_sub).exists() else base_dir

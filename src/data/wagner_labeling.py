@@ -19,6 +19,7 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -102,7 +103,7 @@ def check_mask_quality(
 def audit_masks(
     mask_dir: str | Path,
     image_dir: str | Path | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Run structural quality audit on all masks in a directory.
 
     Args:
@@ -222,7 +223,7 @@ def create_wagner_grade_csv(
 def run_label_audit(
     data_root: str | Path = "data/raw",
     output_dir: str | Path = "data/metadata",
-) -> dict:
+) -> dict[str, Any]:
     """Run label quality audit across all dataset categories.
 
     Args:
@@ -236,7 +237,7 @@ def run_label_audit(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    combined_report: dict = {"datasets": {}}
+    combined_report: dict[str, Any] = {"datasets": {}}
 
     # Audit DFU masks
     for dataset_name in ["fuseg", "azh"]:
