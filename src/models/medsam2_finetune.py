@@ -98,25 +98,25 @@ def apply_lora_to_model(
     lora_params = 0
 
     for name, module in model.named_modules():
-        if isinstance(module, nn.Linear):
-            # Check if this module name matches any target
-            if any(target in name for target in config.target_modules):
-                # Find parent module and attribute name
-                parts = name.rsplit(".", 1)
-                if len(parts) == 2:
-                    parent_name, attr_name = parts
-                    parent = dict(model.named_modules())[parent_name]
-                else:
-                    parent = model
-                    attr_name = name
+        if isinstance(module, nn.Linear) and any(
+            target in name for target in config.target_modules
+        ):
+            # Find parent module and attribute name
+            parts = name.rsplit(".", 1)
+            if len(parts) == 2:
+                parent_name, attr_name = parts
+                parent = dict(model.named_modules())[parent_name]
+            else:
+                parent = model
+                attr_name = name
 
-                # Replace with LoRA-wrapped version
-                lora_layer = LoRALinear(module, config)
-                setattr(parent, attr_name, lora_layer)
+            # Replace with LoRA-wrapped version
+            lora_layer = LoRALinear(module, config)
+            setattr(parent, attr_name, lora_layer)
 
-                added = config.rank * (module.in_features + module.out_features)
-                lora_params += added
-                logger.debug("Applied LoRA to %s (+%d params)", name, added)
+            added = config.rank * (module.in_features + module.out_features)
+            lora_params += added
+            logger.debug("Applied LoRA to %s (+%d params)", name, added)
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)

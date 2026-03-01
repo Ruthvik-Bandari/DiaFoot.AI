@@ -58,7 +58,7 @@ class TestLoRA:
         torch.testing.assert_close(orig_out, lora_out, atol=1e-6, rtol=1e-6)
 
     def test_apply_lora_to_model(self) -> None:
-        model = nn.Sequential(
+        _model = nn.Sequential(
             nn.Linear(64, 32),
             nn.ReLU(),
             nn.Linear(32, 16),
@@ -70,7 +70,7 @@ class TestLoRA:
         model_with_names.v_proj = nn.Linear(32, 16)
 
         config = LoRAConfig(rank=4, target_modules=("q_proj", "v_proj"))
-        adapted, num_params = apply_lora_to_model(model_with_names, config)
+        _adapted, num_params = apply_lora_to_model(model_with_names, config)
         assert num_params > 0
 
     def test_mask_to_bbox(self) -> None:
