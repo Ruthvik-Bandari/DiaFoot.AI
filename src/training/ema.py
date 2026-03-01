@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 
-import torch.nn as nn
+import torch.nn as nn  # noqa: TC002  # noqa: TCH002
 
 
 class EMA:

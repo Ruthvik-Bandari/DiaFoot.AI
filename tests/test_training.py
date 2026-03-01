@@ -110,7 +110,9 @@ class TestEMA:
         model = nn.Linear(10, 5)
         ema = EMA(model, decay=0.999)
         # Shadow should start equal to model
-        for (_, p1), (_, p2) in zip(model.named_parameters(), ema.shadow.named_parameters()):
+        for (_, p1), (_, p2) in zip(
+            model.named_parameters(), ema.shadow.named_parameters(), strict=False
+        ):
             torch.testing.assert_close(p1, p2)
 
     def test_update_changes_shadow(self) -> None:

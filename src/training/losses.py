@@ -171,26 +171,24 @@ class DiceBoundaryLoss(nn.Module):
         dice_ce_loss = self.dice_ce(pred, target)
         alpha = self._get_alpha()
 
-        if alpha > 0:
+        if alpha > 0 and target.dim() == 3:
             # Simple boundary approximation: loss on edge pixels
-            # Full boundary loss from MONAI would be used in production
-            if target.dim() == 3:
-                # Compute edges using morphological gradient
-                target_float = target.float().unsqueeze(1)
-                kernel_size = 3
-                padding = kernel_size // 2
-                dilated = F.max_pool2d(target_float, kernel_size, stride=1, padding=padding)
-                eroded = -F.max_pool2d(-target_float, kernel_size, stride=1, padding=padding)
-                boundary = (dilated - eroded).squeeze(1)
+            # Compute edges using morphological gradient
+            target_float = target.float().unsqueeze(1)
+            kernel_size = 3
+            padding = kernel_size // 2
+            dilated = F.max_pool2d(target_float, kernel_size, stride=1, padding=padding)
+            eroded = -F.max_pool2d(-target_float, kernel_size, stride=1, padding=padding)
+            boundary = (dilated - eroded).squeeze(1)
 
-                pred_sig = (
-                    torch.sigmoid(pred.squeeze(1))
-                    if pred.shape[1] == 1
-                    else torch.softmax(pred, dim=1)[:, 1]
-                )
-                boundary_loss = F.binary_cross_entropy(
-                    pred_sig * boundary, target.float() * boundary, reduction="mean"
-                )
-                return (1 - alpha) * dice_ce_loss + alpha * boundary_loss
+            pred_sig = (
+                torch.sigmoid(pred.squeeze(1))
+                if pred.shape[1] == 1
+                else torch.softmax(pred, dim=1)[:, 1]
+            )
+            boundary_loss = F.binary_cross_entropy(
+                pred_sig * boundary, target.float() * boundary, reduction="mean"
+            )
+            return (1 - alpha) * dice_ce_loss + alpha * boundary_loss
 
         return dice_ce_loss

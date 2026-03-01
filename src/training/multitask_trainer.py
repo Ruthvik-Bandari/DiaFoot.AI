@@ -13,7 +13,7 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader  # noqa: TC002  # noqa: TCH002
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,7 @@ class MultiTaskTrainer:
         cls_loss_fn: nn.Module,
         stage_loss_fn: nn.Module,
         optimizer: torch.optim.Optimizer,
-        scheduler: Any | None = None,
+        scheduler: object | None = None,  # LR scheduler
     ) -> dict[str, list[float]]:
         """Full multi-task training loop."""
         history: dict[str, list[float]] = {}
