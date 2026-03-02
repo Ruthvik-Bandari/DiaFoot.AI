@@ -1,2 +1,227 @@
-"""DiaFoot.AI v2 — src.evaluation.calibration module."""
-# TODO: Implementation in Phase 4-5
+"""DiaFoot.AI v2 — Calibration Analysis.
+
+Phase 5, Commit 25: ECE, reliability diagrams, temperature scaling.
+
+A well-calibrated model's confidence matches its accuracy:
+if the model says 80% confident, it should be correct 80% of the time.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+
+def expected_calibration_error(
+    confidences: np.ndarray,
+    accuracies: np.ndarray,
+    num_bins: int = 15,
+) -> tuple[float, dict[str, Any]]:
+    """Compute Expected Calibration Error (ECE).
+
+    ECE measures the difference between predicted confidence and
+    actual accuracy, weighted by the number of samples in each bin.
+
+    Args:
+        confidences: Model confidence scores (N,), values in [0, 1].
+        accuracies: Whether predictions were correct (N,), binary.
+        num_bins: Number of confidence bins.
+
+    Returns:
+        Tuple of (ECE value, bin details for reliability diagram).
+    """
+    bin_boundaries = np.linspace(0, 1, num_bins + 1)
+    ece = 0.0
+    bin_details: dict[str, list[float]] = {
+        "bin_centers": [],
+        "bin_accuracies": [],
+        "bin_confidences": [],
+        "bin_counts": [],
+    }
+
+    n_total = len(confidences)
+
+    for i in range(num_bins):
+        lower, upper = bin_boundaries[i], bin_boundaries[i + 1]
+        in_bin = (confidences > lower) & (confidences <= upper)
+        count = in_bin.sum()
+
+        bin_details["bin_centers"].append(float((lower + upper) / 2))
+        bin_details["bin_counts"].append(int(count))
+
+        if count > 0:
+            bin_acc = float(accuracies[in_bin].mean())
+            bin_conf = float(confidences[in_bin].mean())
+            ece += (count / n_total) * abs(bin_acc - bin_conf)
+            bin_details["bin_accuracies"].append(bin_acc)
+            bin_details["bin_confidences"].append(bin_conf)
+        else:
+            bin_details["bin_accuracies"].append(0.0)
+            bin_details["bin_confidences"].append(0.0)
+
+    return float(ece), bin_details
+
+
+def temperature_scaling(
+    logits: np.ndarray,
+    labels: np.ndarray,
+    lr: float = 0.01,
+    max_iter: int = 100,
+) -> float:
+    """Find optimal temperature for calibration via grid search.
+
+    Temperature scaling divides logits by T before softmax,
+    reducing overconfidence when T > 1.
+
+    Args:
+        logits: Raw model logits (N, C).
+        labels: Ground truth class indices (N,).
+        lr: Learning rate (unused, grid search instead).
+        max_iter: Max iterations (unused).
+
+    Returns:
+        Optimal temperature value.
+    """
+    best_t = 1.0
+    best_ece = float("inf")
+
+    for t in np.arange(0.1, 5.1, 0.1):
+        scaled = logits / t
+        # Softmax
+        exp_scaled = np.exp(scaled - scaled.max(axis=1, keepdims=True))
+        probs = exp_scaled / exp_scaled.sum(axis=1, keepdims=True)
+
+        confidences = probs.max(axis=1)
+        predictions = probs.argmax(axis=1)
+        correct = (predictions == labels).astype(float)
+
+        ece, _ = expected_calibration_error(confidences, correct)
+        if ece < best_ece:
+            best_ece = ece
+            best_t = float(t)
+
+    logger.info(
+        "Temperature scaling: T=%.2f, ECE=%.4f -> %.4f",
+        best_t,
+        best_ece,
+        best_ece,
+    )
+    return best_t
+
+
+def compute_segmentation_calibration(
+    pred_probs: np.ndarray,
+    ground_truth: np.ndarray,
+    num_bins: int = 10,
+) -> tuple[float, dict[str, Any]]:
+    """Compute calibration for segmentation (pixel-level).
+
+    Args:
+        pred_probs: Predicted probability map (H, W), values in [0, 1].
+        ground_truth: Binary ground truth mask (H, W).
+        num_bins: Number of bins.
+
+    Returns:
+        Tuple of (pixel-ECE, bin details).
+    """
+    confidences = np.maximum(pred_probs, 1 - pred_probs).flatten()
+    predictions = (pred_probs > 0.5).astype(float).flatten()
+    gt_flat = ground_truth.astype(float).flatten()
+    correct = (predictions == gt_flat).astype(float)
+
+    return expected_calibration_error(confidences, correct, num_bins)
+
+
+def compute_calibration_report(
+    classification_logits: np.ndarray | None = None,
+    classification_labels: np.ndarray | None = None,
+    seg_pred_probs: list[np.ndarray] | None = None,
+    seg_ground_truths: list[np.ndarray] | None = None,
+) -> dict[str, Any]:
+    """Compute full calibration report.
+
+    Args:
+        classification_logits: Raw classifier logits (N, C).
+        classification_labels: Ground truth labels (N,).
+        seg_pred_probs: List of segmentation probability maps.
+        seg_ground_truths: List of ground truth masks.
+
+    Returns:
+        Calibration report dict.
+    """
+    report: dict[str, Any] = {}
+
+    # Classification calibration
+    if classification_logits is not None and classification_labels is not None:
+        # Before temperature scaling
+        exp_logits = np.exp(
+            classification_logits - classification_logits.max(axis=1, keepdims=True)
+        )
+        probs = exp_logits / exp_logits.sum(axis=1, keepdims=True)
+        confidences = probs.max(axis=1)
+        predictions = probs.argmax(axis=1)
+        correct = (predictions == classification_labels).astype(float)
+
+        ece_before, bins_before = expected_calibration_error(confidences, correct)
+
+        # Temperature scaling
+        opt_t = temperature_scaling(classification_logits, classification_labels)
+
+        # After temperature scaling
+        scaled = classification_logits / opt_t
+        exp_scaled = np.exp(scaled - scaled.max(axis=1, keepdims=True))
+        probs_after = exp_scaled / exp_scaled.sum(axis=1, keepdims=True)
+        conf_after = probs_after.max(axis=1)
+        pred_after = probs_after.argmax(axis=1)
+        correct_after = (pred_after == classification_labels).astype(float)
+
+        ece_after, bins_after = expected_calibration_error(conf_after, correct_after)
+
+        report["classification"] = {
+            "ece_before": ece_before,
+            "ece_after": ece_after,
+            "optimal_temperature": opt_t,
+            "bins_before": bins_before,
+            "bins_after": bins_after,
+        }
+
+    # Segmentation calibration
+    if seg_pred_probs and seg_ground_truths:
+        all_ece = []
+        for pred, gt in zip(seg_pred_probs, seg_ground_truths, strict=False):
+            ece, _ = compute_segmentation_calibration(pred, gt)
+            all_ece.append(ece)
+
+        report["segmentation"] = {
+            "pixel_ece_mean": float(np.mean(all_ece)),
+            "pixel_ece_std": float(np.std(all_ece)),
+            "pixel_ece_median": float(np.median(all_ece)),
+        }
+
+    return report
+
+
+def print_calibration_report(report: dict[str, Any]) -> None:
+    """Print formatted calibration results."""
+    print(f"\n{'=' * 60}")  # noqa: T201
+    print("Calibration Analysis")  # noqa: T201
+    print(f"{'=' * 60}")  # noqa: T201
+
+    if "classification" in report:
+        cls = report["classification"]
+        print("  Classification:")  # noqa: T201
+        print(f"    ECE (before):     {cls['ece_before']:.4f}")  # noqa: T201
+        print(f"    ECE (after):      {cls['ece_after']:.4f}")  # noqa: T201
+        print(f"    Temperature:      {cls['optimal_temperature']:.2f}")  # noqa: T201
+
+    if "segmentation" in report:
+        seg = report["segmentation"]
+        print("  Segmentation (pixel-level):")  # noqa: T201
+        print(f"    ECE mean:   {seg['pixel_ece_mean']:.4f}")  # noqa: T201
+        print(f"    ECE std:    {seg['pixel_ece_std']:.4f}")  # noqa: T201
+
+    print(f"{'=' * 60}\n")  # noqa: T201
