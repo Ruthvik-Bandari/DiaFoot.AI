@@ -93,7 +93,11 @@ class DFUDataset(Dataset):
         if self.transform:
             transformed = self.transform(image=image, mask=mask)
             image_tensor = transformed["image"]  # (3, H, W) float
-            mask_tensor = torch.from_numpy(transformed["mask"]).long()
+            mask_out = transformed["mask"]
+            if isinstance(mask_out, torch.Tensor):
+                mask_tensor = mask_out.long()
+            else:
+                mask_tensor = torch.from_numpy(mask_out).long()
         else:
             image_tensor = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
             mask_tensor = torch.from_numpy(mask).long()
