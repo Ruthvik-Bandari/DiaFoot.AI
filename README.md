@@ -1,12 +1,16 @@
 # DiaFoot.AI v2 — Diabetic Foot Ulcer Detection & Segmentation
 
-A production-grade multi-task pipeline for automated diabetic foot ulcer (DFU) detection, wound boundary segmentation, and clinical wound assessment. Built for AAI6620 Computer Vision at Northeastern University.
+> **⚠️ IMPORTANT DISCLAIMER:** This is an academic research project developed for educational purposes as part of the AAI6620 Computer Vision course at Northeastern University. **This software is NOT a medical device, is NOT FDA-cleared, and is NOT intended for clinical use, diagnosis, treatment, or any medical decision-making.** It does not replace professional medical judgment. Always consult a qualified healthcare provider for any medical concerns. The authors assume no liability for any use of this software in clinical or diagnostic settings.
+
+---
+
+A production-grade multi-task pipeline for automated diabetic foot ulcer (DFU) detection, wound boundary segmentation, and clinical wound assessment. Built to demonstrate modern computer vision techniques applied to medical imaging.
 
 ---
 
 ## Clinical Motivation
 
-Diabetic foot ulcers affect 15–25% of diabetic patients in their lifetime, with 85% of diabetes-related amputations preceded by a foot ulcer. Early detection and accurate wound measurement can reduce amputation rates by up to 85%. DiaFoot.AI automates wound boundary detection to support clinical decision-making.
+Diabetic foot ulcers affect 15–25% of diabetic patients in their lifetime, with 85% of diabetes-related amputations preceded by a foot ulcer. Early detection and accurate wound measurement can reduce amputation rates by up to 85%. DiaFoot.AI explores how deep learning can automate wound boundary detection to potentially support clinical workflows in the future.
 
 ## Why v2: Lessons from v1
 
@@ -48,13 +52,28 @@ Input Image
 └───────────────────────────┘
 ```
 
-**Why cascaded?** The data composition ablation proved that the segmenter performs best when trained exclusively on DFU images (85.89% Dice). Adding non-DFU wounds actually *hurt* performance (68.71% Dice) because the model gets confused learning two different wound morphologies simultaneously. The classifier handles triage; the segmenter focuses on what it does best.
+**Why cascaded?** The data composition ablation proved that the segmenter performs best when trained exclusively on DFU images (85.89% Dice). Adding non-DFU wounds actually hurt performance (68.71% Dice) because the model gets confused learning two different wound morphologies simultaneously. The classifier handles triage; the segmenter focuses on what it does best.
 
 ---
 
 ## Results
 
-### Segmentation Performance (DFU Test Set, n=285)
+### 5-Fold Cross-Validated Segmentation (DFU)
+
+The primary result, validated across 5 independent train/val splits for statistical rigor:
+
+| Fold | Dice | IoU |
+|------|------|-----|
+| 0 | 84.69% | 78.03% |
+| 1 | 86.10% | 79.87% |
+| 2 | 85.98% | 79.00% |
+| 3 | 84.74% | 78.07% |
+| 4 | 85.66% | 78.54% |
+| **Mean ± Std** | **85.43 ± 0.61%** | **78.70 ± 0.68%** |
+
+The standard deviation of ±0.61% confirms the model performs consistently regardless of data partitioning.
+
+### Test Set Evaluation (DFU, n=285)
 
 | Metric | Value | Clinical Interpretation |
 |--------|-------|------------------------|
@@ -78,7 +97,7 @@ The single most important experiment — proving that data composition matters m
 
 *\*Inflated by healthy images scoring perfectly on empty masks.*
 
-**Key finding:** Adding 871 more DFU images (AZH wound care center data) improved Dice by +2.17% with no other changes. Data quality > architecture complexity.
+**Key finding:** Adding 871 more DFU images (AZH wound care center data) improved Dice by +2.17% with no other changes. Data quality and quantity matter more than architecture complexity.
 
 ### Architecture Comparison
 
@@ -182,6 +201,18 @@ python scripts/train.py --task classify --epochs 50 --device cuda
 python scripts/run_ablation.py --variant dfu_only --epochs 100 --device cuda
 ```
 
+### 5-Fold Cross-Validation
+
+```bash
+# Submit as SLURM array job (parallel)
+sbatch slurm/run_cv.sh
+
+# Or run individual folds
+python scripts/run_cross_val.py --fold 0 --device cuda --epochs 100
+python scripts/run_cross_val.py --fold 1 --device cuda --epochs 100
+# ... folds 2, 3, 4
+```
+
 ### Evaluation
 
 ```bash
@@ -216,7 +247,7 @@ DiaFoot.AI/
 ├── configs/                    # YAML configs for training, models, data
 ├── data/
 │   ├── raw/                    # Original datasets (DVC tracked)
-│   ├── processed/              # Cleaned, preprocessed 512x512 images
+│   ├── processed/              # Cleaned, preprocessed 512×512 images
 │   ├── splits/                 # Train/val/test CSVs
 │   └── metadata/               # Quality reports, ITA scores
 ├── src/
@@ -237,7 +268,7 @@ DiaFoot.AI/
 
 ## Peer Feedback Integration
 
-Every piece of peer feedback from the AAI6620 course review was mapped to a specific implementation. Key examples:
+Every piece of peer feedback from the AAI6620 course review was mapped to a specific implementation:
 
 | Feedback | From | Implementation |
 |----------|------|----------------|
@@ -256,11 +287,31 @@ Every piece of peer feedback from the AAI6620 course review was mapped to a spec
 
 2. **Wagner staging was not trained.** The architecture supports it, but clinical grade labels were unavailable. This is acknowledged as future work requiring clinical partnerships.
 
-3. **No cross-validation.** Results are from a single train/val/test split. 5-fold cross-validation would strengthen statistical claims but was not performed due to compute time constraints.
+3. **Limited skin tone diversity.** The dataset is predominantly a single ITA group. Fairness conclusions cannot be generalized to the full Fitzpatrick I–VI spectrum. A clinical system would require validation across diverse skin tones.
 
-4. **Limited skin tone diversity.** The dataset is predominantly a single ITA group. Fairness conclusions cannot be generalized to the full Fitzpatrick I–VI spectrum.
+4. **Only 2 of 5 architectures were fully trained.** FUSegNet underperformed; MedSAM2 LoRA and nnU-Net v2 were implemented but not trained due to time constraints.
 
-5. **Only 2 of 5 architectures were fully trained.** FUSegNet underperformed; MedSAM2 LoRA and nnU-Net v2 were implemented but not trained due to time constraints.
+5. **Not validated on standardized benchmarks.** Results are on our own data splits. Comparison against the DFUC 2022 challenge leaderboard would require access to their test set.
+
+---
+
+## Regulatory & Ethical Notice
+
+This project is developed **strictly for academic and educational purposes**. It is part of the AAI6620 Computer Vision coursework at Northeastern University.
+
+**This software:**
+- Is **NOT** a medical device as defined by the FDA, EU MDR, or any regulatory body
+- Has **NOT** undergone clinical validation, regulatory review, or approval of any kind
+- Is **NOT** intended to diagnose, treat, cure, or prevent any disease or medical condition
+- Should **NOT** be used as a substitute for professional medical advice, diagnosis, or treatment
+- Has **NOT** been validated in a prospective clinical setting
+- Makes **NO** claims of clinical accuracy, safety, or efficacy
+
+**If you are experiencing a medical emergency or have concerns about a diabetic foot ulcer, contact your healthcare provider immediately.**
+
+Any use of this software for clinical decision-making is strictly prohibited and done entirely at the user's own risk. The authors, Northeastern University, and all affiliated parties disclaim all liability for any harm resulting from the use or misuse of this software.
+
+For information on FDA-cleared wound measurement devices, visit [FDA Medical Device Databases](https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpmn/pmn.cfm).
 
 ---
 
@@ -272,15 +323,16 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete list of changes.
 
 ## Citation
 
-If you use this work, please cite:
+If you use this work for academic purposes, please cite:
 
 ```
 @misc{bandari2026diafoot,
-  title={DiaFoot.AI: Production-Grade Diabetic Foot Ulcer Detection and Segmentation},
+  title={DiaFoot.AI: A Multi-Task Pipeline for Diabetic Foot Ulcer Detection and Segmentation},
   author={Bandari, Ruthvik},
   year={2026},
   institution={Northeastern University},
-  course={AAI6620 Computer Vision}
+  course={AAI6620 Computer Vision},
+  note={Academic project — not for clinical use}
 }
 ```
 
@@ -290,6 +342,8 @@ If you use this work, please cite:
 
 MIT License. See [LICENSE](LICENSE) for details.
 
+This license grants permission for academic and research use. **It does not grant permission for clinical or diagnostic use.**
+
 ---
 
-*Built with care for clinical impact. Data composition matters more than architecture.*
+*Built with care for educational impact. Data composition matters more than architecture.*
