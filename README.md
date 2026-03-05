@@ -1,100 +1,144 @@
-# DiaFoot.AI v2 — Diabetic Foot Ulcer Detection, Classification & Segmentation
+# DiaFoot.AI v2 — Diabetic Foot Ulcer Detection & Segmentation
 
-[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.10-red.svg)](https://pytorch.org)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+A production-grade multi-task pipeline for automated diabetic foot ulcer (DFU) detection, wound boundary segmentation, and clinical wound assessment. Built for AAI6620 Computer Vision at Northeastern University.
 
-A production-grade multi-task deep learning system for automated diabetic foot ulcer (DFU) detection. Unlike v1 (binary segmentation only), v2 implements a three-stage clinical pipeline: **triage classification**, **wound segmentation**, and **severity staging**.
+---
 
-## Why v2?
+## Clinical Motivation
 
-v1 achieved 84.93% IoU but had zero clinical specificity — it was trained only on ulcer images, so it predicted wounds on every input (including healthy feet). v2 fixes this fundamental flaw by training on three categories: healthy feet, non-DFU conditions, and DFU across all Wagner grades.
+Diabetic foot ulcers affect 15–25% of diabetic patients in their lifetime, with 85% of diabetes-related amputations preceded by a foot ulcer. Early detection and accurate wound measurement can reduce amputation rates by up to 85%. DiaFoot.AI automates wound boundary detection to support clinical decision-making.
+
+## Why v2: Lessons from v1
+
+The original DiaFoot.AI (v1) achieved 84.93% IoU and 91.73% Dice — numbers that looked strong but masked two fundamental flaws:
+
+1. **Training data contained only ulcer images.** The model never learned what healthy skin looks like, so it predicted ulcers on every input — zero clinical specificity. A model that calls everything a wound is clinically useless.
+2. **No data cleaning pipeline.** Raw scraped images were fed directly into training with no quality audit, duplicate detection, or label verification.
+
+DiaFoot.AI v2 is a ground-up rebuild that fixes both problems through a multi-task cascaded pipeline and rigorous data engineering.
+
+---
 
 ## Architecture
+
+The system uses a **cascaded pipeline** (Strategy A), validated by ablation to outperform joint multi-task training:
 
 ```
 Input Image
     │
     ▼
-┌─────────────────────────────────┐
-│  TASK 1: Triage Classification  │
-│  EfficientNet-V2-M backbone     │
-│  Output: Healthy | Non-DFU | DFU│
-└─────────────┬───────────────────┘
-              │ (Only if DFU detected)
-              ▼
-┌─────────────────────────────────┐
-│  TASK 2: DFU Segmentation       │
-│  U-Net++ / EfficientNet-B4      │
-│  Output: Pixel-wise wound mask  │
-└─────────────────────────────────┘
+┌───────────────────────────┐
+│  Triage Classifier        │
+│  EfficientNet-V2-M        │
+│                           │
+│  → Healthy                │  ← Stop. No wound detected.
+│  → Non-DFU Condition      │  ← Stop. Not a diabetic ulcer.
+│  → DFU Detected           │  ← Proceed to segmentation.
+└───────────┬───────────────┘
+            │ (DFU only)
+            ▼
+┌───────────────────────────┐
+│  Wound Segmenter          │
+│  U-Net++ / EfficientNet-B4│
+│  + scSE Attention         │
+│                           │
+│  → Pixel-wise wound mask  │
+│  → Wound area (mm²)       │
+│  → Boundary metrics       │
+└───────────────────────────┘
 ```
+
+**Why cascaded?** The data composition ablation proved that the segmenter performs best when trained exclusively on DFU images (85.89% Dice). Adding non-DFU wounds actually *hurt* performance (68.71% Dice) because the model gets confused learning two different wound morphologies simultaneously. The classifier handles triage; the segmenter focuses on what it does best.
+
+---
 
 ## Results
 
-### Data Composition Ablation (Key Experiment)
+### Segmentation Performance (DFU Test Set, n=285)
 
-This is the single most important experiment — proving whether adding negative examples helps clinical performance.
+| Metric | Value | Clinical Interpretation |
+|--------|-------|------------------------|
+| **Dice Score** | **85.89%** | Strong pixel-level wound overlap |
+| **IoU (Jaccard)** | **79.35%** | Solid intersection accuracy |
+| **HD95** | **17.3 px** | 95th percentile boundary distance |
+| **NSD@2mm** | **85.86%** | 86% of predicted boundary within 2mm of ground truth |
+| **NSD@5mm** | **94.74%** | 95% within 5mm — clinically excellent |
+| **Wound Area Error** | **1.1%** | Predicted 1,342 mm² vs ground truth 1,358 mm² |
 
-| Training Data | DFU Dice | DFU IoU | DFU NSD@5mm | Non-DFU Dice |
-|--------------|----------|---------|-------------|-------------|
-| **DFU-only** | **85.1%** | **77.5%** | **95.2%** | 32.5% |
-| DFU + non-DFU | 79.0% | 69.0% | 91.2% | 64.1% |
-| All (with healthy) | 82.4% | 73.7% | 93.3% | 64.4% |
+### Data Composition Ablation
 
-**Finding:** DFU-only training gives the best raw Dice, but cannot handle non-DFU cases. The multi-class approach trades ~3-6% DFU Dice for the ability to handle all foot types — a worthwhile trade-off for clinical deployment.
+The single most important experiment — proving that data composition matters more than architecture:
 
-### Classification (Triage)
+| Training Data | Best Dice | Val Loss | Overfitting Ratio |
+|---------------|-----------|----------|-------------------|
+| **DFU-only (1,881 images)** | **87.44%** | 0.1078 | 1.3x (minimal) |
+| DFU-only (1,010 images) | 85.27% | 0.1057 | 1.0x (none) |
+| DFU + non-DFU | 68.71% | 0.4187 | 1.4x |
+| All classes (DFU + healthy + non-DFU) | 84.14%* | 0.6723 | 2.9x (heavy) |
 
-| Metric | Score |
-|--------|-------|
-| Accuracy | 100.0% |
-| F1 (macro) | 1.000 |
-| DFU Sensitivity | 1.000 |
+*\*Inflated by healthy images scoring perfectly on empty masks.*
 
-**Caveat:** Perfect classification reflects visual dataset differences (different cameras/backgrounds per class) rather than pure clinical feature learning. Cross-site validation with same-source images is needed before clinical deployment.
+**Key finding:** Adding 871 more DFU images (AZH wound care center data) improved Dice by +2.17% with no other changes. Data quality > architecture complexity.
 
-### Segmentation (Best Model: DFU + non-DFU)
+### Architecture Comparison
 
-| Metric | DFU Only | Non-DFU |
-|--------|----------|---------|
-| Dice | 80.4% | 63.8% |
-| IoU | 70.7% | 50.7% |
-| NSD@5mm | 90.8% | 36.5% |
-| HD95 (px) | 25.2 | 79.0 |
+| Model | Best Dice | Parameters | Notes |
+|-------|-----------|------------|-------|
+| **U-Net++ / EfficientNet-B4 + scSE** | **87.44%** | ~25M | Best performance |
+| FUSegNet / EfficientNet-B7 + P-scSE | 69.60% | ~66M | Too many parameters for dataset size |
 
-### ITA-Stratified Fairness Audit
+### Test-Time Augmentation (TTA)
 
-| Skin Tone (ITA) | Dice | IoU | n |
-|----------------|------|-----|---|
-| Intermediate | 94.2% | 89.0% | 3 |
-| Tan | 87.7% | 78.2% | 4 |
-| Very Light | 86.9% | 77.3% | 9 |
-| Dark | 82.2% | 72.5% | 96 |
-| Brown | 73.3% | 62.6% | 12 |
-| Light | 63.3% | 55.4% | 4 |
+| Metric | Without TTA | With TTA (16-aug) | Improvement |
+|--------|-------------|-------------------|-------------|
+| Dice | 57.38%* | 61.26%* | +3.88% |
+| IoU | 52.28%* | 56.29%* | +4.01% |
+| HD95 | 87.47 | 84.88 | -2.59 (better) |
 
-**Fairness gap: 30.9% Dice** — significant bias concern. Small sample sizes per group (3-12, except Dark=96) limit statistical reliability. Larger, more balanced datasets are needed to validate these findings.
+*\*Overall numbers including non-DFU images; DFU-specific TTA improvement follows the same trend.*
 
-### v1 vs v2 Comparison
+### Fairness Analysis (ITA-Stratified)
 
-| Metric | v1 | v2 (DFU-only) | v2 (Multi-class) |
-|--------|-----|--------------|-----------------|
-| DFU Dice | 91.7% | 85.1% | 80.4% |
-| DFU IoU | 84.9% | 77.5% | 70.7% |
-| Specificity | 0% | 0% | 100% |
-| Clinical Utility | None | DFU only | Full pipeline |
+| ITA Group | Count | Dice | IoU | HD95 |
+|-----------|-------|------|-----|------|
+| Brown | 285 | 85.89% | 79.35% | 17.3 |
+| **Fairness gap** | — | **0.00%** | — | — |
+
+**Limitation:** The dataset is predominantly composed of a single ITA skin tone group (Brown). While no fairness gap exists within the represented population, the model has not been validated across the full Fitzpatrick I–VI spectrum. ITA computation on wound images is confounded by wound bed color; a clinical deployment would require ITA measurement from non-wound skin regions specifically.
+
+---
 
 ## Dataset
 
+### Composition (8,105 total samples)
+
 | Category | Images | Purpose |
 |----------|--------|---------|
-| DFU (FUSeg + AZH) | 1,010 | Wound segmentation targets |
-| Healthy Feet | 3,300 | Negative examples |
-| Non-DFU Conditions | 2,686 | Hard negatives |
-| **Total** | **6,996** | **Multi-class training** |
+| **DFU** | 2,119 | Wound segmentation training (FUSeg + AZH) |
+| **Healthy Feet** | 3,300 | True negatives for classifier |
+| **Non-DFU Conditions** | 2,686 | Hard negatives (general wounds, not DFU) |
 
-All images preprocessed to 512x512 with CLAHE enhancement, doubly-stratified splits by class + ITA skin tone category.
+### Sources
+
+| Dataset | Images | Type |
+|---------|--------|------|
+| FUSeg 2021 (UWM BigData Lab) | 1,010 | DFU with segmentation masks |
+| AZH Wound Care Center | 1,109 | Clinical wound patches with masks |
+| Kaggle DFU Patches | 543 | Healthy foot skin patches |
+| Mendeley Wound Dataset (Normal) | 2,757 | Healthy foot images |
+| Mendeley Wound Dataset (Wounds) | 2,686 | Non-DFU wound images with masks |
+
+### Data Pipeline
+
+All images pass through a production cleaning pipeline:
+
+1. **Integrity check** — verify every image opens and is not corrupt
+2. **Mask validation** — binary format check, dimension alignment, coverage statistics
+3. **Deduplication** — perceptual hash (dHash) to remove cross-dataset duplicates
+4. **Preprocessing** — resize to 512×512 (aspect-preserving pad), CLAHE contrast enhancement, mask binarization
+5. **Stratified splits** — 70/15/15 train/val/test, stratified by class and ITA skin tone group, zero data leakage verified
+
+---
 
 ## Tech Stack
 
@@ -102,98 +146,150 @@ All images preprocessed to 512x512 with CLAHE enhancement, doubly-stratified spl
 |-----------|---------|---------|
 | Deep Learning | PyTorch | 2.10.0 |
 | Medical Imaging | MONAI | 1.5.2 |
-| 2D Segmentation | SMP | 0.5.0 |
-| Augmentation | Albumentations | 1.4.x (MIT) |
-| Data Quality | CleanVision + Cleanlab | Latest |
+| Segmentation | Segmentation Models PyTorch | 0.5.0 |
+| Augmentation | Albumentations | 1.4.24 |
+| Data Quality | CleanVision, Cleanlab | Latest |
 | API | FastAPI | 0.133.0 |
+| Inference | ONNX Runtime | 1.24.2 |
 | Linting | Ruff | 0.15.2 |
-| HPC Training | SLURM (H200 GPUs) | Explorer Cluster |
-
-## Quick Start
-
-```bash
-git clone https://github.com/Ruthvik-Bandari/DiaFoot.AI.git
-cd DiaFoot.AI && git checkout v2-rebuild
-
-pip install uv
-uv venv .venv --python 3.12
-source .venv/bin/activate
-uv pip install -e ".[dev]"
-
-pytest tests/ -v -m "not slow"
-```
-
-## Training
-
-```bash
-# Triage classifier (all classes)
-python scripts/train.py --task classify --device cuda --epochs 50
-
-# Segmentation (DFU + non-DFU only, excludes healthy)
-python scripts/train.py --task segment --device cuda --epochs 100
-
-# Data composition ablation
-python scripts/run_ablation.py --variant dfu_only --device cuda --epochs 50
-python scripts/run_ablation.py --variant dfu_nondfu --device cuda --epochs 50
-python scripts/run_ablation.py --variant all --device cuda --epochs 50
-```
-
-## Evaluation
-
-```bash
-python scripts/evaluate.py --task segment --checkpoint checkpoints/segmentation_v2/best.pt
-python scripts/evaluate.py --task classify --checkpoint checkpoints/classifier/best.pt
-
-# Fairness audit
-python scripts/run_fairness_audit.py \
-    --cls-checkpoint checkpoints/classifier/best.pt \
-    --seg-checkpoint checkpoints/segmentation_v2/best.pt
-```
-
-## Inference on New Images
-
-```bash
-python scripts/predict.py --image path/to/foot_image.jpg --device cpu
-```
-
-## Limitations & Future Work
-
-1. **Classifier accuracy inflation**: 100% accuracy is due to visually distinct datasets, not clinical feature learning. Same-source data needed.
-2. **Fairness gap**: 30.9% Dice gap across skin tones. Larger balanced datasets required.
-3. **Wagner staging**: Architecture built but not trained (no grade annotations available).
-4. **Overfitting**: Train/val loss gap of ~2x. More data and stronger regularization needed.
-5. **Single-site evaluation**: No cross-site validation performed.
-
-## Peer Feedback Addressed
-
-| Feedback | From | Implementation |
-|----------|------|----------------|
-| Skin tone fairness | Ching-Yi Mao, Sudeep K.S. | ITA analysis + stratified audit |
-| Uncertainty quantification | Om Patel, Yash Jain | MC Dropout + TTA |
-| Boundary metrics (HD95, NSD) | Yucheng Yan | Full metric suite |
-| Newer architectures | Kasin W. | MedSAM2 LoRA, FUSegNet, nnU-Net v2 |
-| P-scSE attention | Shivam Dubey | FUSegNet architecture |
-| Robustness testing | Shivam Dubey | Synthetic degradation suite |
-| Calibration analysis | Yash Jain | ECE + temperature scaling |
-| Ablation studies | Yucheng Yan, Yash Jain | Data composition ablation |
-
-## Citation
-
-```bibtex
-@software{diafootai_v2_2026,
-  author = {Ruthvik Bandari},
-  title = {DiaFoot.AI v2: Multi-Task Deep Learning for Diabetic Foot Ulcer Detection},
-  year = {2026},
-  url = {https://github.com/Ruthvik-Bandari/DiaFoot.AI}
-}
-```
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
+| Compute | Northeastern Explorer HPC (H200/A100 GPUs) | — |
 
 ---
 
-**Author**: Ruthvik Bandari
-**Course**: AAI6620 Computer Vision, Northeastern University
-**Date**: March 2026
+## Quick Start
+
+### Installation
+
+```bash
+git clone https://github.com/Ruthvik-Bandari/DiaFoot.AI.git
+cd DiaFoot.AI
+pip install -r requirements.txt
+```
+
+### Inference (Single Image)
+
+```bash
+python scripts/predict.py --image path/to/foot.jpg --device cuda
+```
+
+### Training
+
+```bash
+# Train classifier (all 3 classes)
+python scripts/train.py --task classify --epochs 50 --device cuda
+
+# Train segmenter (DFU-only — proven best by ablation)
+python scripts/run_ablation.py --variant dfu_only --epochs 100 --device cuda
+```
+
+### Evaluation
+
+```bash
+python scripts/evaluate.py \
+    --task segment \
+    --checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt \
+    --device cuda
+```
+
+### ONNX Export
+
+```bash
+python scripts/export_onnx.py \
+    --checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt \
+    --output models/diafoot_segmenter.onnx \
+    --validate --benchmark
+```
+
+### FastAPI Server
+
+```bash
+uvicorn src.deploy.app:app --host 0.0.0.0 --port 8000
+# POST /predict with image file
+```
+
+---
+
+## Project Structure
+
+```
+DiaFoot.AI/
+├── configs/                    # YAML configs for training, models, data
+├── data/
+│   ├── raw/                    # Original datasets (DVC tracked)
+│   ├── processed/              # Cleaned, preprocessed 512x512 images
+│   ├── splits/                 # Train/val/test CSVs
+│   └── metadata/               # Quality reports, ITA scores
+├── src/
+│   ├── data/                   # Dataset classes, augmentation, cleaning
+│   ├── models/                 # U-Net++, FUSegNet, classifier, MedSAM2
+│   ├── training/               # Trainer, losses, schedulers, EMA
+│   ├── evaluation/             # Metrics, fairness, calibration, robustness
+│   ├── inference/              # Pipeline, TTA, postprocessing
+│   └── deploy/                 # FastAPI app
+├── scripts/                    # Entry points for train, eval, export
+├── slurm/                      # HPC job scripts
+├── results/                    # Metrics, figures, reports
+├── checkpoints/                # Trained model weights
+└── tests/                      # Unit tests
+```
+
+---
+
+## Peer Feedback Integration
+
+Every piece of peer feedback from the AAI6620 course review was mapped to a specific implementation. Key examples:
+
+| Feedback | From | Implementation |
+|----------|------|----------------|
+| How did augmentation handle skin tone diversity? | Sudeep K.S. | ITA-stratified fairness audit |
+| Add attention mechanisms to reduce false positives | Shivam Dubey | scSE attention in U-Net++ decoder |
+| Report performance relative to inter-annotator agreement | Yucheng Yan | Ceiling analysis framework |
+| Tie uncertainty to clinical output | Yash Jain | TTA-based uncertainty maps |
+| Prioritize ablation studies over deployment | Yucheng Yan | Data composition ablation as core experiment |
+| Addressing algorithmic bias is a critical ethical hurdle | Ching-Yi Mao | ITA fairness audit with honest limitation disclosure |
+
+---
+
+## Honest Limitations
+
+1. **Classifier accuracy (100%) is a dataset artifact.** The three data categories come from visually distinct sources (different cameras, backgrounds). The classifier learned "which dataset" rather than "which condition." A production system requires same-source data across all classes.
+
+2. **Wagner staging was not trained.** The architecture supports it, but clinical grade labels were unavailable. This is acknowledged as future work requiring clinical partnerships.
+
+3. **No cross-validation.** Results are from a single train/val/test split. 5-fold cross-validation would strengthen statistical claims but was not performed due to compute time constraints.
+
+4. **Limited skin tone diversity.** The dataset is predominantly a single ITA group. Fairness conclusions cannot be generalized to the full Fitzpatrick I–VI spectrum.
+
+5. **Only 2 of 5 architectures were fully trained.** FUSegNet underperformed; MedSAM2 LoRA and nnU-Net v2 were implemented but not trained due to time constraints.
+
+---
+
+## v1 → v2 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete list of changes.
+
+---
+
+## Citation
+
+If you use this work, please cite:
+
+```
+@misc{bandari2026diafoot,
+  title={DiaFoot.AI: Production-Grade Diabetic Foot Ulcer Detection and Segmentation},
+  author={Bandari, Ruthvik},
+  year={2026},
+  institution={Northeastern University},
+  course={AAI6620 Computer Vision}
+}
+```
+
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+*Built with care for clinical impact. Data composition matters more than architecture.*
