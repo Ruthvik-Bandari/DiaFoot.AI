@@ -1,0 +1,59 @@
+{
+  "azh_integration": {
+    "found": 1109,
+    "saved": 1109,
+    "skipped": 0,
+    "errors": 0,
+    "issues": {
+      "all_zero": 69
+    }
+  },
+  "validation": {
+    "dfu": {
+      "total_images": 2119,
+      "total_masks": 2119,
+      "paired": 2119,
+      "orphan_images": 0,
+      "orphan_masks": 0,
+      "non_512_in_sample": 0
+    },
+    "healthy": {
+      "total_images": 3300,
+      "total_masks": 3300,
+      "paired": 3300,
+      "orphan_images": 0,
+      "orphan_masks": 0,
+      "non_512_in_sample": 0
+    },
+    "non_dfu": {
+      "total_images": 2686,
+      "total_masks": 2686,
+      "paired": 2686,
+      "orphan_images": 0,
+      "orphan_masks": 0,
+      "non_512_in_sample": 0
+    }
+  },
+  "splits": {
+    "train": 5670,
+    "val": 1213,
+    "test": 1222,
+    "train_classes": {
+      "healthy": 2309,
+      "non_dfu": 1879,
+      "dfu": 1482
+    },
+    "val_classes": {
+      "dfu": 317,
+      "healthy": 494,
+      "non_dfu": 402
+    },
+    "test_classes": {
+      "non_dfu": 405,
+      "healthy": 497,
+      "dfu": 320
+    }
+  },
+  "leakage": false,
+  "seed": 42
+}
