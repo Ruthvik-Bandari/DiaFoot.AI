@@ -116,8 +116,8 @@ def run_robustness_test(
     # Baseline (no degradation)
     baseline_metrics: list[dict[str, float]] = []
     for img, mask in zip(images, masks, strict=False):
-        pred = predict_fn(img)
-        baseline_metrics.append(metric_fn(pred, mask))
+        pred = predict_fn(img)  # type: ignore[operator]
+        baseline_metrics.append(metric_fn(pred, mask))  # type: ignore[operator]
 
     results["none"] = {
         0: _average_metrics(baseline_metrics),
@@ -136,8 +136,8 @@ def run_robustness_test(
             severity_metrics: list[dict[str, float]] = []
             for img, mask in zip(images, masks, strict=False):
                 degraded = deg_fn(img, severity=severity)
-                pred = predict_fn(degraded)
-                severity_metrics.append(metric_fn(pred, mask))
+                pred = predict_fn(degraded)  # type: ignore[operator]
+                severity_metrics.append(metric_fn(pred, mask))  # type: ignore[operator]
 
             results[deg_name][severity] = _average_metrics(severity_metrics)
 

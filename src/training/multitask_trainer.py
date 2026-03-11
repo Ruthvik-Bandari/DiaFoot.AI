@@ -169,7 +169,7 @@ class MultiTaskTrainer:
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(), self.config.gradient_clip
                     )
-                optimizer.step()
+                optimizer.step()  # type: ignore[attr-defined]
                 optimizer.zero_grad()
 
             # Track losses
@@ -208,7 +208,7 @@ class MultiTaskTrainer:
                 history[k].append(v)
 
             if scheduler:
-                scheduler.step()
+                scheduler.step()  # type: ignore[attr-defined]
 
             elapsed = time.time() - t0
             loss_str = " | ".join(f"{k}={v:.4f}" for k, v in metrics.items())
