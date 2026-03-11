@@ -16,7 +16,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 if TYPE_CHECKING:
-
     from starlette.requests import Request
     from starlette.responses import Response
 
