@@ -9,7 +9,7 @@ import os
 import platform
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -39,7 +39,7 @@ def main() -> None:
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent.parent
-    ts = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    ts = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     pkg_versions = {}
     for mod in ("torch", "numpy", "scipy", "sklearn", "cv2"):
@@ -83,7 +83,7 @@ def main() -> None:
     with open(out, "w") as f:
         json.dump(manifest, f, indent=2)
 
-    print(f"Repro bundle written to: {out}")  # noqa: T201
+    print(f"Repro bundle written to: {out}")
 
 
 if __name__ == "__main__":

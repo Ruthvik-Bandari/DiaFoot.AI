@@ -69,7 +69,9 @@ def export_to_onnx(
     file_size_mb = output_path.stat().st_size / (1024 * 1024)
     logger.info(
         "Exported: %s (%.1f MB) in %.1fs",
-        output_path, file_size_mb, elapsed,
+        output_path,
+        file_size_mb,
+        elapsed,
     )
 
 
@@ -124,7 +126,9 @@ def validate_onnx(
             all_passed = False
             logger.warning(
                 "Test %d FAILED: max_diff=%.2e (tolerance=%.2e)",
-                i + 1, max_diff, atol,
+                i + 1,
+                max_diff,
+                atol,
             )
         else:
             logger.debug("Test %d passed: max_diff=%.2e", i + 1, max_diff)
@@ -132,7 +136,10 @@ def validate_onnx(
     avg_diff = np.mean(max_diffs)
     logger.info(
         "Validation: %d/%d passed (avg max_diff=%.2e, tolerance=%.2e)",
-        sum(1 for d in max_diffs if d < atol), num_tests, avg_diff, atol,
+        sum(1 for d in max_diffs if d < atol),
+        num_tests,
+        avg_diff,
+        atol,
     )
 
     # Try with relaxed tolerance if strict fails
@@ -188,7 +195,9 @@ def benchmark_onnx(
 
     logger.info(
         "ONNX benchmark: %.1f ms/image (%.1f FPS) — %d runs",
-        results["mean_ms"], results["fps"], num_runs,
+        results["mean_ms"],
+        results["fps"],
+        num_runs,
     )
     return results
 
@@ -239,6 +248,7 @@ def main() -> None:
         results = benchmark_onnx(output_path)
         if results:
             import json
+
             bench_path = output_path.parent / "onnx_benchmark.json"
             with open(bench_path, "w") as f:
                 json.dump(results, f, indent=2)

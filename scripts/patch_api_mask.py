@@ -27,9 +27,9 @@ Run this script to auto-patch:
 """
 
 from pathlib import Path
-import re
 
-def patch():
+
+def patch() -> None:
     app_path = Path("src/deploy/app.py")
     content = app_path.read_text()
 
@@ -61,7 +61,7 @@ def patch():
     if "mask_b64" not in content:
         content = content.replace(
             "    return PredictionResponse(\n        classification=result.classification,",
-            '''    # Encode segmentation mask as base64 PNG
+            """    # Encode segmentation mask as base64 PNG
     mask_b64: str | None = None
     if result.segmentation_mask is not None and result.has_wound:
         mask_img = PILImage.fromarray(
@@ -72,7 +72,7 @@ def patch():
         mask_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
 
     return PredictionResponse(
-        classification=result.classification,''',
+        classification=result.classification,""",
         )
 
     # 4. Add mask_b64 to return

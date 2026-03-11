@@ -23,7 +23,7 @@ def compute_area_agreement(pred_area: np.ndarray, manual_area: np.ndarray) -> di
     corr = float(np.corrcoef(pred, gt)[0, 1]) if len(pred) > 1 else 0.0
 
     return {
-        "n": int(len(pred)),
+        "n": len(pred),
         "mae_mm2": mae,
         "rmse_mm2": rmse,
         "mape": mape,

@@ -2,7 +2,8 @@
 
 Usage:
     python scripts/run_leakage_audit.py
-    python scripts/run_leakage_audit.py --splits-dir data/splits --output data/metadata/leakage_report.json
+    python scripts/run_leakage_audit.py --splits-dir data/splits \
+        --output data/metadata/leakage_report.json
 """
 
 from __future__ import annotations

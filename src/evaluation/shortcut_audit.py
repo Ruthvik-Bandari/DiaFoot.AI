@@ -70,13 +70,11 @@ def summarize_shortcut_shift(
 
     baseline_acc = float((baseline_pred == labels).mean()) if len(labels) > 0 else 0.0
     perturbed_acc = float((perturbed_pred == labels).mean()) if len(labels) > 0 else 0.0
-    pred_consistency = (
-        float((baseline_pred == perturbed_pred).mean()) if len(labels) > 0 else 0.0
-    )
+    pred_consistency = float((baseline_pred == perturbed_pred).mean()) if len(labels) > 0 else 0.0
 
     conf_drop = baseline_conf - perturbed_conf
     return {
-        "n": int(len(labels)),
+        "n": len(labels),
         "baseline_accuracy": baseline_acc,
         "perturbed_accuracy": perturbed_acc,
         "accuracy_drop": baseline_acc - perturbed_acc,

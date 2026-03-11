@@ -1,8 +1,9 @@
 """DiaFoot.AI v2 — Healthy Feet Module Tests (Phase 1, Commit 3)."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
-from pathlib import Path
 from PIL import Image
 
 from src.data.healthy_feet import create_empty_masks, validate_healthy_images

@@ -1,6 +1,7 @@
 """DiaFoot.AI v2 — Deployment Tests (Phase 6)."""
 
 import json
+
 import numpy as np
 import pytest
 import torch

@@ -36,7 +36,7 @@ def main() -> None:
     iou = np.array([float(r.get("iou", 0.0)) for r in rows], dtype=float)
 
     summary = {
-        "num_folds": int(len(rows)),
+        "num_folds": len(rows),
         "dice": {
             "mean": float(dice.mean()),
             "std": float(dice.std(ddof=1)) if len(dice) > 1 else 0.0,

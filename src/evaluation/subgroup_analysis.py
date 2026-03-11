@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
-
-import numpy as np
+from typing import TYPE_CHECKING, Any
 
 from src.evaluation.external_validation import bootstrap_ci
+
+if TYPE_CHECKING:
+    import numpy as np
 
 
 def classification_subgroup_report(

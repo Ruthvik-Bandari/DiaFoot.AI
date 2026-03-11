@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
 
 from src.data.leakage_audit import audit_samples_for_leakage, canonical_sample_id
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _write_image(path: Path, value: int) -> None:

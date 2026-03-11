@@ -16,14 +16,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import logging
 from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image
 
 logger = logging.getLogger("azh_integrate")
 
@@ -174,7 +172,7 @@ def is_duplicate(img_path: Path, existing_hashes: set[str], threshold: int = 5) 
 
     # Near-duplicate (hamming distance ≤ threshold)
     for eh in existing_hashes:
-        dist = sum(c1 != c2 for c1, c2 in zip(h, eh))
+        dist = sum(c1 != c2 for c1, c2 in zip(h, eh, strict=False))
         if dist <= threshold:
             return True
 
@@ -259,8 +257,10 @@ def main() -> None:
         cov = np.array(coverages)
         logger.info(
             "Coverage: mean=%.1f%%, median=%.1f%%, range=[%.2f%%, %.1f%%]",
-            cov.mean() * 100, np.median(cov) * 100,
-            cov.min() * 100, cov.max() * 100,
+            cov.mean() * 100,
+            np.median(cov) * 100,
+            cov.min() * 100,
+            cov.max() * 100,
         )
 
     # ── Step 3: Deduplication against existing FUSeg ─────────────────────
@@ -282,7 +282,8 @@ def main() -> None:
 
         logger.info(
             "Dedup: %d unique, %d duplicates removed",
-            len(unique_pairs), dup_count,
+            len(unique_pairs),
+            dup_count,
         )
         valid_pairs = unique_pairs
     else:

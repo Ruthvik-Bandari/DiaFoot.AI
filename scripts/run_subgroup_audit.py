@@ -57,7 +57,9 @@ def main() -> None:
     dev = args.device if torch.cuda.is_available() else "cpu"
 
     ds = DFUDataset(split_csv=args.split_csv, transform=get_val_transforms(), return_metadata=True)
-    loader = torch.utils.data.DataLoader(ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    loader = torch.utils.data.DataLoader(
+        ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers
+    )
 
     # Collect metadata-aligned vectors.
     labels: list[int] = []
@@ -73,7 +75,9 @@ def main() -> None:
     # Need mask-derived wound size from dataset order
     for i in range(len(ds)):
         sample = ds[i]
-        mask = sample["mask"].numpy() if hasattr(sample["mask"], "numpy") else np.array(sample["mask"])
+        mask = (
+            sample["mask"].numpy() if hasattr(sample["mask"], "numpy") else np.array(sample["mask"])
+        )
         wound_size_groups.append(_wound_size_group(mask))
 
     report: dict[str, Any] = {

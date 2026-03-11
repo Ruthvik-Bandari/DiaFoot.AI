@@ -51,7 +51,9 @@ def main() -> None:
     model = model.to(dev).eval()
 
     ds = DFUDataset(args.split_csv, transform=get_val_transforms(), return_metadata=True)
-    loader = torch.utils.data.DataLoader(ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    loader = torch.utils.data.DataLoader(
+        ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers
+    )
 
     rows = []
     idx_global = 0
@@ -69,7 +71,11 @@ def main() -> None:
                 pred = preds[i]
                 m = compute_segmentation_metrics(pred, gt)
                 ftype = classify_segmentation_failure(pred, gt, m["dice"])
-                filename = metadata["filename"][i] if "filename" in metadata else f"sample_{idx_global}.png"
+                filename = (
+                    metadata["filename"][i]
+                    if "filename" in metadata
+                    else f"sample_{idx_global}.png"
+                )
                 rows.append(
                     {
                         "index": idx_global,

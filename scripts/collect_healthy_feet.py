@@ -134,7 +134,7 @@ def main() -> None:
 
     # ── Summary ─────────────────────────────────────────────────────────
     print(f"\n{'═' * 60}")
-    print(f"Healthy Foot Data Collection — Summary")
+    print("Healthy Foot Data Collection — Summary")
     print(f"{'═' * 60}")
     print(f"Images:      {image_count} in {images_dir}")
     print(f"Masks:       {mask_count} in {masks_dir}")
@@ -144,7 +144,7 @@ def main() -> None:
     print(f"Grayscale:   {len(validation['grayscale'])}")
     if image_count < 2000:
         print(f"\n⚠  Target is 2,000-5,000 healthy images. Currently at {image_count}.")
-        print(f"   Additional sources needed (web scraping, clinical partnerships).")
+        print("   Additional sources needed (web scraping, clinical partnerships).")
     print(f"{'═' * 60}\n")
 
 

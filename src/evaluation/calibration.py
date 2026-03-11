@@ -159,10 +159,7 @@ def tune_defer_threshold(
         deferred = int((~keep).sum())
         kept = int(keep.sum())
 
-        if kept > 0:
-            acc_kept = float((preds[keep] == labels[keep]).mean())
-        else:
-            acc_kept = 0.0
+        acc_kept = float((preds[keep] == labels[keep]).mean()) if kept > 0 else 0.0
 
         row = {
             "threshold": float(thr),
@@ -179,11 +176,13 @@ def tune_defer_threshold(
         if best is None:
             best = row
             continue
-        if row["accuracy_kept"] > best["accuracy_kept"] + 1e-12:
+        is_better_acc = row["accuracy_kept"] > best["accuracy_kept"] + 1e-12
+        same_acc_more_cov = (
+            abs(row["accuracy_kept"] - best["accuracy_kept"]) <= 1e-12
+            and row["coverage"] > best["coverage"]
+        )
+        if is_better_acc or same_acc_more_cov:
             best = row
-        elif abs(row["accuracy_kept"] - best["accuracy_kept"]) <= 1e-12:
-            if row["coverage"] > best["coverage"]:
-                best = row
 
     # If no threshold satisfies min coverage, fall back to highest coverage.
     if best is None:

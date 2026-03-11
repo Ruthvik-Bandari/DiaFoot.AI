@@ -9,10 +9,8 @@ import csv
 import json
 import logging
 from collections import defaultdict
-from typing import Any
 from pathlib import Path
-
-import random
+from typing import Any
 
 import numpy as np
 

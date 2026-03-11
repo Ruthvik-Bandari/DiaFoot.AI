@@ -30,12 +30,14 @@ def canonical_stem(path_str: str) -> str:
     return _AUG_TAIL.sub("", stem)
 
 
-def resize_with_padding(img: np.ndarray, target: int = 512, interp: int = cv2.INTER_AREA) -> np.ndarray:
+def resize_with_padding(
+    img: np.ndarray, target: int = 512, interp: int = cv2.INTER_AREA
+) -> np.ndarray:
     h, w = img.shape[:2]
     if h <= 0 or w <= 0:
         raise ValueError("Invalid image size")
     scale = target / max(h, w)
-    nw, nh = max(1, int(round(w * scale))), max(1, int(round(h * scale)))
+    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
     resized = cv2.resize(img, (nw, nh), interpolation=interp)
 
     if img.ndim == 2:

@@ -190,7 +190,6 @@ def main() -> None:
         # Compute metrics
         dice = dice_score(pred, gt_mask)
 
-
         # Create grid
         grid = create_comparison_grid(img, gt_mask, pred, dice, idx)
         all_grids.append(grid)

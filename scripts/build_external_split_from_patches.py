@@ -31,7 +31,7 @@ def resize_with_padding(img: np.ndarray, target: int = 512) -> np.ndarray:
     if h == 0 or w == 0:
         raise ValueError("Invalid empty image")
     scale = target / max(h, w)
-    nw, nh = max(1, int(round(w * scale))), max(1, int(round(h * scale)))
+    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
     resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_AREA)
     canvas = np.zeros((target, target, 3), dtype=np.uint8)
     yo, xo = (target - nh) // 2, (target - nw) // 2
@@ -197,7 +197,10 @@ def main() -> None:
     print(f"Removed by content-overlap with internal splits: {removed_overlap}")
     print(f"Unreadable files skipped: {unreadable}")
     print(f"Processed image root: {processed_root}")
-    print("Note: masks are synthetic blank masks; segmentation external metrics are not clinically valid.")
+    print(
+        "Note: masks are synthetic blank masks; "
+        "segmentation external metrics are not clinically valid."
+    )
     print("=" * 60)
 
 

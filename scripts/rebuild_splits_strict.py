@@ -151,7 +151,7 @@ def build_components(rows: list[dict[str, str]], near_threshold: int) -> dict[st
     for cls, indices in by_class.items():
         uf = UnionFind(len(indices))
 
-        local_to_global = {li: gi for li, gi in enumerate(indices)}
+        local_to_global = dict(enumerate(indices))
         hash_to_locals: dict[int, list[int]] = defaultdict(list)
 
         for li, gi in local_to_global.items():
@@ -168,7 +168,7 @@ def build_components(rows: list[dict[str, str]], near_threshold: int) -> dict[st
 
         # near-hash linking using class-aware top-16-bit buckets
         prefix_to_hashes: dict[int, list[int]] = defaultdict(list)
-        for hv in hash_to_locals.keys():
+        for hv in hash_to_locals:
             prefix = (hv >> 48) & 0xFFFF
             prefix_to_hashes[prefix].append(hv)
 
@@ -207,18 +207,15 @@ def assign_components(
         rng.shuffle(components)
         total = sum(len(c) for c in components)
         targets = {
-            "train": int(round(total * train_ratio)),
-            "val": int(round(total * val_ratio)),
-            "test": max(0, total - int(round(total * train_ratio)) - int(round(total * val_ratio))),
+            "train": round(total * train_ratio),
+            "val": round(total * val_ratio),
+            "test": max(0, total - round(total * train_ratio) - round(total * val_ratio)),
         }
         current = {"train": 0, "val": 0, "test": 0}
 
         for comp in components:
             size = len(comp)
-            deficits = {
-                s: targets[s] - current[s]
-                for s in ("train", "val", "test")
-            }
+            deficits = {s: targets[s] - current[s] for s in ("train", "val", "test")}
             # prioritize split with biggest deficit, then smallest current size
             chosen = sorted(
                 ("train", "val", "test"),
@@ -231,15 +228,13 @@ def assign_components(
 
         # lightweight class-presence fix: ensure each split has at least one sample if possible
         per_split_cls = {
-            s: sum(1 for r in split_rows[s] if r["class"] == cls)
-            for s in ("train", "val", "test")
+            s: sum(1 for r in split_rows[s] if r["class"] == cls) for s in ("train", "val", "test")
         }
         empty_splits = [s for s, n in per_split_cls.items() if n == 0]
         if empty_splits and len(components) >= 3:
             # move one smallest component for this class from largest split to each empty split
             cls_in_split = {
-                s: [r for r in split_rows[s] if r["class"] == cls]
-                for s in ("train", "val", "test")
+                s: [r for r in split_rows[s] if r["class"] == cls] for s in ("train", "val", "test")
             }
             donor = max(("train", "val", "test"), key=lambda s: len(cls_in_split[s]))
             donor_rows = cls_in_split[donor]

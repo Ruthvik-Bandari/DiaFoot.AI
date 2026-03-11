@@ -10,23 +10,25 @@ Endpoints:
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import os
-import base64
-from io import BytesIO
-
-from PIL import Image as PILImage
 import time
 from contextlib import asynccontextmanager
+from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 import cv2
 import numpy as np
 import torch
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image as PILImage
 from pydantic import BaseModel
 
 from src.deploy.middleware import (
@@ -230,10 +232,11 @@ def resolve_runtime_thresholds() -> tuple[float, float, str]:
 
     return confidence_threshold, DEFAULT_DEFER_THRESHOLD, "default"
 
+
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Initialize pipeline when service starts."""
-    global _pipeline  # noqa: PLW0603
+    global _pipeline
     try:
         _pipeline = _build_pipeline_from_checkpoints()
         if _pipeline is None:
@@ -551,9 +554,7 @@ async def predict(file: UploadFile = File()) -> PredictionResponse:  # noqa: B00
     # Encode segmentation mask as base64 PNG
     mask_b64: str | None = None
     if result.segmentation_mask is not None and result.has_wound:
-        mask_img = PILImage.fromarray(
-            (result.segmentation_mask * 255).astype("uint8")
-        )
+        mask_img = PILImage.fromarray((result.segmentation_mask * 255).astype("uint8"))
         buf = BytesIO()
         mask_img.save(buf, format="PNG")
         mask_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")

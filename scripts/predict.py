@@ -68,7 +68,6 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-
     device = torch.device(
         args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
     )

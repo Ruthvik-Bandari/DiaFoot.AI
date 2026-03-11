@@ -46,7 +46,9 @@ def _evaluate_classifier(
     model = model.to(device).eval()
 
     ds = DFUDataset(split_csv=split_csv, transform=get_val_transforms(), return_metadata=True)
-    loader = torch.utils.data.DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    loader = torch.utils.data.DataLoader(
+        ds, batch_size=batch_size, shuffle=False, num_workers=num_workers
+    )
 
     y_true: list[int] = []
     y_pred: list[int] = []
@@ -87,7 +89,9 @@ def _evaluate_segmentation(
     model = model.to(device).eval()
 
     ds = DFUDataset(split_csv=split_csv, transform=get_val_transforms(), return_metadata=True)
-    loader = torch.utils.data.DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    loader = torch.utils.data.DataLoader(
+        ds, batch_size=batch_size, shuffle=False, num_workers=num_workers
+    )
 
     all_metrics: list[dict[str, float]] = []
     dfu_metrics: list[dict[str, float]] = []

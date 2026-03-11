@@ -25,11 +25,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.data.augmentation import get_val_transforms
 from src.data.torch_dataset import DFUDataset
+from src.evaluation.calibration import compute_calibration_report, print_calibration_report
 from src.evaluation.classification_metrics import (
     compute_classification_metrics,
     print_classification_report,
 )
-from src.evaluation.calibration import compute_calibration_report, print_calibration_report
 from src.evaluation.metrics import (
     aggregate_metrics,
     compute_segmentation_metrics,

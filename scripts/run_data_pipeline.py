@@ -38,7 +38,9 @@ MASK_THRESHOLD = 127
 # STEP 1: Integrate AZH GitHub
 # ═══════════════════════════════════════════════════════════════════════════════
 def resize_with_padding(
-    img: np.ndarray, target: int, interp: int = cv2.INTER_LINEAR,
+    img: np.ndarray,
+    target: int,
+    interp: int = cv2.INTER_LINEAR,
 ) -> np.ndarray:
     h, w = img.shape[:2]
     scale = target / max(h, w)
@@ -97,11 +99,9 @@ def integrate_azh(data_dir: Path) -> dict:
                 # Preprocess image: resize + CLAHE
                 img = resize_with_padding(img, TARGET_SIZE)
                 lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-                l, a, b = cv2.split(lab)
-                clahe = cv2.createCLAHE(
-                    clipLimit=CLAHE_CLIP_LIMIT, tileGridSize=CLAHE_GRID_SIZE
-                )
-                lab = cv2.merge([clahe.apply(l), a, b])
+                lum, a, b = cv2.split(lab)
+                clahe = cv2.createCLAHE(clipLimit=CLAHE_CLIP_LIMIT, tileGridSize=CLAHE_GRID_SIZE)
+                lab = cv2.merge([clahe.apply(lum), a, b])
                 img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
                 # Preprocess mask: resize + binarize
@@ -141,7 +141,11 @@ def validate_processed(data_dir: Path) -> dict:
             continue
 
         imgs = {f.stem: f for f in img_dir.iterdir() if f.suffix.lower() in {".png", ".jpg"}}
-        masks = {f.stem: f for f in mask_dir.iterdir() if f.suffix.lower() in {".png", ".jpg"}} if mask_dir.exists() else {}
+        masks = (
+            {f.stem: f for f in mask_dir.iterdir() if f.suffix.lower() in {".png", ".jpg"}}
+            if mask_dir.exists()
+            else {}
+        )
 
         paired = set(imgs.keys()) & set(masks.keys())
         orphan_imgs = set(imgs.keys()) - set(masks.keys())
@@ -261,7 +265,8 @@ def infer_patient_id(image_path: Path) -> str:
 # STEP 4: Generate stratified splits
 # ═══════════════════════════════════════════════════════════════════════════════
 def generate_splits(
-    data_dir: Path, seed: int = 42,
+    data_dir: Path,
+    seed: int = 42,
 ) -> tuple[list[dict], list[dict], list[dict]]:
     """Build sample list and create 70/15/15 stratified splits."""
     processed = data_dir / "processed"
@@ -288,15 +293,17 @@ def generate_splits(
             if len(samples) % 5 == 0:
                 ita = compute_ita(img_path)
 
-            samples.append({
-                "image": str(img_path),
-                "mask": str(mask_path),
-                "class": cls,
-                "ita": ita,
-                "ita_group": ita_group(ita),
-                "source_id": infer_source_id(cls, img_path),
-                "patient_id": infer_patient_id(img_path),
-            })
+            samples.append(
+                {
+                    "image": str(img_path),
+                    "mask": str(mask_path),
+                    "class": cls,
+                    "ita": ita,
+                    "ita_group": ita_group(ita),
+                    "source_id": infer_source_id(cls, img_path),
+                    "patient_id": infer_patient_id(img_path),
+                }
+            )
 
     logger.info("Total paired samples: %d", len(samples))
 
@@ -309,7 +316,7 @@ def generate_splits(
         groups.setdefault(key, []).append(s)
 
     train, val, test = [], [], []
-    for key, group in groups.items():
+    for _key, group in groups.items():
         patient_groups: dict[str, list[dict]] = {}
         for s in group:
             patient_key = f"{s['class']}::{s['source_id']}::{s['patient_id']}"
@@ -319,8 +326,8 @@ def generate_splits(
         rng.shuffle(patient_keys)
 
         total = sum(len(patient_groups[k]) for k in patient_keys)
-        target_train = int(round(total * 0.70))
-        target_val = int(round(total * 0.15))
+        target_train = round(total * 0.70)
+        target_val = round(total * 0.15)
 
         train_n = 0
         val_n = 0
@@ -360,15 +367,17 @@ def write_csv(samples: list[dict], path: Path) -> None:
         )
         writer.writeheader()
         for s in samples:
-            writer.writerow({
-                "image": s["image"],
-                "mask": s["mask"],
-                "class": s["class"],
-                "ita": s.get("ita", ""),
-                "ita_group": s.get("ita_group", "unknown"),
-                "source_id": s.get("source_id", "unknown"),
-                "patient_id": s.get("patient_id", "unknown"),
-            })
+            writer.writerow(
+                {
+                    "image": s["image"],
+                    "mask": s["mask"],
+                    "class": s["class"],
+                    "ita": s.get("ita", ""),
+                    "ita_group": s.get("ita_group", "unknown"),
+                    "source_id": s.get("source_id", "unknown"),
+                    "patient_id": s.get("patient_id", "unknown"),
+                }
+            )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -413,9 +422,11 @@ def main() -> None:
     val_report = validate_processed(data_dir)
     total_paired = 0
     for cls, stats in val_report.items():
-        print(f"  {cls}: {stats['paired']} paired, "
-              f"{stats['orphan_images']} orphan imgs, "
-              f"{stats['orphan_masks']} orphan masks")
+        print(
+            f"  {cls}: {stats['paired']} paired, "
+            f"{stats['orphan_images']} orphan imgs, "
+            f"{stats['orphan_masks']} orphan masks"
+        )
         total_paired += stats["paired"]
     print(f"  TOTAL: {total_paired} paired samples")
 

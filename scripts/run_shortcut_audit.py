@@ -12,13 +12,14 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Callable
 
 import cv2
 import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from typing import TYPE_CHECKING
 
 from src.data.torch_dataset import CLASS_TO_IDX
 from src.evaluation.shortcut_audit import (
@@ -29,6 +30,9 @@ from src.evaluation.shortcut_audit import (
 )
 from src.inference.pipeline import InferencePipeline
 from src.models.classifier import TriageClassifier
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _read_split(split_csv: str | Path, limit: int | None = None) -> list[dict[str, str]]:
@@ -42,7 +46,9 @@ def _read_split(split_csv: str | Path, limit: int | None = None) -> list[dict[st
     return rows
 
 
-def _build_predictor(checkpoint: str | Path, device: str) -> Callable[[np.ndarray], tuple[int, float]]:
+def _build_predictor(
+    checkpoint: str | Path, device: str
+) -> Callable[[np.ndarray], tuple[int, float]]:
     model = TriageClassifier(backbone="tf_efficientnetv2_m", num_classes=3, pretrained=False)
     ckpt = torch.load(str(checkpoint), map_location="cpu", weights_only=True)
     model.load_state_dict(ckpt["model_state_dict"])

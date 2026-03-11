@@ -41,7 +41,7 @@ def main() -> None:
     # Optional subgroup analysis by size_group
     if rows and "size_group" in rows[0]:
         by_group: dict[str, dict] = {}
-        groups = sorted(set(r.get("size_group", "unknown") for r in rows))
+        groups = sorted({r.get("size_group", "unknown") for r in rows})
         for g in groups:
             idx = [i for i, r in enumerate(rows) if r.get("size_group", "unknown") == g]
             if not idx:
@@ -54,7 +54,7 @@ def main() -> None:
     with open(out, "w") as f:
         json.dump(report, f, indent=2)
 
-    print(f"Area agreement report saved to: {out}")  # noqa: T201
+    print(f"Area agreement report saved to: {out}")
 
 
 if __name__ == "__main__":
