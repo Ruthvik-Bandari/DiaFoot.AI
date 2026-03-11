@@ -1,0 +1,35 @@
+{
+  "split_csv": "data/splits/test.csv",
+  "checkpoint": "checkpoints/classifier/best_epoch004_1.0000.pt",
+  "num_samples_requested": 1000,
+  "noise_border": {
+    "n": 319,
+    "baseline_accuracy": 1.0,
+    "perturbed_accuracy": 0.9655172413793104,
+    "accuracy_drop": 0.03448275862068961,
+    "prediction_consistency": 0.9655172413793104,
+    "confidence_drop_mean": 0.08642427581231049,
+    "confidence_drop_median": 0.04423040151596069,
+    "confidence_drop_p90": 0.28392230868339524
+  },
+  "center_only": {
+    "n": 319,
+    "baseline_accuracy": 1.0,
+    "perturbed_accuracy": 1.0,
+    "accuracy_drop": 0.0,
+    "prediction_consistency": 1.0,
+    "confidence_drop_mean": -0.02638227401482274,
+    "confidence_drop_median": -0.025967717170715332,
+    "confidence_drop_p90": 0.03836063146591174
+  },
+  "blur_background": {
+    "n": 319,
+    "baseline_accuracy": 1.0,
+    "perturbed_accuracy": 0.9968652037617555,
+    "accuracy_drop": 0.0031347962382445305,
+    "prediction_consistency": 0.9968652037617555,
+    "confidence_drop_mean": 0.01893798591201208,
+    "confidence_drop_median": 0.011765062808990479,
+    "confidence_drop_p90": 0.0645423889160156
+  }
+}

@@ -71,15 +71,20 @@ class DFUDataset(Dataset):
         """
         sample = self.samples[idx]
 
+        image_path = sample.get("image_path") or sample.get("image")
+        if not image_path:
+            msg = "Missing image path column in split CSV (expected image_path or image)"
+            raise RuntimeError(msg)
+
         # Load image (BGR -> RGB)
-        image = cv2.imread(sample["image_path"])
+        image = cv2.imread(image_path)
         if image is None:
-            msg = f"Failed to load image: {sample['image_path']}"
+            msg = f"Failed to load image: {image_path}"
             raise RuntimeError(msg)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Load mask
-        mask_path = sample.get("mask_path", "")
+        mask_path = sample.get("mask_path") or sample.get("mask") or ""
         if mask_path and Path(mask_path).exists():
             mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
             if mask is None:
@@ -113,9 +118,12 @@ class DFUDataset(Dataset):
         }
 
         if self.return_metadata:
+            filename = sample.get("filename")
+            if not filename and image_path:
+                filename = Path(image_path).name
             result["metadata"] = {
-                "filename": sample.get("filename", ""),
-                "ita_category": sample.get("ita_category", "Unknown"),
+                "filename": filename or "",
+                "ita_category": sample.get("ita_category") or sample.get("ita_group", "Unknown"),
                 "class_name": class_name,
             }
 

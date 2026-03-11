@@ -16,6 +16,24 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+def _softmax(logits: np.ndarray) -> np.ndarray:
+    """Numerically stable softmax for 2D logits."""
+    shifted = logits - logits.max(axis=1, keepdims=True)
+    exp_logits = np.exp(shifted)
+    return exp_logits / exp_logits.sum(axis=1, keepdims=True)
+
+
+def multiclass_brier_score(probs: np.ndarray, labels: np.ndarray) -> float:
+    """Compute multiclass Brier score.
+
+    Lower is better.
+    """
+    n, c = probs.shape
+    one_hot = np.zeros((n, c), dtype=np.float64)
+    one_hot[np.arange(n), labels.astype(int)] = 1.0
+    return float(np.mean(np.sum((probs - one_hot) ** 2, axis=1)))
+
+
 def expected_calibration_error(
     confidences: np.ndarray,
     accuracies: np.ndarray,
@@ -91,9 +109,7 @@ def temperature_scaling(
 
     for t in np.arange(0.1, 5.1, 0.1):
         scaled = logits / t
-        # Softmax
-        exp_scaled = np.exp(scaled - scaled.max(axis=1, keepdims=True))
-        probs = exp_scaled / exp_scaled.sum(axis=1, keepdims=True)
+        probs = _softmax(scaled)
 
         confidences = probs.max(axis=1)
         predictions = probs.argmax(axis=1)
@@ -105,12 +121,80 @@ def temperature_scaling(
             best_t = float(t)
 
     logger.info(
-        "Temperature scaling: T=%.2f, ECE=%.4f -> %.4f",
+        "Temperature scaling: selected T=%.2f with ECE=%.4f",
         best_t,
-        best_ece,
         best_ece,
     )
     return best_t
+
+
+def tune_defer_threshold(
+    probs: np.ndarray,
+    labels: np.ndarray,
+    thresholds: np.ndarray | None = None,
+    min_coverage: float = 0.6,
+) -> dict[str, Any]:
+    """Tune defer threshold for abstention policy.
+
+    Policy:
+      - defer if max_confidence < threshold
+      - evaluate quality only on covered (non-deferred) predictions
+
+    Objective:
+      - maximize covered accuracy subject to coverage >= min_coverage
+      - tie-break by larger coverage
+    """
+    if thresholds is None:
+        thresholds = np.linspace(0.30, 0.95, 27)
+
+    confidences = probs.max(axis=1)
+    preds = probs.argmax(axis=1)
+
+    sweep: list[dict[str, float]] = []
+    best: dict[str, float] | None = None
+
+    for thr in thresholds:
+        keep = confidences >= float(thr)
+        coverage = float(keep.mean())
+        deferred = int((~keep).sum())
+        kept = int(keep.sum())
+
+        if kept > 0:
+            acc_kept = float((preds[keep] == labels[keep]).mean())
+        else:
+            acc_kept = 0.0
+
+        row = {
+            "threshold": float(thr),
+            "coverage": coverage,
+            "defer_rate": 1.0 - coverage,
+            "num_deferred": float(deferred),
+            "num_kept": float(kept),
+            "accuracy_kept": acc_kept,
+        }
+        sweep.append(row)
+
+        if coverage < min_coverage:
+            continue
+        if best is None:
+            best = row
+            continue
+        if row["accuracy_kept"] > best["accuracy_kept"] + 1e-12:
+            best = row
+        elif abs(row["accuracy_kept"] - best["accuracy_kept"]) <= 1e-12:
+            if row["coverage"] > best["coverage"]:
+                best = row
+
+    # If no threshold satisfies min coverage, fall back to highest coverage.
+    if best is None:
+        best = max(sweep, key=lambda r: (r["coverage"], r["accuracy_kept"]))
+
+    return {
+        "min_coverage": float(min_coverage),
+        "recommended_threshold": float(best["threshold"]),
+        "recommended": best,
+        "sweep": sweep,
+    }
 
 
 def compute_segmentation_calibration(
@@ -158,33 +242,35 @@ def compute_calibration_report(
     # Classification calibration
     if classification_logits is not None and classification_labels is not None:
         # Before temperature scaling
-        exp_logits = np.exp(
-            classification_logits - classification_logits.max(axis=1, keepdims=True)
-        )
-        probs = exp_logits / exp_logits.sum(axis=1, keepdims=True)
+        probs = _softmax(classification_logits)
         confidences = probs.max(axis=1)
         predictions = probs.argmax(axis=1)
         correct = (predictions == classification_labels).astype(float)
 
         ece_before, bins_before = expected_calibration_error(confidences, correct)
+        brier_before = multiclass_brier_score(probs, classification_labels)
 
         # Temperature scaling
         opt_t = temperature_scaling(classification_logits, classification_labels)
 
         # After temperature scaling
         scaled = classification_logits / opt_t
-        exp_scaled = np.exp(scaled - scaled.max(axis=1, keepdims=True))
-        probs_after = exp_scaled / exp_scaled.sum(axis=1, keepdims=True)
+        probs_after = _softmax(scaled)
         conf_after = probs_after.max(axis=1)
         pred_after = probs_after.argmax(axis=1)
         correct_after = (pred_after == classification_labels).astype(float)
 
         ece_after, bins_after = expected_calibration_error(conf_after, correct_after)
+        brier_after = multiclass_brier_score(probs_after, classification_labels)
+        defer_tuning = tune_defer_threshold(probs_after, classification_labels)
 
         report["classification"] = {
             "ece_before": ece_before,
             "ece_after": ece_after,
+            "brier_before": brier_before,
+            "brier_after": brier_after,
             "optimal_temperature": opt_t,
+            "defer_tuning": defer_tuning,
             "bins_before": bins_before,
             "bins_after": bins_after,
         }
@@ -216,7 +302,18 @@ def print_calibration_report(report: dict[str, Any]) -> None:
         print("  Classification:")  # noqa: T201
         print(f"    ECE (before):     {cls['ece_before']:.4f}")  # noqa: T201
         print(f"    ECE (after):      {cls['ece_after']:.4f}")  # noqa: T201
+        print(f"    Brier (before):   {cls['brier_before']:.4f}")  # noqa: T201
+        print(f"    Brier (after):    {cls['brier_after']:.4f}")  # noqa: T201
         print(f"    Temperature:      {cls['optimal_temperature']:.2f}")  # noqa: T201
+        defer = cls.get("defer_tuning", {})
+        if defer:
+            rec = defer.get("recommended", {})
+            print(  # noqa: T201
+                "    Defer threshold: "
+                f"{defer.get('recommended_threshold', 0):.2f} "
+                f"(coverage={rec.get('coverage', 0):.2%}, "
+                f"acc_kept={rec.get('accuracy_kept', 0):.2%})"
+            )
 
     if "segmentation" in report:
         seg = report["segmentation"]

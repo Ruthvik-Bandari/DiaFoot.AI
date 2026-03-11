@@ -95,7 +95,11 @@ def compute_classification_metrics(
 
     # Classification report string
     metrics["report"] = classification_report(
-        y_true, y_pred, target_names=class_names, zero_division=0
+        y_true,
+        y_pred,
+        labels=[0, 1, 2],
+        target_names=class_names,
+        zero_division=0,
     )
 
     return metrics

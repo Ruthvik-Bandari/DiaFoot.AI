@@ -3,9 +3,12 @@
 import numpy as np
 
 from src.evaluation.calibration import (
+    compute_calibration_report,
     compute_segmentation_calibration,
     expected_calibration_error,
+    multiclass_brier_score,
     temperature_scaling,
+    tune_defer_threshold,
 )
 
 
@@ -42,6 +45,44 @@ class TestTemperatureScaling:
         labels = np.random.randint(0, 3, 100)
         t = temperature_scaling(logits, labels)
         assert t >= 1.0
+
+
+class TestDeferThresholdTuning:
+    def test_returns_recommended_threshold(self) -> None:
+        probs = np.array(
+            [
+                [0.9, 0.1, 0.0],
+                [0.55, 0.40, 0.05],
+                [0.34, 0.33, 0.33],
+                [0.1, 0.8, 0.1],
+            ]
+        )
+        labels = np.array([0, 0, 2, 1])
+        report = tune_defer_threshold(probs, labels, min_coverage=0.5)
+        assert "recommended_threshold" in report
+        assert 0.0 <= report["recommended_threshold"] <= 1.0
+        assert len(report["sweep"]) > 0
+
+
+class TestBrierAndReport:
+    def test_multiclass_brier_score_range(self) -> None:
+        probs = np.array([[0.7, 0.2, 0.1], [0.1, 0.2, 0.7]])
+        labels = np.array([0, 2])
+        brier = multiclass_brier_score(probs, labels)
+        assert 0.0 <= brier <= 2.0
+
+    def test_calibration_report_contains_defer_tuning(self) -> None:
+        logits = np.random.randn(30, 3)
+        labels = np.random.randint(0, 3, 30)
+        report = compute_calibration_report(
+            classification_logits=logits,
+            classification_labels=labels,
+        )
+        assert "classification" in report
+        cls = report["classification"]
+        assert "brier_before" in cls
+        assert "brier_after" in cls
+        assert "defer_tuning" in cls
 
 
 class TestSegmentationCalibration:

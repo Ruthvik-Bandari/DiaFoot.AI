@@ -1,12 +1,10 @@
 {
   "azh_integration": {
     "found": 1109,
-    "saved": 1109,
-    "skipped": 0,
+    "saved": 0,
+    "skipped": 1109,
     "errors": 0,
-    "issues": {
-      "all_zero": 69
-    }
+    "issues": {}
   },
   "validation": {
     "dfu": {
@@ -35,25 +33,432 @@
     }
   },
   "splits": {
-    "train": 5670,
-    "val": 1213,
-    "test": 1222,
+    "train": 7034,
+    "val": 752,
+    "test": 319,
     "train_classes": {
-      "healthy": 2309,
-      "non_dfu": 1879,
-      "dfu": 1482
+      "non_dfu": 2686,
+      "healthy": 2865,
+      "dfu": 1483
     },
     "val_classes": {
-      "dfu": 317,
-      "healthy": 494,
-      "non_dfu": 402
+      "healthy": 435,
+      "dfu": 317
     },
     "test_classes": {
-      "non_dfu": 405,
-      "healthy": 497,
-      "dfu": 320
+      "dfu": 319
+    },
+    "patient_overlap": {
+      "train_x_val": 22,
+      "train_x_test": 15,
+      "val_x_test": 4
+    },
+    "source_presence": {
+      "train": [
+        "dfu::azh",
+        "dfu::dfu",
+        "healthy::healthy",
+        "non_dfu::non_dfu"
+      ],
+      "val": [
+        "dfu::azh",
+        "dfu::dfu",
+        "healthy::healthy"
+      ],
+      "test": [
+        "dfu::azh",
+        "dfu::dfu"
+      ]
     }
   },
-  "leakage": false,
+  "leakage": {
+    "counts": {
+      "train": 7034,
+      "val": 752,
+      "test": 319
+    },
+    "path_overlap": {
+      "train_x_val": 0,
+      "train_x_test": 0,
+      "val_x_test": 0
+    },
+    "canonical_overlap": {
+      "train_x_val": 0,
+      "train_x_test": 0,
+      "val_x_test": 0
+    },
+    "content_overlap": {
+      "train_x_val": 87,
+      "train_x_test": 9,
+      "val_x_test": 2
+    },
+    "near_duplicates": {
+      "threshold": 6,
+      "counts": {
+        "train_x_val": 20774,
+        "train_x_test": 20669,
+        "val_x_test": 4737
+      },
+      "examples": [
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0204.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0221.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0204.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0026.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0204.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0322.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0229.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0200.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0069.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0362.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0369.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0498.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0369.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0205.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0369.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0028.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0344.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0506.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0344.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0048.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0274.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0506.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0274.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0048.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0489.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0198.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0219.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0030.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0219.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0330.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0219.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0067.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0219.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0208.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0509.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0030.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0509.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0330.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0509.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0067.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0509.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0208.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0494.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0263.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0534.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0288.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0044.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0503.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0044.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0326.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0269.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0503.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0269.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0326.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0199.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0440.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0414.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0108.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0264.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0216.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0264.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0078.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0264.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0238.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0239.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0216.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0239.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0078.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0239.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0238.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0314.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0216.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0314.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0078.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0314.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0238.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0039.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0216.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0039.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0078.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0039.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0238.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0094.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0422.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0389.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0060.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0449.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0133.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0159.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0453.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0124.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0400.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0179.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0467.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0284.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0521.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0249.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0235.png"
+        },
+        {
+          "pair": "train_x_val",
+          "class": "healthy",
+          "distance": 0,
+          "a": "data/processed/healthy/images/kaggle_normal_0419.png",
+          "b": "data/processed/healthy/images/kaggle_normal_0181.png"
+        }
+      ]
+    },
+    "leakage_flags": {
+      "path_overlap": false,
+      "canonical_overlap": false,
+      "content_overlap": true,
+      "near_duplicates": true
+    },
+    "has_any_leakage": true
+  },
   "seed": 42
 }

@@ -6,16 +6,24 @@
 #SBATCH --mem=32G
 #SBATCH --time=04:00:00
 #SBATCH --array=0-4
-#SBATCH --output=logs/%A_%a_cv.out
-#SBATCH --error=logs/%A_%a_cv.err
+#SBATCH --output=logs/slurm/%A_%a_cv.out
+#SBATCH --error=logs/slurm/%A_%a_cv.err
 
-module load cuda/12.8.0 python/3.13.5
-source ~/DiaFoot.AI-v2/.venv/bin/activate
-cd ~/DiaFoot.AI-v2
+set -euo pipefail
+
+# Resolve project root from sbatch submit location (fallback to script parent).
+PROJECT_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+cd "$PROJECT_ROOT"
+
+module purge
+module load cuda/12.8.0 python/3.12
+source .venv/bin/activate
+export PYTHONPATH="$PROJECT_ROOT"
+mkdir -p logs/slurm results
 
 echo "Running fold $SLURM_ARRAY_TASK_ID / 5"
 
-python scripts/run_cross_val.py \
+"$PROJECT_ROOT/.venv/bin/python" scripts/run_cross_val.py \
     --fold $SLURM_ARRAY_TASK_ID \
     --device cuda \
     --epochs 50 \

@@ -1,0 +1,18 @@
+{
+  "split_csv": "data/splits/test.csv",
+  "groups": {
+    "ita": [
+      "brown",
+      "unknown"
+    ],
+    "source": [
+      "azh",
+      "dfu"
+    ],
+    "wound_size": [
+      "large",
+      "medium",
+      "small"
+    ]
+  }
+}

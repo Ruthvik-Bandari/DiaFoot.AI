@@ -25,6 +25,8 @@ class PipelineResult:
     classification: str = "Unknown"
     classification_confidence: float = 0.0
     classification_probs: dict[str, float] = field(default_factory=dict)
+    defer_to_clinician: bool = False
+    defer_reason: str = ""
     has_wound: bool = False
     segmentation_mask: np.ndarray | None = None
     wound_area_px: int = 0
@@ -58,6 +60,7 @@ class InferencePipeline:
         segmenter: nn.Module | None = None,
         device: str = "cpu",
         confidence_threshold: float = 0.95,
+        defer_threshold: float = 0.60,
         seg_threshold: float = 0.5,
         pixel_spacing_mm: float = 0.5,
     ) -> None:
@@ -68,6 +71,7 @@ class InferencePipeline:
         if self.segmenter:
             self.segmenter = self.segmenter.to(self.device).eval()
         self.confidence_threshold = confidence_threshold
+        self.defer_threshold = defer_threshold
         self.seg_threshold = seg_threshold
         self.pixel_spacing_mm = pixel_spacing_mm
 
@@ -120,13 +124,24 @@ class InferencePipeline:
             CLASS_NAMES[i]: float(cls_probs[i]) for i in range(len(cls_probs))
         }
 
+        # Defer path: low confidence classification should be reviewed manually.
+        if confidence < self.defer_threshold:
+            result.defer_to_clinician = True
+            result.defer_reason = "low_classification_confidence"
+            return result
+
         # Early exit: if Healthy with high confidence, skip segmentation
         if pred_class == 0 and confidence >= self.confidence_threshold:
             result.has_wound = False
             return result
 
         # Step 2: Segmentation (if model available and wound detected)
-        if self.segmenter and pred_class in (1, 2):
+        if pred_class == 2 and self.segmenter is None:
+            result.defer_to_clinician = True
+            result.defer_reason = "segmenter_unavailable"
+            return result
+
+        if self.segmenter and pred_class == 2:
             seg_logits = self.segmenter(tensor)
             if isinstance(seg_logits, dict):
                 seg_logits = seg_logits.get("seg_logits", seg_logits)
@@ -142,6 +157,9 @@ class InferencePipeline:
             )
             total_pixels = seg_mask.shape[0] * seg_mask.shape[1]
             result.wound_coverage_pct = result.wound_area_px / total_pixels * 100
+
+        if pred_class == 1:
+            result.has_wound = False
 
         return result
 

@@ -29,6 +29,7 @@ from src.evaluation.classification_metrics import (
     compute_classification_metrics,
     print_classification_report,
 )
+from src.evaluation.calibration import compute_calibration_report, print_calibration_report
 from src.evaluation.metrics import (
     aggregate_metrics,
     compute_segmentation_metrics,
@@ -57,6 +58,7 @@ def evaluate_classifier(checkpoint_path: str, splits_dir: str, device: str) -> N
     all_labels = []
     all_preds = []
     all_probs = []
+    all_logits = []
 
     with torch.no_grad():
         for batch in test_loader:
@@ -69,21 +71,36 @@ def evaluate_classifier(checkpoint_path: str, splits_dir: str, device: str) -> N
             all_labels.extend(labels.numpy())
             all_preds.extend(preds.cpu().numpy())
             all_probs.extend(probs.cpu().numpy())
+            all_logits.extend(logits.cpu().numpy())
 
     y_true = np.array(all_labels)
     y_pred = np.array(all_preds)
     y_prob = np.array(all_probs)
+    y_logits = np.array(all_logits)
 
     metrics = compute_classification_metrics(y_true, y_pred, y_prob)
     print_classification_report(metrics)
+
+    calibration_report = compute_calibration_report(
+        classification_logits=y_logits,
+        classification_labels=y_true,
+    )
+    print_calibration_report(calibration_report)
 
     # Save results
     output_path = Path("results/classification_metrics.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     save_metrics = {k: v for k, v in metrics.items() if k != "report"}
+    if "classification" in calibration_report:
+        save_metrics["calibration"] = calibration_report["classification"]
     with open(output_path, "w") as f:
         json.dump(save_metrics, f, indent=2)
     logger.info("Results saved to %s", output_path)
+
+    calibration_path = Path("results/classification_calibration.json")
+    with open(calibration_path, "w") as f:
+        json.dump(calibration_report, f, indent=2)
+    logger.info("Calibration report saved to %s", calibration_path)
 
 
 def evaluate_segmentation(checkpoint_path: str, splits_dir: str, device: str) -> None:

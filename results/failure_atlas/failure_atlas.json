@@ -1,0 +1,315 @@
+{
+  "num_samples": 319,
+  "selected_top_k": 30,
+  "failure_summary": {
+    "total": 319,
+    "counts": {
+      "acceptable": 302,
+      "poor_overlap": 2,
+      "false_positive_empty_gt": 8,
+      "boundary_error": 7
+    }
+  },
+  "examples": [
+    {
+      "index": 79,
+      "filename": "azh_train_6a03aee791e036db57285fbc677cd463_1.png",
+      "dice": 3.4818941492054687e-10,
+      "iou": 3.4818941492054687e-10,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00079_azh_train_6a03aee791e036db57285fbc677cd463_1_pred.png",
+      "gt_mask": "results/failure_atlas/images/00079_azh_train_6a03aee791e036db57285fbc677cd463_1_gt.png"
+    },
+    {
+      "index": 188,
+      "filename": "azh_train_3126d6b3a7054ba62a43835551eb2a79_0.png",
+      "dice": 3.654970758898037e-10,
+      "iou": 3.654970758898037e-10,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00188_azh_train_3126d6b3a7054ba62a43835551eb2a79_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00188_azh_train_3126d6b3a7054ba62a43835551eb2a79_0_gt.png"
+    },
+    {
+      "index": 227,
+      "filename": "azh_train_3da2dcfdb655b741e1b97119f964e460_0.png",
+      "dice": 6.779661012352772e-10,
+      "iou": 6.779661012352772e-10,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00227_azh_train_3da2dcfdb655b741e1b97119f964e460_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00227_azh_train_3da2dcfdb655b741e1b97119f964e460_0_gt.png"
+    },
+    {
+      "index": 171,
+      "filename": "azh_train_3582ff9e0a283e437f9fab59dbf14ea4_1.png",
+      "dice": 7.163323777103635e-10,
+      "iou": 7.163323777103635e-10,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00171_azh_train_3582ff9e0a283e437f9fab59dbf14ea4_1_pred.png",
+      "gt_mask": "results/failure_atlas/images/00171_azh_train_3582ff9e0a283e437f9fab59dbf14ea4_1_gt.png"
+    },
+    {
+      "index": 58,
+      "filename": "azh_train_22625ae4786b4bfde48860accb485452_1.png",
+      "dice": 9.615384606139053e-10,
+      "iou": 9.615384606139053e-10,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00058_azh_train_22625ae4786b4bfde48860accb485452_1_pred.png",
+      "gt_mask": "results/failure_atlas/images/00058_azh_train_22625ae4786b4bfde48860accb485452_1_gt.png"
+    },
+    {
+      "index": 250,
+      "filename": "0502.png",
+      "dice": 3.802281354363949e-09,
+      "iou": 3.802281354363949e-09,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00250_0502_pred.png",
+      "gt_mask": "results/failure_atlas/images/00250_0502_gt.png"
+    },
+    {
+      "index": 222,
+      "filename": "azh_train_57c68b56a3d58d69f4d5f2260b186847_1.png",
+      "dice": 1.4285714081632656e-08,
+      "iou": 1.4285714081632656e-08,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00222_azh_train_57c68b56a3d58d69f4d5f2260b186847_1_pred.png",
+      "gt_mask": "results/failure_atlas/images/00222_azh_train_57c68b56a3d58d69f4d5f2260b186847_1_gt.png"
+    },
+    {
+      "index": 218,
+      "filename": "0457.png",
+      "dice": 4.99999750000125e-07,
+      "iou": 4.99999750000125e-07,
+      "hd95": 0.0,
+      "failure_type": "false_positive_empty_gt",
+      "pred_mask": "results/failure_atlas/images/00218_0457_pred.png",
+      "gt_mask": "results/failure_atlas/images/00218_0457_gt.png"
+    },
+    {
+      "index": 64,
+      "filename": "0106.png",
+      "dice": 0.06968838553266618,
+      "iou": 0.03610214293040735,
+      "hd95": 41.554126192178465,
+      "failure_type": "poor_overlap",
+      "pred_mask": "results/failure_atlas/images/00064_0106_pred.png",
+      "gt_mask": "results/failure_atlas/images/00064_0106_gt.png"
+    },
+    {
+      "index": 38,
+      "filename": "0130.png",
+      "dice": 0.16504854774248276,
+      "iou": 0.0899470947621847,
+      "hd95": 10.310997207347084,
+      "failure_type": "poor_overlap",
+      "pred_mask": "results/failure_atlas/images/00038_0130_pred.png",
+      "gt_mask": "results/failure_atlas/images/00038_0130_gt.png"
+    },
+    {
+      "index": 105,
+      "filename": "0612.png",
+      "dice": 0.4019607872452903,
+      "iou": 0.2515337469231058,
+      "hd95": 5.69721576853206,
+      "failure_type": "boundary_error",
+      "pred_mask": "results/failure_atlas/images/00105_0612_pred.png",
+      "gt_mask": "results/failure_atlas/images/00105_0612_gt.png"
+    },
+    {
+      "index": 149,
+      "filename": "azh_train_1160024c976ffe3b100704810a10137b_0.png",
+      "dice": 0.48854961887835374,
+      "iou": 0.32323232420889997,
+      "hd95": 15.620499351813308,
+      "failure_type": "boundary_error",
+      "pred_mask": "results/failure_atlas/images/00149_azh_train_1160024c976ffe3b100704810a10137b_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00149_azh_train_1160024c976ffe3b100704810a10137b_0_gt.png"
+    },
+    {
+      "index": 98,
+      "filename": "0548.png",
+      "dice": 0.5594219994751662,
+      "iou": 0.38833162755612455,
+      "hd95": 284.40112517358295,
+      "failure_type": "boundary_error",
+      "pred_mask": "results/failure_atlas/images/00098_0548_pred.png",
+      "gt_mask": "results/failure_atlas/images/00098_0548_gt.png"
+    },
+    {
+      "index": 211,
+      "filename": "azh_test_e594c2db8e5e0cd150ee0cf95178b29d_0.png",
+      "dice": 0.5661157027781571,
+      "iou": 0.3948126806966256,
+      "hd95": 13.703311226985468,
+      "failure_type": "boundary_error",
+      "pred_mask": "results/failure_atlas/images/00211_azh_test_e594c2db8e5e0cd150ee0cf95178b29d_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00211_azh_test_e594c2db8e5e0cd150ee0cf95178b29d_0_gt.png"
+    },
+    {
+      "index": 301,
+      "filename": "azh_test_f3fb11dc51d0d4872f3e253605c02154_0.png",
+      "dice": 0.5668991757415135,
+      "iou": 0.3955752214172345,
+      "hd95": 22.487726248616756,
+      "failure_type": "boundary_error",
+      "pred_mask": "results/failure_atlas/images/00301_azh_test_f3fb11dc51d0d4872f3e253605c02154_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00301_azh_test_f3fb11dc51d0d4872f3e253605c02154_0_gt.png"
+    },
+    {
+      "index": 294,
+      "filename": "0433.png",
+      "dice": 0.5846153850718512,
+      "iou": 0.4130434791722927,
+      "hd95": 8.48528137423857,
+      "failure_type": "boundary_error",
+      "pred_mask": "results/failure_atlas/images/00294_0433_pred.png",
+      "gt_mask": "results/failure_atlas/images/00294_0433_gt.png"
+    },
+    {
+      "index": 280,
+      "filename": "0140.png",
+      "dice": 0.686318131344183,
+      "iou": 0.5224386115485019,
+      "hd95": 16.53923911918949,
+      "failure_type": "boundary_error",
+      "pred_mask": "results/failure_atlas/images/00280_0140_pred.png",
+      "gt_mask": "results/failure_atlas/images/00280_0140_gt.png"
+    },
+    {
+      "index": 155,
+      "filename": "azh_train_ac8e827066b09a8267476a686c9fa9b7_0.png",
+      "dice": 0.7242647063892192,
+      "iou": 0.5677233441852353,
+      "hd95": 4.0,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00155_azh_train_ac8e827066b09a8267476a686c9fa9b7_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00155_azh_train_ac8e827066b09a8267476a686c9fa9b7_0_gt.png"
+    },
+    {
+      "index": 90,
+      "filename": "0028.png",
+      "dice": 0.7250000011458333,
+      "iou": 0.5686274537998206,
+      "hd95": 3.605551275463989,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00090_0028_pred.png",
+      "gt_mask": "results/failure_atlas/images/00090_0028_gt.png"
+    },
+    {
+      "index": 80,
+      "filename": "azh_train_36d34fdaf415e4657593c17a11905388_0.png",
+      "dice": 0.7454844010747382,
+      "iou": 0.5942408387585318,
+      "hd95": 3.1622776601683795,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00080_azh_train_36d34fdaf415e4657593c17a11905388_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00080_azh_train_36d34fdaf415e4657593c17a11905388_0_gt.png"
+    },
+    {
+      "index": 237,
+      "filename": "azh_test_de518fde9362295b1ea3d1031de1971b_0.png",
+      "dice": 0.7491915199875689,
+      "iou": 0.5989658145363499,
+      "hd95": 53.23532661682466,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00237_azh_test_de518fde9362295b1ea3d1031de1971b_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00237_azh_test_de518fde9362295b1ea3d1031de1971b_0_gt.png"
+    },
+    {
+      "index": 201,
+      "filename": "0288.png",
+      "dice": 0.7553191495869171,
+      "iou": 0.606837608517788,
+      "hd95": 2.23606797749979,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00201_0288_pred.png",
+      "gt_mask": "results/failure_atlas/images/00201_0288_gt.png"
+    },
+    {
+      "index": 255,
+      "filename": "0071.png",
+      "dice": 0.7600000047999999,
+      "iou": 0.612903238293444,
+      "hd95": 1.0,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00255_0071_pred.png",
+      "gt_mask": "results/failure_atlas/images/00255_0071_gt.png"
+    },
+    {
+      "index": 291,
+      "filename": "azh_train_65992c4c7772aee7761be2a5c24c774b_0.png",
+      "dice": 0.7767787334072734,
+      "iou": 0.6350271652868285,
+      "hd95": 25.8028495754772,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00291_azh_train_65992c4c7772aee7761be2a5c24c774b_0_pred.png",
+      "gt_mask": "results/failure_atlas/images/00291_azh_train_65992c4c7772aee7761be2a5c24c774b_0_gt.png"
+    },
+    {
+      "index": 6,
+      "filename": "0580.png",
+      "dice": 0.7810650900528693,
+      "iou": 0.640776702516731,
+      "hd95": 2.0,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00006_0580_pred.png",
+      "gt_mask": "results/failure_atlas/images/00006_0580_gt.png"
+    },
+    {
+      "index": 233,
+      "filename": "0993.png",
+      "dice": 0.7856180986014519,
+      "iou": 0.6469283655695435,
+      "hd95": 27.12891595997619,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00233_0993_pred.png",
+      "gt_mask": "results/failure_atlas/images/00233_0993_gt.png"
+    },
+    {
+      "index": 196,
+      "filename": "0756.png",
+      "dice": 0.7909090918595041,
+      "iou": 0.6541353409463508,
+      "hd95": 2.0,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00196_0756_pred.png",
+      "gt_mask": "results/failure_atlas/images/00196_0756_gt.png"
+    },
+    {
+      "index": 192,
+      "filename": "0189.png",
+      "dice": 0.7912698413526708,
+      "iou": 0.6546290218945311,
+      "hd95": 52.52046474572951,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00192_0189_pred.png",
+      "gt_mask": "results/failure_atlas/images/00192_0189_gt.png"
+    },
+    {
+      "index": 83,
+      "filename": "azh_train_38fb853de6b6046aa102a4a8080d3fc7_1.png",
+      "dice": 0.797786386297976,
+      "iou": 0.663597864175364,
+      "hd95": 24.11335118493636,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00083_azh_train_38fb853de6b6046aa102a4a8080d3fc7_1_pred.png",
+      "gt_mask": "results/failure_atlas/images/00083_azh_train_38fb853de6b6046aa102a4a8080d3fc7_1_gt.png"
+    },
+    {
+      "index": 236,
+      "filename": "azh_test_c69dcb7ad054b063cd0470aa944cf01e_2.png",
+      "dice": 0.7990456566750845,
+      "iou": 0.6653422431523672,
+      "hd95": 10.592177951969822,
+      "failure_type": "acceptable",
+      "pred_mask": "results/failure_atlas/images/00236_azh_test_c69dcb7ad054b063cd0470aa944cf01e_2_pred.png",
+      "gt_mask": "results/failure_atlas/images/00236_azh_test_c69dcb7ad054b063cd0470aa944cf01e_2_gt.png"
+    }
+  ]
+}

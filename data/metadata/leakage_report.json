@@ -1,0 +1,38 @@
+{
+  "counts": {
+    "train": 5782,
+    "val": 1162,
+    "test": 1161
+  },
+  "path_overlap": {
+    "train_x_val": 0,
+    "train_x_test": 0,
+    "val_x_test": 0
+  },
+  "canonical_overlap": {
+    "train_x_val": 0,
+    "train_x_test": 0,
+    "val_x_test": 0
+  },
+  "content_overlap": {
+    "train_x_val": 0,
+    "train_x_test": 0,
+    "val_x_test": 0
+  },
+  "near_duplicates": {
+    "threshold": 6,
+    "counts": {
+      "train_x_val": 0,
+      "train_x_test": 0,
+      "val_x_test": 0
+    },
+    "examples": []
+  },
+  "leakage_flags": {
+    "path_overlap": false,
+    "canonical_overlap": false,
+    "content_overlap": false,
+    "near_duplicates": false
+  },
+  "has_any_leakage": false
+}

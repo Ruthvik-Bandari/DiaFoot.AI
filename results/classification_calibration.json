@@ -1,0 +1,379 @@
+{
+  "classification": {
+    "ece_before": 0.04995811519491374,
+    "ece_after": 5.900859832763672e-06,
+    "brier_before": 0.01255628096904868,
+    "brier_after": 5.299089775975976e-08,
+    "optimal_temperature": 0.1,
+    "defer_tuning": {
+      "min_coverage": 0.6,
+      "recommended_threshold": 0.3,
+      "recommended": {
+        "threshold": 0.3,
+        "coverage": 1.0,
+        "defer_rate": 0.0,
+        "num_deferred": 0.0,
+        "num_kept": 1161.0,
+        "accuracy_kept": 1.0
+      },
+      "sweep": [
+        {
+          "threshold": 0.3,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.325,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.35,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.375,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.39999999999999997,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.425,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.44999999999999996,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.475,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.5,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.5249999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.5499999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.575,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.6,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.625,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.6499999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.6749999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.7,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.725,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.75,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.7749999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.7999999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.825,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.8499999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.875,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.8999999999999999,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.925,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        },
+        {
+          "threshold": 0.95,
+          "coverage": 1.0,
+          "defer_rate": 0.0,
+          "num_deferred": 0.0,
+          "num_kept": 1161.0,
+          "accuracy_kept": 1.0
+        }
+      ]
+    },
+    "bins_before": {
+      "bin_centers": [
+        0.03333333333333333,
+        0.1,
+        0.16666666666666669,
+        0.23333333333333334,
+        0.3,
+        0.3666666666666667,
+        0.43333333333333335,
+        0.5,
+        0.5666666666666667,
+        0.6333333333333333,
+        0.7,
+        0.7666666666666666,
+        0.8333333333333334,
+        0.9,
+        0.9666666666666667
+      ],
+      "bin_accuracies": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "bin_confidences": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5918861031532288,
+        0.6628822088241577,
+        0.7081645131111145,
+        0.7731585502624512,
+        0.8299357891082764,
+        0.9080620408058167,
+        0.9797800183296204
+      ],
+      "bin_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        21,
+        54,
+        79,
+        67,
+        937
+      ]
+    },
+    "bins_after": {
+      "bin_centers": [
+        0.03333333333333333,
+        0.1,
+        0.16666666666666669,
+        0.23333333333333334,
+        0.3,
+        0.3666666666666667,
+        0.43333333333333335,
+        0.5,
+        0.5666666666666667,
+        0.6333333333333333,
+        0.7,
+        0.7666666666666666,
+        0.8333333333333334,
+        0.9,
+        0.9666666666666667
+      ],
+      "bin_accuracies": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "bin_confidences": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.9999940991401672
+      ],
+      "bin_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1161
+      ]
+    }
+  }
+}

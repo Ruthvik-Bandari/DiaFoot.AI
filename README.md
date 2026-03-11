@@ -222,6 +222,76 @@ python scripts/evaluate.py \
     --device cuda
 ```
 
+```bash
+python scripts/evaluate.py \
+    --task classify \
+    --checkpoint checkpoints/classifier/best_epoch004_1.0000.pt \
+    --device cuda
+# writes: results/classification_metrics.json + results/classification_calibration.json
+```
+
+### Leakage Audit (Train/Val/Test)
+
+```bash
+python scripts/run_leakage_audit.py \
+    --splits-dir data/splits \
+    --output data/metadata/leakage_report.json
+```
+
+### External Validation Benchmark
+
+```bash
+python scripts/run_external_validation.py \
+    --internal-split data/splits/test.csv \
+    --external-split data/splits/external.csv \
+    --cls-checkpoint checkpoints/classifier/best_epoch004_1.0000.pt \
+    --seg-checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt
+```
+
+### Classifier Shortcut Audit
+
+```bash
+python scripts/run_shortcut_audit.py \
+    --checkpoint checkpoints/classifier/best_epoch004_1.0000.pt \
+    --split-csv data/splits/test.csv \
+    --output results/shortcut_audit.json
+```
+
+### Subgroup Audit (with CIs)
+
+```bash
+python scripts/run_subgroup_audit.py \
+    --split-csv data/splits/test.csv \
+    --cls-checkpoint checkpoints/classifier/best_epoch004_1.0000.pt \
+    --seg-checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt \
+    --output results/subgroup_audit.json
+```
+
+### Failure Atlas (Error Taxonomy)
+
+```bash
+python scripts/run_failure_atlas.py \
+    --checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt \
+    --split-csv data/splits/test.csv \
+    --output-dir results/failure_atlas
+```
+
+### Reproducibility Bundle
+
+```bash
+python scripts/run_repro_bundle.py \
+    --include pyproject.toml requirements.txt configs/deploy/api.yaml \
+    --output results/repro/repro_bundle.json
+```
+
+### Clinical Area Agreement Audit
+
+```bash
+python scripts/run_area_agreement.py \
+    --input-csv results/area_measurements.csv \
+    --output results/area_agreement.json
+```
+
 ### ONNX Export
 
 ```bash
@@ -231,12 +301,83 @@ python scripts/export_onnx.py \
     --validate --benchmark
 ```
 
+```bash
+python scripts/run_onnx_parity.py \
+    --checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt \
+    --onnx models/diafoot_segmenter.onnx \
+    --split-csv data/splits/test.csv \
+    --output results/onnx_parity_report.json
+```
+
 ### FastAPI Server
 
 ```bash
 uvicorn src.deploy.app:app --host 0.0.0.0 --port 8000
 # POST /predict with image file
 ```
+
+Optional runtime overrides:
+
+```bash
+export DIAFOOT_CLASSIFIER_CKPT=checkpoints/classifier/best_epoch004_1.0000.pt
+export DIAFOOT_SEGMENTER_CKPT=checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt
+export DIAFOOT_CONFIDENCE_THRESHOLD=0.95
+export DIAFOOT_DEFER_THRESHOLD=0.67
+# or let API auto-read from results/classification_calibration.json
+export DIAFOOT_CALIBRATION_PATH=results/classification_calibration.json
+
+# Optional image quality guardrails (manual-review trigger)
+export DIAFOOT_MIN_IMAGE_SIDE=256
+export DIAFOOT_BLUR_VARIANCE_THRESHOLD=30
+export DIAFOOT_BRIGHTNESS_MIN=20
+export DIAFOOT_BRIGHTNESS_MAX=235
+
+# Request guardrails
+export DIAFOOT_MAX_IMAGE_SIZE_MB=20
+export DIAFOOT_RATE_LIMIT_RPM=100
+
+# Optional structured monitoring log (JSONL)
+export DIAFOOT_PREDICTION_LOG=logs/api/predictions.jsonl
+```
+
+### Deploy without Docker (Render + Vercel)
+
+Backend (Render):
+
+1. Push this repo to GitHub.
+2. In Render, create a new **Web Service** from the repo.
+3. Use the included [render.yaml](render.yaml) blueprint (recommended), or set manually:
+    - Build command: `pip install -r requirements.local.txt`
+    - Start command: `uvicorn src.deploy.app:app --host 0.0.0.0 --port $PORT`
+4. Set runtime env vars in Render:
+    - `DIAFOOT_CLASSIFIER_CKPT=checkpoints/classifier/best_epoch004_1.0000.pt`
+    - `DIAFOOT_SEGMENTER_CKPT=checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt`
+    - `DIAFOOT_CALIBRATION_PATH=results/classification_calibration.json`
+    - `DIAFOOT_DEVICE=cpu`
+    - `DIAFOOT_CORS_ORIGINS=https://<your-vercel-domain>.vercel.app`
+
+Frontend (Vercel):
+
+1. Deploy the frontend repo/project on Vercel.
+2. Set frontend API URL to the Render backend URL (for example `https://diafoot-api.onrender.com`).
+3. Ensure `DIAFOOT_CORS_ORIGINS` on Render includes your Vercel domain.
+
+Local startup tip:
+
+- Run backend commands from the project root, not from a frontend directory.
+- Correct root example:
+
+```bash
+cd ~/Desktop/"Diafoot CV"
+source .venv/bin/activate
+export PYTHONPATH="$(pwd)"
+uvicorn src.deploy.app:app --host 0.0.0.0 --port 8000
+```
+
+The API accepts both env variable styles for checkpoints:
+
+- `DIAFOOT_CLASSIFIER_CKPT` or `DIAFOOT_CLASSIFIER_CHECKPOINT`
+- `DIAFOOT_SEGMENTER_CKPT` or `DIAFOOT_SEGMENTER_CHECKPOINT`
 
 ---
 

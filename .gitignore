@@ -58,3 +58,23 @@ DFU/
 archive.zip
 *.zip
 wound image dataset/
+
+# Models & exports
+models/
+*.onnx
+
+# Large data
+data/processed_external/
+data/clinical/
+DFU/
+
+# Screenshots & misc
+*.png
+Screenshot*
+requirements.local.txt
+render.yaml
+
+# Predictions log
+results/predictions.jsonl
+!data/splits/
+!results/

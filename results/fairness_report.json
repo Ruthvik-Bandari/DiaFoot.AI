@@ -1,0 +1,31 @@
+{
+  "all_images": {
+    "tan": {
+      "count": 1,
+      "dice": 0.4683,
+      "iou": 0.3058,
+      "hd95": 50.2,
+      "nsd_2mm": 0.0
+    },
+    "brown": {
+      "count": 915,
+      "dice": 0.5824,
+      "iou": 0.528,
+      "hd95": 80.4,
+      "nsd_2mm": 0.5788
+    },
+    "fairness_gap": 0.1141,
+    "bias_concern": true
+  },
+  "dfu_only": {
+    "brown": {
+      "count": 285,
+      "dice": 0.8589,
+      "iou": 0.7935,
+      "hd95": 17.3,
+      "nsd_2mm": 0.8586
+    },
+    "fairness_gap": 0.0,
+    "bias_concern": false
+  }
+}

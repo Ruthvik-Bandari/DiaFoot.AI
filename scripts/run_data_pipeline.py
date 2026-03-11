@@ -24,6 +24,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from src.data.leakage_audit import audit_samples_for_leakage
+
 logger = logging.getLogger("pipeline")
 
 TARGET_SIZE = 512
@@ -206,6 +208,55 @@ def ita_group(ita: float | None) -> str:
     return "dark"
 
 
+def infer_source_id(class_name: str, image_path: Path) -> str:
+    """Infer source dataset ID from filename/path heuristics."""
+    stem = image_path.stem.lower()
+    parent_tokens = [p.lower() for p in image_path.parts]
+
+    if stem.startswith("azh_") or "azh" in parent_tokens:
+        return "azh"
+    if stem.startswith("fuseg_") or "fuseg" in parent_tokens:
+        return "fuseg"
+    if "mendeley" in parent_tokens:
+        return "mendeley"
+    if "kaggle" in parent_tokens:
+        return "kaggle"
+    return class_name
+
+
+def infer_patient_id(image_path: Path) -> str:
+    """Infer a coarse patient/case identifier from filename."""
+    stem = image_path.stem.lower()
+    normalized = stem.replace("-", "_")
+    tokens = [t for t in normalized.split("_") if t]
+
+    # Drop common augmentation/source split tokens.
+    dropped = {
+        "azh",
+        "fuseg",
+        "train",
+        "test",
+        "val",
+        "mask",
+        "image",
+        "img",
+        "copy",
+        "aug",
+        "flip",
+        "hflip",
+        "vflip",
+        "rot90",
+        "rot180",
+        "rot270",
+    }
+    core = [t for t in tokens if t not in dropped and not t.isdigit()]
+
+    # Keep first meaningful chunk(s); fallback to full stem when unavailable.
+    if not core:
+        return stem
+    return "_".join(core[:2])
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 4: Generate stratified splits
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -243,32 +294,48 @@ def generate_splits(
                 "class": cls,
                 "ita": ita,
                 "ita_group": ita_group(ita),
+                "source_id": infer_source_id(cls, img_path),
+                "patient_id": infer_patient_id(img_path),
             })
 
     logger.info("Total paired samples: %d", len(samples))
 
-    # Stratified split by class + ita_group
+    # Group-preserving stratified split by class + ita_group + source_id.
+    # Entire patient groups are assigned to one split (no patient leakage).
     rng = np.random.RandomState(seed)
-    groups: dict[str, list] = {}
+    groups: dict[str, list[dict]] = {}
     for s in samples:
-        key = f"{s['class']}_{s['ita_group']}"
+        key = f"{s['class']}_{s['ita_group']}_{s['source_id']}"
         groups.setdefault(key, []).append(s)
 
     train, val, test = [], [], []
     for key, group in groups.items():
-        idx = list(range(len(group)))
-        rng.shuffle(idx)
-        n = len(group)
-        n_train = max(1, int(n * 0.70))
-        n_val = max(1, int(n * 0.15)) if n > 2 else 0
-        for i, j in enumerate(idx):
-            s = group[j]
-            if i < n_train:
-                train.append(s)
-            elif i < n_train + n_val:
-                val.append(s)
+        patient_groups: dict[str, list[dict]] = {}
+        for s in group:
+            patient_key = f"{s['class']}::{s['source_id']}::{s['patient_id']}"
+            patient_groups.setdefault(patient_key, []).append(s)
+
+        patient_keys = list(patient_groups.keys())
+        rng.shuffle(patient_keys)
+
+        total = sum(len(patient_groups[k]) for k in patient_keys)
+        target_train = int(round(total * 0.70))
+        target_val = int(round(total * 0.15))
+
+        train_n = 0
+        val_n = 0
+        for patient_key in patient_keys:
+            chunk = patient_groups[patient_key]
+            chunk_size = len(chunk)
+
+            if train_n < target_train:
+                train.extend(chunk)
+                train_n += chunk_size
+            elif val_n < target_val:
+                val.extend(chunk)
+                val_n += chunk_size
             else:
-                test.append(s)
+                test.extend(chunk)
 
     rng.shuffle(train)
     rng.shuffle(val)
@@ -280,7 +347,16 @@ def write_csv(samples: list[dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="") as f:
         writer = csv.DictWriter(
-            f, fieldnames=["image", "mask", "class", "ita", "ita_group"],
+            f,
+            fieldnames=[
+                "image",
+                "mask",
+                "class",
+                "ita",
+                "ita_group",
+                "source_id",
+                "patient_id",
+            ],
         )
         writer.writeheader()
         for s in samples:
@@ -290,6 +366,8 @@ def write_csv(samples: list[dict], path: Path) -> None:
                 "class": s["class"],
                 "ita": s.get("ita", ""),
                 "ita_group": s.get("ita_group", "unknown"),
+                "source_id": s.get("source_id", "unknown"),
+                "patient_id": s.get("patient_id", "unknown"),
             })
 
 
@@ -360,26 +438,51 @@ def main() -> None:
         counts = Counter(s["class"] for s in split)
         print(f"  {name}: {dict(counts)}")
 
+    # Group leakage checks (patient + source)
+    train_patients = {f"{s['class']}::{s['source_id']}::{s['patient_id']}" for s in train}
+    val_patients = {f"{s['class']}::{s['source_id']}::{s['patient_id']}" for s in val}
+    test_patients = {f"{s['class']}::{s['source_id']}::{s['patient_id']}" for s in test}
+
+    patient_overlap = {
+        "train_x_val": len(train_patients & val_patients),
+        "train_x_test": len(train_patients & test_patients),
+        "val_x_test": len(val_patients & test_patients),
+    }
+
+    train_sources = {f"{s['class']}::{s['source_id']}" for s in train}
+    val_sources = {f"{s['class']}::{s['source_id']}" for s in val}
+    test_sources = {f"{s['class']}::{s['source_id']}" for s in test}
+    source_presence = {
+        "train": sorted(train_sources),
+        "val": sorted(val_sources),
+        "test": sorted(test_sources),
+    }
+
+    print(f"  Patient overlap: {patient_overlap}")
+
     # ── Step 4: Leakage check ────────────────────────────────────────────
     print("\n" + "█" * 60)
     print("  STEP 4: Data leakage check")
     print("█" * 60)
 
-    train_imgs = {s["image"] for s in train}
-    val_imgs = {s["image"] for s in val}
-    test_imgs = {s["image"] for s in test}
+    leakage_report = audit_samples_for_leakage(
+        train_samples=train,
+        val_samples=val,
+        test_samples=test,
+    )
 
-    leak_tv = train_imgs & val_imgs
-    leak_tt = train_imgs & test_imgs
-    leak_vt = val_imgs & test_imgs
-
-    if leak_tv or leak_tt or leak_vt:
-        print(f"  ⚠ LEAKAGE DETECTED!")
-        print(f"    Train∩Val: {len(leak_tv)}")
-        print(f"    Train∩Test: {len(leak_tt)}")
-        print(f"    Val∩Test: {len(leak_vt)}")
+    if leakage_report["has_any_leakage"]:
+        print("  ⚠ LEAKAGE SIGNALS DETECTED")
     else:
-        print("  ✓ No leakage — all images in exactly one split")
+        print("  ✓ No leakage signals detected")
+    print(f"    Path overlap: {leakage_report['path_overlap']}")
+    print(f"    Canonical overlap: {leakage_report['canonical_overlap']}")
+    print(f"    Content overlap: {leakage_report['content_overlap']}")
+    print(
+        "    Near-duplicates "
+        f"(dHash≤{leakage_report['near_duplicates']['threshold']}): "
+        f"{leakage_report['near_duplicates']['counts']}"
+    )
 
     # ── Save report ──────────────────────────────────────────────────────
     report = {
@@ -392,8 +495,10 @@ def main() -> None:
             "train_classes": dict(Counter(s["class"] for s in train)),
             "val_classes": dict(Counter(s["class"] for s in val)),
             "test_classes": dict(Counter(s["class"] for s in test)),
+            "patient_overlap": patient_overlap,
+            "source_presence": source_presence,
         },
-        "leakage": bool(leak_tv or leak_tt or leak_vt),
+        "leakage": leakage_report,
         "seed": args.seed,
     }
 

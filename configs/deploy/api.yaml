@@ -8,3 +8,12 @@ api:
   rate_limit: 100             # requests per minute
   model_dir: exports/
   log_level: info
+  classifier_checkpoint: checkpoints/classifier/best_epoch004_1.0000.pt
+  segmenter_checkpoint: checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt
+  confidence_threshold: 0.95
+  defer_threshold: 0.67       # preferred from calibration when available
+  calibration_report: results/classification_calibration.json
+  min_image_side: 256
+  blur_variance_threshold: 30.0
+  brightness_min: 20.0
+  brightness_max: 235.0

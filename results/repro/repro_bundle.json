@@ -1,0 +1,26 @@
+{
+  "generated_at_utc": "2026-03-11T19:18:40Z",
+  "platform": {
+    "system": "Darwin",
+    "release": "25.3.0",
+    "python": "3.12.12 (main, Oct  9 2025, 11:07:00) [Clang 17.0.0 (clang-1700.6.3.2)]"
+  },
+  "environment": {
+    "cwd": "/Users/ruthvikbandari/Desktop/Diafoot CV",
+    "venv": "",
+    "cuda_visible_devices": ""
+  },
+  "git": {
+    "commit": "28b20acad250e549f65ba2b6550448336e107d75",
+    "branch": "main",
+    "status": "M README.md\n M configs/deploy/api.yaml\n M data/metadata/data_pipeline_report.json\n M data/splits/test.csv\n M data/splits/train.csv\n M data/splits/val.csv\n M scripts/evaluate.py\n M scripts/run_data_pipeline.py\n M src/data/torch_dataset.py\n M src/deploy/app.py\n M src/deploy/middleware.py\n M src/deploy/schemas.py\n M src/evaluation/calibration.py\n M src/evaluation/classification_metrics.py\n M src/inference/pipeline.py\n M tests/test_calibration.py\n M tests/test_deployment.py\n?? \"Screenshot 2026-03-03 at 20.09.09.png\"\n?? data/clinical/\n?? data/metadata/leakage_report.json\n?? data/processed_external/\n?? models/\n?? requirements.local.txt\n?? results/all_models_comparison.json\n?? results/area_agreement.json\n?? results/classification_calibration.json\n?? results/classification_metrics.json\n?? results/cv_fold0.json\n?? results/cv_fold1.json\n?? results/cv_fold2.json\n?? results/cv_fold3.json\n?? results/cv_fold4.json\n?? results/external_segmentation_validation.json\n?? results/external_validation.json\n?? results/failure_atlas/\n?? results/fairness_report.json\n?? results/onnx_parity_report.json\n?? results/predictions.jsonl\n?? results/repro/\n?? results/segmentation_metrics.json\n?? results/shortcut_audit.json\n?? results/subgroup_audit.json\n?? results/tta_comparison.json\n?? scripts/build_external_segmentation_split.py\n?? scripts/build_external_split_from_patches.py\n?? scripts/rebuild_splits_strict.py\n?? scripts/run_area_agreement.py\n?? scripts/run_external_validation.py\n?? scripts/run_failure_atlas.py\n?? scripts/run_leakage_audit.py\n?? scripts/run_onnx_parity.py\n?? scripts/run_repro_bundle.py\n?? scripts/run_shortcut_audit.py\n?? scripts/run_subgroup_audit.py\n?? src/data/leakage_audit.py\n?? src/evaluation/area_agreement.py\n?? src/evaluation/external_validation.py\n?? src/evaluation/failure_atlas.py\n?? src/evaluation/shortcut_audit.py\n?? src/evaluation/subgroup_analysis.py\n?? tests/test_area_agreement.py\n?? tests/test_external_validation.py\n?? tests/test_failure_atlas.py\n?? tests/test_leakage_audit.py\n?? tests/test_middleware.py\n?? tests/test_repro_bundle.py\n?? tests/test_schemas.py\n?? tests/test_shortcut_audit.py\n?? tests/test_subgroup_analysis.py"
+  },
+  "package_versions": {
+    "torch": "2.10.0",
+    "numpy": "1.26.4",
+    "scipy": "1.15.1",
+    "sklearn": "1.6.1",
+    "cv2": "4.11.0"
+  },
+  "included_files": []
+}

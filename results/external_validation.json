@@ -1,0 +1,144 @@
+{
+  "internal_split": "data/splits/test.csv",
+  "external_split": "data/splits/external.csv",
+  "classification": {
+    "internal": {
+      "accuracy": 1.0,
+      "f1_macro": 1.0,
+      "f1_weighted": 1.0,
+      "precision_macro": 1.0,
+      "recall_macro": 1.0,
+      "per_class": {
+        "Healthy": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 495,
+          "auroc": 1.0
+        },
+        "Non-DFU": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 403,
+          "auroc": 0.9999999999999999
+        },
+        "DFU": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 263,
+          "auroc": 1.0
+        }
+      },
+      "dfu_sensitivity": 1.0,
+      "healthy_specificity": 1.0,
+      "confusion_matrix": [
+        [
+          495,
+          0,
+          0
+        ],
+        [
+          0,
+          403,
+          0
+        ],
+        [
+          0,
+          0,
+          263
+        ]
+      ],
+      "auroc_macro": 1.0,
+      "report": "              precision    recall  f1-score   support\n\n     Healthy       1.00      1.00      1.00       495\n     Non-DFU       1.00      1.00      1.00       403\n         DFU       1.00      1.00      1.00       263\n\n    accuracy                           1.00      1161\n   macro avg       1.00      1.00      1.00      1161\nweighted avg       1.00      1.00      1.00      1161\n",
+      "accuracy_ci95": {
+        "mean": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0
+      }
+    },
+    "external": {
+      "accuracy": 0.20990764063811923,
+      "f1_macro": 0.3333454910837204,
+      "f1_weighted": 0.20855940034278586,
+      "precision_macro": 0.3312517780538162,
+      "recall_macro": 0.3354660622966062,
+      "per_class": {
+        "Healthy": {
+          "precision": 0.9588477366255144,
+          "recall": 0.9708333333333333,
+          "f1": 0.9648033126293996,
+          "support": 240,
+          "auroc": 0.9979626708727656
+        },
+        "Non-DFU": {
+          "precision": 0.03490759753593429,
+          "recall": 0.03556485355648536,
+          "f1": 0.035233160621761656,
+          "support": 478,
+          "auroc": 0.24577042022921594
+        },
+        "DFU": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 473,
+          "auroc": 0.16052636228188474
+        }
+      },
+      "dfu_sensitivity": 0.0,
+      "healthy_specificity": 0.9894847528916929,
+      "confusion_matrix": [
+        [
+          233,
+          7,
+          0
+        ],
+        [
+          0,
+          17,
+          461
+        ],
+        [
+          10,
+          463,
+          0
+        ]
+      ],
+      "auroc_macro": 0.4680864844612887,
+      "report": "              precision    recall  f1-score   support\n\n     Healthy       0.96      0.97      0.96       240\n     Non-DFU       0.03      0.04      0.04       478\n         DFU       0.00      0.00      0.00       473\n\n    accuracy                           0.21      1191\n   macro avg       0.33      0.34      0.33      1191\nweighted avg       0.21      0.21      0.21      1191\n",
+      "accuracy_ci95": {
+        "mean": 0.20990764063811923,
+        "ci_low": 0.18807724601175482,
+        "ci_high": 0.23341729638958858
+      }
+    },
+    "drop": {
+      "accuracy": {
+        "internal": 1.0,
+        "external": 0.20990764063811923,
+        "absolute_drop": 0.7900923593618807,
+        "relative_drop": 0.7900923593618807
+      },
+      "f1_macro": {
+        "internal": 1.0,
+        "external": 0.3333454910837204,
+        "absolute_drop": 0.6666545089162796,
+        "relative_drop": 0.6666545089162796
+      },
+      "dfu_sensitivity": {
+        "internal": 1.0,
+        "external": 0.0,
+        "absolute_drop": 1.0,
+        "relative_drop": 1.0
+      },
+      "healthy_specificity": {
+        "internal": 1.0,
+        "external": 0.9894847528916929,
+        "absolute_drop": 0.01051524710830709,
+        "relative_drop": 0.01051524710830709
+      }
+    }
+  }
+}
