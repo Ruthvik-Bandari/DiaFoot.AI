@@ -99,7 +99,7 @@ def train_fold(fold: int, args: argparse.Namespace) -> dict:
         Path(args.splits_dir) / "train.csv",
         Path(args.splits_dir) / "val.csv",
         fold=fold,
-        filter_classes=["dfu", "non_dfu"],
+        filter_classes=["dfu"],
     )
 
     train_ds = DFUDataset(str(fold_train), transform=get_train_transforms())

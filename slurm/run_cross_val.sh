@@ -16,7 +16,7 @@ PROJECT_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$PROJECT_ROOT"
 
 module purge
-module load cuda/12.8.0 python/3.12
+module load cuda/12.8.0 python/3.13.5
 source .venv/bin/activate
 export PYTHONPATH="$PROJECT_ROOT"
 mkdir -p logs/slurm results
