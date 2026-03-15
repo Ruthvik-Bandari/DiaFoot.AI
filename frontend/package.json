@@ -1,0 +1,34 @@
+{
+  "name": "diafoot-ai-dashboard",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "oxlint ."
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@gsap/react": "^2.1.2",
+    "@hookform/resolvers": "^5.0.1",
+    "@mui/icons-material": "^7.0.2",
+    "@mui/material": "^7.0.2",
+    "@tanstack/react-query": "^5.75.5",
+    "gsap": "^3.12.7",
+    "next": "^15.3.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.56.3",
+    "zod": "^3.25.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "@types/react": "^19.1.3",
+    "@types/react-dom": "^19.1.3",
+    "oxlint": "^1.1.0",
+    "typescript": "^5.8.3"
+  }
+}

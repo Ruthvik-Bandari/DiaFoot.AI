@@ -78,3 +78,9 @@ render.yaml
 results/predictions.jsonl
 !data/splits/
 !results/
+
+# Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/.turbo/
