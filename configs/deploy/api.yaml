@@ -9,8 +9,8 @@ api:
   model_dir: exports/
   log_level: info
   backbone: dinov2_vitb14
-  classifier_checkpoint: checkpoints/dinov2_classifier/best.pt
-  segmenter_checkpoint: checkpoints/dinov2_segmenter/best.pt
+  classifier_checkpoint: checkpoints/dinov2_classifier/best_epoch009_0.9785.pt
+  segmenter_checkpoint: checkpoints/dinov2_segmenter/best_epoch009_0.1062.pt
   confidence_threshold: 0.95
   defer_threshold: 0.67       # preferred from calibration when available
   calibration_report: results/classification_calibration.json

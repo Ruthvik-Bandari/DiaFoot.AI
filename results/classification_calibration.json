@@ -1,20 +1,20 @@
 {
   "classification": {
-    "ece_before": 0.04996944192562711,
-    "ece_after": 6.079673767089844e-06,
-    "brier_before": 0.012574086200591084,
-    "brier_after": 5.617083063787724e-08,
-    "optimal_temperature": 0.1,
+    "ece_before": 0.039416671363984995,
+    "ece_after": 0.007483231723565234,
+    "brier_before": 0.0344318382320539,
+    "brier_after": 0.025826084314556456,
+    "optimal_temperature": 0.4,
     "defer_tuning": {
       "min_coverage": 0.6,
-      "recommended_threshold": 0.3,
+      "recommended_threshold": 0.95,
       "recommended": {
-        "threshold": 0.3,
-        "coverage": 1.0,
-        "defer_rate": 0.0,
-        "num_deferred": 0.0,
-        "num_kept": 1161.0,
-        "accuracy_kept": 1.0
+        "threshold": 0.95,
+        "coverage": 0.9345391903531438,
+        "defer_rate": 0.06546080964685619,
+        "num_deferred": 76.0,
+        "num_kept": 1085.0,
+        "accuracy_kept": 0.9972350230414746
       },
       "sweep": [
         {
@@ -23,7 +23,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.325,
@@ -31,7 +31,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.35,
@@ -39,7 +39,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.375,
@@ -47,7 +47,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.39999999999999997,
@@ -55,7 +55,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.425,
@@ -63,7 +63,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.44999999999999996,
@@ -71,7 +71,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.475,
@@ -79,7 +79,7 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.5,
@@ -87,151 +87,151 @@
           "defer_rate": 0.0,
           "num_deferred": 0.0,
           "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "accuracy_kept": 0.983634797588286
         },
         {
           "threshold": 0.5249999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9991386735572783,
+          "defer_rate": 0.0008613264427217437,
+          "num_deferred": 1.0,
+          "num_kept": 1160.0,
+          "accuracy_kept": 0.9836206896551725
         },
         {
           "threshold": 0.5499999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9965546942291128,
+          "defer_rate": 0.003445305770887197,
+          "num_deferred": 4.0,
+          "num_kept": 1157.0,
+          "accuracy_kept": 0.9844425237683665
         },
         {
           "threshold": 0.575,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9956933677863911,
+          "defer_rate": 0.004306632213608941,
+          "num_deferred": 5.0,
+          "num_kept": 1156.0,
+          "accuracy_kept": 0.9852941176470589
         },
         {
           "threshold": 0.6,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9948320413436692,
+          "defer_rate": 0.0051679586563307955,
+          "num_deferred": 6.0,
+          "num_kept": 1155.0,
+          "accuracy_kept": 0.9852813852813853
         },
         {
           "threshold": 0.625,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9922480620155039,
+          "defer_rate": 0.007751937984496138,
+          "num_deferred": 9.0,
+          "num_kept": 1152.0,
+          "accuracy_kept": 0.9878472222222222
         },
         {
           "threshold": 0.6499999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9913867355727821,
+          "defer_rate": 0.008613264427217882,
+          "num_deferred": 10.0,
+          "num_kept": 1151.0,
+          "accuracy_kept": 0.9887054735013032
         },
         {
           "threshold": 0.6749999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9888027562446167,
+          "defer_rate": 0.011197243755383335,
+          "num_deferred": 13.0,
+          "num_kept": 1148.0,
+          "accuracy_kept": 0.9886759581881533
         },
         {
           "threshold": 0.7,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9862187769164513,
+          "defer_rate": 0.013781223083548677,
+          "num_deferred": 16.0,
+          "num_kept": 1145.0,
+          "accuracy_kept": 0.9895196506550218
         },
         {
           "threshold": 0.725,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9853574504737296,
+          "defer_rate": 0.01464254952627042,
+          "num_deferred": 17.0,
+          "num_kept": 1144.0,
+          "accuracy_kept": 0.9895104895104895
         },
         {
           "threshold": 0.75,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9827734711455641,
+          "defer_rate": 0.017226528854435874,
+          "num_deferred": 20.0,
+          "num_kept": 1141.0,
+          "accuracy_kept": 0.9903593339176161
         },
         {
           "threshold": 0.7749999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.979328165374677,
+          "defer_rate": 0.02067183462532296,
+          "num_deferred": 24.0,
+          "num_kept": 1137.0,
+          "accuracy_kept": 0.990325417766051
         },
         {
           "threshold": 0.7999999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9741602067183462,
+          "defer_rate": 0.025839793281653756,
+          "num_deferred": 30.0,
+          "num_kept": 1131.0,
+          "accuracy_kept": 0.9902740937223696
         },
         {
           "threshold": 0.825,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9715762273901809,
+          "defer_rate": 0.028423772609819098,
+          "num_deferred": 33.0,
+          "num_kept": 1128.0,
+          "accuracy_kept": 0.9902482269503546
         },
         {
           "threshold": 0.8499999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9664082687338501,
+          "defer_rate": 0.03359173126614989,
+          "num_deferred": 39.0,
+          "num_kept": 1122.0,
+          "accuracy_kept": 0.9928698752228164
         },
         {
           "threshold": 0.875,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9638242894056848,
+          "defer_rate": 0.036175710594315236,
+          "num_deferred": 42.0,
+          "num_kept": 1119.0,
+          "accuracy_kept": 0.9928507596067918
         },
         {
           "threshold": 0.8999999999999999,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9534883720930233,
+          "defer_rate": 0.046511627906976716,
+          "num_deferred": 54.0,
+          "num_kept": 1107.0,
+          "accuracy_kept": 0.993676603432701
         },
         {
           "threshold": 0.925,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9431524547803618,
+          "defer_rate": 0.056847545219638196,
+          "num_deferred": 66.0,
+          "num_kept": 1095.0,
+          "accuracy_kept": 0.9954337899543378
         },
         {
           "threshold": 0.95,
-          "coverage": 1.0,
-          "defer_rate": 0.0,
-          "num_deferred": 0.0,
-          "num_kept": 1161.0,
-          "accuracy_kept": 1.0
+          "coverage": 0.9345391903531438,
+          "defer_rate": 0.06546080964685619,
+          "num_deferred": 76.0,
+          "num_kept": 1085.0,
+          "accuracy_kept": 0.9972350230414746
         }
       ]
     },
@@ -261,13 +261,13 @@
         0.0,
         0.0,
         0.0,
-        0.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
+        0.6,
+        0.6153846153846154,
+        0.8260869565217391,
+        0.8846153846153846,
+        0.90625,
+        0.9855072463768116,
+        0.9915254237288136,
         1.0
       ],
       "bin_confidences": [
@@ -278,14 +278,14 @@
         0.0,
         0.0,
         0.0,
-        0.0,
-        0.5912394523620605,
-        0.6628073453903198,
-        0.7079514861106873,
-        0.7729766964912415,
-        0.8297497630119324,
-        0.9080702662467957,
-        0.9797971844673157
+        0.5153165459632874,
+        0.5646453499794006,
+        0.6276520490646362,
+        0.7072302103042603,
+        0.7683241367340088,
+        0.8412265777587891,
+        0.9000104069709778,
+        0.9881874918937683
       ],
       "bin_counts": [
         0,
@@ -295,14 +295,14 @@
         0,
         0,
         0,
-        0,
-        1,
-        2,
-        21,
-        54,
-        79,
-        67,
-        937
+        5,
+        13,
+        23,
+        26,
+        32,
+        69,
+        118,
+        875
       ]
     },
     "bins_after": {
@@ -331,14 +331,14 @@
         0.0,
         0.0,
         0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0
+        1.0,
+        0.6,
+        0.3333333333333333,
+        0.8333333333333334,
+        0.9166666666666666,
+        0.75,
+        0.8846153846153846,
+        0.9954254345837146
       ],
       "bin_confidences": [
         0.0,
@@ -348,14 +348,14 @@
         0.0,
         0.0,
         0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.9999939203262329
+        0.5120987296104431,
+        0.555561900138855,
+        0.6290271878242493,
+        0.6967125535011292,
+        0.7683630585670471,
+        0.835136353969574,
+        0.9052605032920837,
+        0.9972973465919495
       ],
       "bin_counts": [
         0,
@@ -365,14 +365,14 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        1161
+        1,
+        5,
+        6,
+        6,
+        12,
+        12,
+        26,
+        1093
       ]
     }
   }

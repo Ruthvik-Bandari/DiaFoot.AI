@@ -5,26 +5,28 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Grid from "@mui/material/Grid";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Skeleton from "@mui/material/Skeleton";
-import Chip from "@mui/material/Chip";
-import Alert from "@mui/material/Alert";
-import AlertTitle from "@mui/material/AlertTitle";
-import LinearProgress from "@mui/material/LinearProgress";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import ReplayIcon from "@mui/icons-material/Replay";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import WarningIcon from "@mui/icons-material/Warning";
-import ErrorIcon from "@mui/icons-material/Error";
-import TimerIcon from "@mui/icons-material/Timer";
-import CropFreeIcon from "@mui/icons-material/CropFree";
-import StraightenIcon from "@mui/icons-material/Straighten";
+import {
+  Alert,
+  AlertTitle,
+  Box,
+  Button,
+  CameraAltIcon,
+  Card,
+  CardContent,
+  CheckCircleIcon,
+  Chip,
+  CloudUploadIcon,
+  CropFreeIcon,
+  ErrorIcon,
+  Grid,
+  LinearProgress,
+  ReplayIcon,
+  Skeleton,
+  StraightenIcon,
+  TimerIcon,
+  Typography,
+  WarningIcon,
+} from "@/lib/mui";
 import { usePrediction, getIsDemoMode } from "@/lib/api";
 import { uploadFormSchema, type UploadFormData, type PredictionResponse } from "@/lib/api/schemas";
 
@@ -41,7 +43,7 @@ function ClassificationBadge({ classification }: { classification: string }) {
     <Chip
       label={classification}
       color={c.color}
-      icon={<>{c.icon}</>}
+      icon={c.icon ?? undefined}
       sx={{ fontSize: "1rem", fontWeight: 700, py: 2.5, px: 1 }}
     />
   );
@@ -105,6 +107,7 @@ export default function PredictPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const mutation = usePrediction();
 
@@ -114,6 +117,8 @@ export default function PredictPage() {
     formState: { errors },
     reset: resetForm,
     setValue,
+    clearErrors,
+    setError,
   } = useForm<UploadFormData>({
     resolver: zodResolver(uploadFormSchema),
   });
@@ -143,12 +148,16 @@ export default function PredictPage() {
 
   const onSubmit = useCallback(
     async (data: UploadFormData) => {
-      const file = data.image[0];
+      const file = data.image instanceof File ? data.image : data.image?.[0] ?? selectedFile;
+      if (!file) {
+        setError("image", { type: "manual", message: "Please select an image" });
+        return;
+      }
       setResult(null);
       const response = await mutation.mutateAsync(file);
       setResult(response);
     },
-    [mutation]
+    [mutation, selectedFile, setError]
   );
 
   const handleFileChange = useCallback(
@@ -157,10 +166,16 @@ export default function PredictPage() {
       if (files && files[0]) {
         const url = URL.createObjectURL(files[0]);
         setPreview(url);
-        setValue("image", files);
+        setSelectedFile(files[0]);
+        setValue("image", files[0], {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+        clearErrors("image");
       }
     },
-    [setValue]
+    [setValue, clearErrors]
   );
 
   const handleDrop = useCallback(
@@ -170,16 +185,21 @@ export default function PredictPage() {
       if (files && files[0]) {
         const url = URL.createObjectURL(files[0]);
         setPreview(url);
-        const dt = new DataTransfer();
-        dt.items.add(files[0]);
-        setValue("image", dt.files);
+        setSelectedFile(files[0]);
+        setValue("image", files[0], {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+        clearErrors("image");
       }
     },
-    [setValue]
+    [setValue, clearErrors]
   );
 
   const handleReset = useCallback(() => {
     setPreview(null);
+    setSelectedFile(null);
     setResult(null);
     resetForm();
     mutation.reset();
@@ -323,14 +343,20 @@ export default function PredictPage() {
 
             {result && (
               <Box>
+                {(() => {
+                  const hasClassificationProbs = Object.keys(result.classification_probs ?? {}).length > 0;
+                  return (
+                    <>
                 {/* Defer Banner */}
                 {result.defer_to_clinician && (
                   <Alert severity="warning" sx={{ mb: 2 }} className="result-card">
                     <AlertTitle>Manual Review Required</AlertTitle>
-                    {result.defer_reason === "low_confidence"
+                    {result.defer_reason === "low_confidence" || result.defer_reason === "low_classification_confidence" || result.defer_reason === "below_confidence_threshold"
                       ? "The model is not confident enough in its prediction. Please consult a healthcare professional."
                       : result.defer_reason === "low_image_quality"
                         ? `Image quality issues detected: ${result.quality_flags.join(", ")}. Please retake the image.`
+                        : result.defer_reason === "segmentation_classifier_disagreement"
+                          ? "Classifier and segmenter disagree on this case. Please review manually."
                         : "This case requires clinical review."}
                   </Alert>
                 )}
@@ -343,25 +369,36 @@ export default function PredictPage() {
                         <Typography variant="caption" color="text.secondary" fontWeight={500}>
                           Classification Result
                         </Typography>
-                        <Box sx={{ mt: 1 }}>
+                        <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
                           <ClassificationBadge classification={result.classification} />
+                          {result.defer_to_clinician && result.classification !== "Manual Review Required" && (
+                            <ClassificationBadge classification="Manual Review Required" />
+                          )}
                         </Box>
                       </Box>
                       <Typography variant="h3" fontWeight={700} color="primary.main">
-                        {(result.classification_confidence * 100).toFixed(1)}%
+                        {hasClassificationProbs
+                          ? `${(result.classification_confidence * 100).toFixed(1)}%`
+                          : "N/A"}
                       </Typography>
                     </Box>
 
                     {/* Probability bars */}
                     <Box sx={{ mt: 3 }}>
-                      {Object.entries(result.classification_probs).map(([cls, prob]) => (
-                        <ConfidenceBar
-                          key={cls}
-                          label={cls}
-                          value={prob}
-                          color={cls === "DFU" ? "#E74C3C" : cls === "Healthy" ? "#27AE60" : "#1C7293"}
-                        />
-                      ))}
+                      {hasClassificationProbs ? (
+                        Object.entries(result.classification_probs).map(([cls, prob]) => (
+                          <ConfidenceBar
+                            key={cls}
+                            label={cls}
+                            value={prob}
+                            color={cls === "DFU" ? "#E74C3C" : cls === "Healthy" ? "#27AE60" : "#1C7293"}
+                          />
+                        ))
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Classification was skipped due to image-quality checks.
+                        </Typography>
+                      )}
                     </Box>
                   </CardContent>
                 </Card>
@@ -442,6 +479,9 @@ export default function PredictPage() {
                     </CardContent>
                   </Card>
                 )}
+                    </>
+                  );
+                })()}
               </Box>
             )}
 

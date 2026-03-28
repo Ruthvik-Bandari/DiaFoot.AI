@@ -41,17 +41,27 @@ export type ModelInfoResponse = z.infer<typeof modelInfoResponseSchema>;
 
 export const uploadFormSchema = z.object({
   image: z
-    .custom<FileList>()
-    .refine((files) => files && files.length === 1, "Please select an image")
+    .custom<File | FileList>()
     .refine(
-      (files) =>
-        files &&
-        files[0] &&
-        ["image/jpeg", "image/png", "image/webp"].includes(files[0].type),
+      (value) => {
+        if (value instanceof File) return true;
+        if (typeof FileList !== "undefined" && value instanceof FileList) return value.length === 1;
+        return false;
+      },
+      "Please select an image"
+    )
+    .refine(
+      (value) => {
+        const file = value instanceof File ? value : value?.[0];
+        return !!file && ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+      },
       "Only JPEG, PNG, or WebP images are accepted"
     )
     .refine(
-      (files) => files && files[0] && files[0].size <= 20 * 1024 * 1024,
+      (value) => {
+        const file = value instanceof File ? value : value?.[0];
+        return !!file && file.size <= 20 * 1024 * 1024;
+      },
       "Image must be under 20MB"
     ),
 });

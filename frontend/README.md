@@ -5,7 +5,7 @@ Production-grade frontend for the DiaFoot.AI v2 diabetic foot ulcer detection sy
 ## Tech Stack
 
 - **Runtime:** Bun
-- **Framework:** Next.js 15 (App Router) + TypeScript
+- **Framework:** Next.js 16 (App Router) + TypeScript
 - **Compiler:** Turbopack
 - **UI:** Material UI 7 + MUI Icons
 - **Animations:** GSAP + @gsap/react
@@ -37,8 +37,8 @@ The dashboard connects to the DiaFoot.AI FastAPI backend at `http://127.0.0.1:80
 ```bash
 cd ~/Desktop/"Diafoot CV"
 source .venv/bin/activate
-export DIAFOOT_CLASSIFIER_CHECKPOINT="checkpoints/classifier/best_epoch004_1.0000.pt"
-export DIAFOOT_SEGMENTER_CHECKPOINT="checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt"
+export DIAFOOT_CLASSIFIER_CKPT="checkpoints/dinov2_classifier/best_epoch009_0.9785.pt"
+export DIAFOOT_SEGMENTER_CKPT="checkpoints/dinov2_segmenter/best_epoch009_0.1062.pt"
 export DIAFOOT_CALIBRATION_PATH="results/classification_calibration.json"
 export DIAFOOT_DEFER_THRESHOLD="0.60"
 export DIAFOOT_MIN_IMAGE_SIDE=64

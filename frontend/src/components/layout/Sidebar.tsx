@@ -2,19 +2,21 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import Box from "@mui/material/Box";
-import Drawer from "@mui/material/Drawer";
-import List from "@mui/material/List";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import InfoIcon from "@mui/icons-material/Info";
-import FavoriteIcon from "@mui/icons-material/Favorite";
+import {
+  Box,
+  CameraAltIcon,
+  Chip,
+  DashboardIcon,
+  Divider,
+  Drawer,
+  FavoriteIcon,
+  InfoIcon,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Typography,
+} from "@/lib/mui";
 import { useHealth, getIsDemoMode } from "@/lib/api";
 
 const DRAWER_WIDTH = 260;

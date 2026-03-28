@@ -3,29 +3,31 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Grid from "@mui/material/Grid";
-import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
-import Alert from "@mui/material/Alert";
-import AlertTitle from "@mui/material/AlertTitle";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import SchoolIcon from "@mui/icons-material/School";
-import GitHubIcon from "@mui/icons-material/GitHub";
-import StorageIcon from "@mui/icons-material/Storage";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import ArchitectureIcon from "@mui/icons-material/Architecture";
-import ScienceIcon from "@mui/icons-material/Science";
-import GroupIcon from "@mui/icons-material/Group";
-import GavelIcon from "@mui/icons-material/Gavel";
+import {
+  Alert,
+  AlertTitle,
+  ArchitectureIcon,
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  GavelIcon,
+  GitHubIcon,
+  Grid,
+  GroupIcon,
+  SchoolIcon,
+  ScienceIcon,
+  StorageIcon,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  WarningAmberIcon,
+} from "@/lib/mui";
 
 interface InfoRowProps {
   label: string;
@@ -57,11 +59,9 @@ const CV_DATA = [
 ];
 
 const LIMITATIONS = [
-  "100% classifier accuracy is a dataset artifact — three visually distinct sources, model learns camera/background, not pathology",
-  "Limited skin tone diversity — dataset predominantly one ITA group (Brown), fairness conclusions cannot generalize to Fitzpatrick I–VI",
-  "Wagner staging not trained — architecture supports it but clinical grade labels were unavailable",
-  "Only 2 of 5 architectures fully trained — MedSAM2 LoRA and nnU-Net v2 implemented but not run due to time constraints",
-  "Not validated on standardized benchmarks — results are on our own data splits, not DFUC 2022 challenge leaderboard",
+  "Results are reported on this project’s internal train/validation/test and cross-validation splits.",
+  "The software is intended for research and education, not for clinical diagnosis or treatment use.",
+  "Generalization to unseen acquisition settings or underrepresented populations is not yet fully established.",
 ];
 
 const TECH_STACK = [
@@ -307,7 +307,7 @@ export default function AboutPage() {
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                 <WarningAmberIcon sx={{ color: "#F39C12" }} />
-                <Typography variant="h6" color="primary.dark">Honest Limitations</Typography>
+                <Typography variant="h6" color="primary.dark">Scope Notes</Typography>
               </Box>
               {LIMITATIONS.map((lim, i) => (
                 <Box
@@ -355,6 +355,7 @@ export default function AboutPage() {
                   {[
                     { from: "Sudeep K.S.", feedback: "Handle skin tone diversity → ITA-stratified fairness audit" },
                     { from: "Shivam Dubey", feedback: "Add attention mechanisms → scSE in decoder" },
+                    { from: "Yash Jain", feedback: "Benchmark stronger segmentation baselines → integrated MedSAM2 and nnU-Net with matched-split evaluation" },
                     { from: "Yucheng Yan", feedback: "Prioritize ablation → Data composition as core experiment" },
                     { from: "Om Patel", feedback: "Implement TTA → 16-augmentation TTA (+3.88% Dice)" },
                     { from: "Ching-Yi Mao", feedback: "Address algorithmic bias → ITA audit + honest disclosure" },

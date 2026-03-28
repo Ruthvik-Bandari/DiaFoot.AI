@@ -3,23 +3,25 @@
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Grid from "@mui/material/Grid";
-import Typography from "@mui/material/Typography";
-import Skeleton from "@mui/material/Skeleton";
-import Chip from "@mui/material/Chip";
-import Button from "@mui/material/Button";
-import Alert from "@mui/material/Alert";
-import AlertTitle from "@mui/material/AlertTitle";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import SpeedIcon from "@mui/icons-material/Speed";
-import VerifiedIcon from "@mui/icons-material/Verified";
-import BalanceIcon from "@mui/icons-material/Balance";
-import DatasetIcon from "@mui/icons-material/Dataset";
-import MemoryIcon from "@mui/icons-material/Memory";
-import ScienceIcon from "@mui/icons-material/Science";
+import {
+  Alert,
+  AlertTitle,
+  BalanceIcon,
+  Box,
+  Button,
+  CameraAltIcon,
+  Card,
+  CardContent,
+  Chip,
+  DatasetIcon,
+  Grid,
+  MemoryIcon,
+  ScienceIcon,
+  Skeleton,
+  SpeedIcon,
+  Typography,
+  VerifiedIcon,
+} from "@/lib/mui";
 import Link from "next/link";
 import { getIsDemoMode, useModelInfo, useHealth } from "@/lib/api";
 
@@ -68,23 +70,23 @@ function StatCard({ title, value, subtitle, icon, color }: StatCardProps) {
 
 const KEY_STATS: StatCardProps[] = [
   {
-    title: "Dice Score (5-Fold CV)",
-    value: "85.33%",
-    subtitle: "± 0.91% standard deviation",
-    icon: <SpeedIcon />,
+    title: "Classification Accuracy",
+    value: "98.36%",
+    subtitle: "DINOv2 ViT-B/14 (frozen backbone)",
+    icon: <VerifiedIcon />,
     color: "#065A82",
   },
   {
-    title: "NSD@5mm",
-    value: "97.23%",
-    subtitle: "Clinically robust boundary",
-    icon: <VerifiedIcon />,
+    title: "DFU Segmentation Dice",
+    value: "82.73%",
+    subtitle: "DINOv2 + UPerNet (10 epochs, frozen)",
+    icon: <SpeedIcon />,
     color: "#00A896",
   },
   {
-    title: "Wound Area Error",
-    value: "0.35%",
-    subtitle: "1,274 vs 1,270 mm²",
+    title: "DFU Sensitivity",
+    value: "96.58%",
+    subtitle: "calibrated defer at 99.72% accuracy",
     icon: <BalanceIcon />,
     color: "#27AE60",
   },
@@ -267,16 +269,16 @@ export default function DashboardPage() {
                 </Box>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography variant="body2" color="text.secondary">Transfer Learning</Typography>
+                    <Typography variant="body2" fontWeight={600}>DINOv2 ViT-B/14 (Meta, self-supervised)</Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <Typography variant="body2" color="text.secondary">Data Ablation</Typography>
-                    <Typography variant="body2" fontWeight={600}>DFU-only wins (85.3% vs 68.7%)</Typography>
+                    <Typography variant="body2" fontWeight={600}>DFU-only wins (87.4% vs 68.7%)</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Architecture</Typography>
-                    <Typography variant="body2" fontWeight={600}>U-Net++ &gt; FUSegNet (87.4% vs 69.6%)</Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">TTA Improvement</Typography>
-                    <Typography variant="body2" fontWeight={600}>+3.88% Dice (16-aug)</Typography>
+                    <Typography variant="body2" color="text.secondary">Calibration</Typography>
+                    <Typography variant="body2" fontWeight={600}>ECE 0.0075 after temperature scaling</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <Typography variant="body2" color="text.secondary">Fairness Gap</Typography>
