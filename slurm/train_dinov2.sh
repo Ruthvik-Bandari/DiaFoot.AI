@@ -15,10 +15,10 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=diafoot-dinov2
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:h200:1
+#SBATCH --gres=gpu:a100:1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=80G
-#SBATCH --time=24:00:00
+#SBATCH --mem=64G
+#SBATCH --time=08:00:00
 #SBATCH --output=logs/slurm/%j_%x.out
 #SBATCH --error=logs/slurm/%j_%x.err
 #SBATCH --mail-type=END,FAIL
@@ -28,14 +28,14 @@ set -euo pipefail
 PROJECT_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$PROJECT_ROOT"
 
-module purge && module load cuda/12.8.0 python/3.12
+module purge && module load cuda/12.8.0 python/3.13.5
 source .venv/bin/activate
 export PYTHONPATH="$PROJECT_ROOT"
 
 TASK=${1:-all}
 BACKBONE=${BACKBONE:-dinov2_vitb14}
-EPOCHS_P1=${EPOCHS_P1:-20}
-EPOCHS_P2=${EPOCHS_P2:-50}
+EPOCHS_P1=${EPOCHS_P1:-10}
+EPOCHS_P2=${EPOCHS_P2:-30}
 BATCH_SIZE=${BATCH_SIZE:-16}
 
 echo "Job ${SLURM_JOB_ID} | Node $(hostname) | GPU ${CUDA_VISIBLE_DEVICES:-?} | $(date)"
