@@ -23,8 +23,8 @@ export PYTHONPATH="$PROJECT_ROOT"
 export NO_ALBUMENTATIONS_UPDATE=1
 mkdir -p logs/slurm results
 
-CLASSIFIER_CKPT="checkpoints/classifier/best_epoch004_1.0000.pt"
-SEGMENTER_CKPT="checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt"
+CLASSIFIER_CKPT="checkpoints/dinov2_classifier/best.pt"
+SEGMENTER_CKPT="checkpoints/dinov2_segmenter/best.pt"
 
 echo "[1/6] leakage audit"
 "$PROJECT_ROOT/.venv/bin/python" scripts/run_leakage_audit.py

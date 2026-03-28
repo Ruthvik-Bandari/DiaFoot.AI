@@ -1,6 +1,6 @@
 """DiaFoot.AI v2 — ONNX Export Pipeline.
 
-Phase 6, Commit 29: Export trained models to ONNX for production inference.
+Export trained DINOv2 or legacy models to ONNX for production inference.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def export_to_onnx(
     model: nn.Module,
     output_path: str | Path,
-    input_shape: tuple[int, ...] = (1, 3, 512, 512),
+    input_shape: tuple[int, ...] = (1, 3, 518, 518),
     opset_version: int = 17,
     dynamic_batch: bool = True,
 ) -> Path:
@@ -39,18 +39,19 @@ def export_to_onnx(
     model.eval()
     dummy_input = torch.randn(*input_shape)
 
-    dynamic_axes = None
-    if dynamic_batch:
-        dynamic_axes = {"input": {0: "batch"}, "output": {0: "batch"}}
-
     torch.onnx.export(
         model,
         dummy_input,
         str(output_path),
+        export_params=True,
         opset_version=opset_version,
+        do_constant_folding=True,
         input_names=["input"],
         output_names=["output"],
-        dynamic_axes=dynamic_axes,
+        dynamic_axes={
+            "input": {0: "batch_size"},
+            "output": {0: "batch_size"},
+        } if dynamic_batch else None,
     )
 
     file_size_mb = output_path.stat().st_size / (1024 * 1024)
@@ -61,7 +62,7 @@ def export_to_onnx(
 def validate_onnx(
     pytorch_model: nn.Module,
     onnx_path: str | Path,
-    input_shape: tuple[int, ...] = (1, 3, 512, 512),
+    input_shape: tuple[int, ...] = (1, 3, 518, 518),
     atol: float = 1e-5,
 ) -> bool:
     """Validate ONNX model output matches PyTorch.

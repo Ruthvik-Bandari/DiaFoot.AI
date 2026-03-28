@@ -130,6 +130,7 @@ diafootai-eval = "scripts.evaluate:main"
 target-version = "py312"
 line-length = 100
 fix = true
+extend-exclude = ["notebooks/**/*.ipynb"]
 
 [tool.ruff.lint]
 select = [
@@ -165,6 +166,7 @@ ignore = [
 "notebooks/**/*.py" = ["T20", "ANN", "D"]
 "scripts/**/*.py" = ["T20", "D", "ANN", "S"]
 "src/deploy/**/*.py" = ["ANN401", "D102", "D107"]
+"scripts/evaluate_baseline_split.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
@@ -233,6 +235,13 @@ markers = [
 ]
 filterwarnings = [
     "ignore::DeprecationWarning:pkg_resources.*",
+    "ignore:.*PyparsingDeprecationWarning.*:DeprecationWarning",
+    "ignore:.*LeafSpec.*is deprecated.*:FutureWarning",
+    "ignore:'oneOf' deprecated - use 'one_of':pyparsing.exceptions.PyparsingDeprecationWarning",
+    "ignore:'parseString' deprecated - use 'parse_string':pyparsing.exceptions.PyparsingDeprecationWarning",
+    "ignore:'resetCache' deprecated - use 'reset_cache':pyparsing.exceptions.PyparsingDeprecationWarning",
+    "ignore:'enablePackrat' deprecated - use 'enable_packrat':pyparsing.exceptions.PyparsingDeprecationWarning",
+    "ignore:A new version of Albumentations is available:UserWarning",
 ]
 
 [tool.coverage.run]

@@ -59,8 +59,8 @@ archive.zip
 *.zip
 wound image dataset/
 
-# Models & exports
-models/
+# Models & exports (top-level only, not src/models/)
+/models/
 *.onnx
 
 # Large data

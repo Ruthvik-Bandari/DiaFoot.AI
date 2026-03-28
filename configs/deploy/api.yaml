@@ -1,4 +1,4 @@
-# FastAPI Deployment Configuration
+# FastAPI Deployment Configuration (DINOv2)
 api:
   host: 0.0.0.0
   port: 8000
@@ -8,8 +8,9 @@ api:
   rate_limit: 100             # requests per minute
   model_dir: exports/
   log_level: info
-  classifier_checkpoint: checkpoints/classifier/best_epoch004_1.0000.pt
-  segmenter_checkpoint: checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt
+  backbone: dinov2_vitb14
+  classifier_checkpoint: checkpoints/dinov2_classifier/best.pt
+  segmenter_checkpoint: checkpoints/dinov2_segmenter/best.pt
   confidence_threshold: 0.95
   defer_threshold: 0.67       # preferred from calibration when available
   calibration_report: results/classification_calibration.json

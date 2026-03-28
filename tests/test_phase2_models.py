@@ -1,4 +1,4 @@
-"""DiaFoot.AI v2 — Phase 2 Model Tests (Commits 10-12)."""
+"""DiaFoot.AI v2 — Phase 2 Model Tests (DINOv2 + Legacy)."""
 
 import numpy as np
 import pytest
@@ -11,12 +11,6 @@ from src.models.boundary_refine import (
     refine_prediction,
 )
 from src.models.fusegnet import FUSegNet
-from src.models.medsam2_finetune import (
-    LoRAConfig,
-    LoRALinear,
-    apply_lora_to_model,
-    mask_to_bbox,
-)
 from src.models.nnunet_wrapper import NNUNetConfig, generate_dataset_json
 
 
@@ -38,53 +32,50 @@ class TestNNUNetWrapper:
         assert "labels" in data
 
 
-class TestLoRA:
-    def test_lora_linear_shape(self) -> None:
-        original = nn.Linear(256, 128)
-        config = LoRAConfig(rank=8)
-        lora = LoRALinear(original, config)
-        x = torch.randn(4, 256)
-        out = lora(x)
-        assert out.shape == (4, 128)
+class TestDINOv2Classifier:
+    @pytest.mark.slow
+    def test_output_shape(self) -> None:
+        from src.models.dinov2_classifier import DINOv2Classifier
 
-    def test_lora_preserves_output_initially(self) -> None:
-        original = nn.Linear(64, 32)
-        config = LoRAConfig(rank=4)
-        lora = LoRALinear(original, config)
-        x = torch.randn(2, 64)
-        # B is initialized to zeros, so LoRA output should equal original
-        orig_out = original(x)
-        lora_out = lora(x)
-        torch.testing.assert_close(orig_out, lora_out, atol=1e-6, rtol=1e-6)
-
-    def test_apply_lora_to_model(self) -> None:
-        _model = nn.Sequential(
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 16),
+        model = DINOv2Classifier(
+            backbone="dinov2_vits14",
+            num_classes=3,
+            freeze_backbone=True,
         )
-        # Rename modules to match target
-        model_with_names = nn.Module()
-        model_with_names.q_proj = nn.Linear(64, 32)
-        model_with_names.relu = nn.ReLU()
-        model_with_names.v_proj = nn.Linear(32, 16)
+        x = torch.randn(1, 3, 518, 518)
+        out = model(x)
+        assert out.shape == (1, 3)
 
-        config = LoRAConfig(rank=4, target_modules=("q_proj", "v_proj"))
-        _adapted, num_params = apply_lora_to_model(model_with_names, config)
-        assert num_params > 0
+    @pytest.mark.slow
+    def test_predict_with_confidence(self) -> None:
+        from src.models.dinov2_classifier import DINOv2Classifier
 
-    def test_mask_to_bbox(self) -> None:
-        mask = torch.zeros(64, 64)
-        mask[10:30, 20:50] = 1
-        bbox = mask_to_bbox(mask, padding=5)
-        assert bbox.shape == (1, 4)
-        assert bbox[0, 0] < 20  # x1 with padding
-        assert bbox[0, 2] > 49  # x2 with padding
+        model = DINOv2Classifier(
+            backbone="dinov2_vits14",
+            num_classes=3,
+            freeze_backbone=True,
+        )
+        x = torch.randn(1, 3, 518, 518)
+        predicted, confidence = model.predict_with_confidence(x)
+        assert predicted.shape == (1,)
+        assert confidence.shape == (1,)
+        assert (confidence >= 0).all()
+        assert (confidence <= 1).all()
 
-    def test_mask_to_bbox_empty(self) -> None:
-        mask = torch.zeros(64, 64)
-        bbox = mask_to_bbox(mask)
-        assert bbox.shape == (1, 4)
+
+class TestDINOv2Segmenter:
+    @pytest.mark.slow
+    def test_output_shape(self) -> None:
+        from src.models.dinov2_segmenter import DINOv2Segmenter
+
+        model = DINOv2Segmenter(
+            backbone="dinov2_vits14",
+            num_classes=1,
+            freeze_backbone=True,
+        )
+        x = torch.randn(1, 3, 518, 518)
+        out = model(x)
+        assert out.shape == (1, 1, 518, 518)
 
 
 class TestFUSegNet:

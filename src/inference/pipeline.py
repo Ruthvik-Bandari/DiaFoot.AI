@@ -1,8 +1,6 @@
 """DiaFoot.AI v2 — Full Multi-Task Inference Pipeline.
 
-Phase 6, Commit 30: End-to-end pipeline from image to clinical output.
-
-Pipeline: Image -> Preprocess -> Classify -> (if DFU) Segment -> Post-process -> Results
+Pipeline: Image -> Preprocess -> Classify (DINOv2) -> (if DFU) Segment (DINOv2) -> Post-process -> Results
 """
 
 from __future__ import annotations
@@ -46,12 +44,13 @@ class InferencePipeline:
     Supports early exit for healthy feet (skip segmentation).
 
     Args:
-        classifier: Triage classifier model.
-        segmenter: Segmentation model (optional).
+        classifier: Triage classifier model (DINOv2Classifier or TriageClassifier).
+        segmenter: Segmentation model (DINOv2Segmenter or U-Net++, optional).
         device: Computation device.
         confidence_threshold: Min confidence to trust classification.
         seg_threshold: Threshold for binarizing segmentation output.
         pixel_spacing_mm: Physical pixel size for area calculation.
+        input_size: Model input resolution (518 for DINOv2, 512 for legacy).
     """
 
     def __init__(
@@ -61,8 +60,11 @@ class InferencePipeline:
         device: str = "cpu",
         confidence_threshold: float = 0.95,
         defer_threshold: float = 0.60,
+        dfu_seg_fallback_prob: float = 0.10,
+        dfu_promotion_threshold: float = 0.04,
         seg_threshold: float = 0.5,
         pixel_spacing_mm: float = 0.5,
+        input_size: int = 518,
     ) -> None:
         """Initialize inference pipeline."""
         self.device = torch.device(device)
@@ -72,8 +74,11 @@ class InferencePipeline:
             self.segmenter = self.segmenter.to(self.device).eval()
         self.confidence_threshold = confidence_threshold
         self.defer_threshold = defer_threshold
+        self.dfu_seg_fallback_prob = dfu_seg_fallback_prob
+        self.dfu_promotion_threshold = dfu_promotion_threshold
         self.seg_threshold = seg_threshold
         self.pixel_spacing_mm = pixel_spacing_mm
+        self.input_size = input_size
 
     def preprocess(self, image: np.ndarray) -> torch.Tensor:
         """Preprocess image for inference.
@@ -82,16 +87,16 @@ class InferencePipeline:
             image: BGR or RGB image (H, W, 3).
 
         Returns:
-            Normalized tensor (1, 3, 512, 512).
+            Normalized tensor (1, 3, input_size, input_size).
         """
         if image.shape[2] == 3 and len(image.shape) == 3:
             img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         else:
             img = image
 
-        img = cv2.resize(img, (512, 512))
+        img = cv2.resize(img, (self.input_size, self.input_size))
         img = img.astype(np.float32) / 255.0
-        # ImageNet normalization
+        # ImageNet normalization (same as DINOv2 pretraining)
         mean = np.array([0.485, 0.456, 0.406])
         std = np.array([0.229, 0.224, 0.225])
         img = (img - mean) / std
@@ -117,6 +122,7 @@ class InferencePipeline:
 
         pred_class = int(cls_probs.argmax())
         confidence = float(cls_probs.max())
+        dfu_prob = float(cls_probs[2]) if len(cls_probs) > 2 else 0.0
 
         result.classification = CLASS_NAMES.get(pred_class, "Unknown")
         result.classification_confidence = confidence
@@ -135,13 +141,21 @@ class InferencePipeline:
             result.has_wound = False
             return result
 
-        # Step 2: Segmentation (if model available and wound detected)
-        if pred_class == 2 and self.segmenter is None:
+        # Step 2: Segmentation
+        # Run segmentation for DFU predictions, and also as fallback when triage
+        # is uncertain or DFU probability is non-trivial.
+        should_run_seg = (
+            pred_class == 2
+            or (pred_class == 1 and confidence < self.confidence_threshold)
+            or (dfu_prob >= self.dfu_seg_fallback_prob)
+        )
+
+        if should_run_seg and self.segmenter is None:
             result.defer_to_clinician = True
             result.defer_reason = "segmenter_unavailable"
             return result
 
-        if self.segmenter and pred_class == 2:
+        if self.segmenter and should_run_seg:
             seg_logits = self.segmenter(tensor)
             if isinstance(seg_logits, dict):
                 seg_logits = seg_logits.get("seg_logits", seg_logits)
@@ -158,7 +172,18 @@ class InferencePipeline:
             total_pixels = seg_mask.shape[0] * seg_mask.shape[1]
             result.wound_coverage_pct = result.wound_area_px / total_pixels * 100
 
-        if pred_class == 1:
+            # If segmentation finds wound but classifier says Non-DFU,
+            # escalate to manual review instead of silently returning no wound.
+            if result.has_wound and pred_class == 1:
+                if dfu_prob >= self.dfu_promotion_threshold:
+                    result.classification = "DFU"
+                    # Keep confidence consistent with displayed class.
+                    result.classification_confidence = dfu_prob
+                result.defer_to_clinician = True
+                result.defer_reason = "segmentation_classifier_disagreement"
+
+        if pred_class == 1 and not result.has_wound:
+            # If no disagreement was found, keep Non-DFU with no wound.
             result.has_wound = False
 
         return result

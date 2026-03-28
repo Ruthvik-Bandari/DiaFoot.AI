@@ -1,7 +1,5 @@
 """DiaFoot.AI v2 — FastAPI REST Service.
 
-Phase 6, Commit 31: REST API for multi-task inference.
-
 Endpoints:
     POST /predict — Upload image, get full pipeline result
     GET /health — Service health check
@@ -38,20 +36,21 @@ from src.deploy.middleware import (
 )
 from src.deploy.schemas import DriftFeatures, PredictionLogEvent
 from src.inference.pipeline import InferencePipeline
-from src.models.classifier import TriageClassifier
-from src.models.unetpp import build_unetpp
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.95
 DEFAULT_DEFER_THRESHOLD = 0.60
 DEFAULT_CALIBRATION_PATH = "results/classification_calibration.json"
-DEFAULT_CLASSIFIER_CKPT = "checkpoints/classifier/best_epoch004_1.0000.pt"
-DEFAULT_SEGMENTER_CKPT = "checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt"
+DEFAULT_CLASSIFIER_CKPT = "checkpoints/dinov2_classifier/best.pt"
+DEFAULT_SEGMENTER_CKPT = "checkpoints/dinov2_segmenter/best.pt"
+DEFAULT_DFU_SEG_FALLBACK_PROB = 0.10
+DEFAULT_DFU_PROMOTION_THRESHOLD = 0.04
 DEFAULT_MIN_IMAGE_SIDE = 256
 DEFAULT_BLUR_VARIANCE_THRESHOLD = 30.0
 DEFAULT_BRIGHTNESS_MIN = 20.0
 DEFAULT_BRIGHTNESS_MAX = 235.0
+DEFAULT_BACKBONE = "dinov2_vitb14"
 
 
 def _getenv(*names: str, default: str | None = None) -> str | None:
@@ -251,8 +250,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(
     title="DiaFoot.AI v2",
-    description="Diabetic Foot Ulcer Detection, Classification & Segmentation",
-    version="2.0.0",
+    description="Diabetic Foot Ulcer Detection, Classification & Segmentation (DINOv2)",
+    version="2.1.0",
     lifespan=lifespan,
 )
 
@@ -335,7 +334,7 @@ def _resolve_device() -> str:
 
 
 def _build_pipeline_from_checkpoints() -> InferencePipeline | None:
-    """Load classifier/segmenter checkpoints and construct inference pipeline."""
+    """Load DINOv2 classifier/segmenter checkpoints and construct inference pipeline."""
     classifier_ckpt = Path(
         _getenv(
             "DIAFOOT_CLASSIFIER_CKPT",
@@ -350,19 +349,38 @@ def _build_pipeline_from_checkpoints() -> InferencePipeline | None:
             default=DEFAULT_SEGMENTER_CKPT,
         )
     )
+    backbone = _getenv("DIAFOOT_BACKBONE", default=DEFAULT_BACKBONE)
     device = _resolve_device()
+    dfu_seg_fallback_prob = _parse_probability(
+        _getenv("DIAFOOT_DFU_SEG_FALLBACK_PROB"),
+        DEFAULT_DFU_SEG_FALLBACK_PROB,
+    )
+    dfu_promotion_threshold = _parse_probability(
+        _getenv("DIAFOOT_DFU_PROMOTION_THRESHOLD"),
+        DEFAULT_DFU_PROMOTION_THRESHOLD,
+    )
 
     if not classifier_ckpt.exists():
         logger.warning("Classifier checkpoint not found: %s", classifier_ckpt)
         return None
 
-    classifier = TriageClassifier(backbone="tf_efficientnetv2_m", num_classes=3, pretrained=False)
+    # Load DINOv2 classifier
+    from src.models.dinov2_classifier import DINOv2Classifier
+
+    classifier = DINOv2Classifier(
+        backbone=backbone, num_classes=3, freeze_backbone=True, dropout=0.3
+    )
     cls_state = _load_state_dict_from_checkpoint(classifier_ckpt)
     classifier.load_state_dict(cls_state)
 
+    # Load DINOv2 segmenter
     segmenter = None
     if segmenter_ckpt.exists():
-        segmenter = build_unetpp(encoder_name="efficientnet-b4", encoder_weights=None, classes=1)
+        from src.models.dinov2_segmenter import DINOv2Segmenter
+
+        segmenter = DINOv2Segmenter(
+            backbone=backbone, num_classes=1, freeze_backbone=True
+        )
         seg_state = _load_state_dict_from_checkpoint(segmenter_ckpt)
         segmenter.load_state_dict(seg_state)
     else:
@@ -374,6 +392,9 @@ def _build_pipeline_from_checkpoints() -> InferencePipeline | None:
         device=device,
         confidence_threshold=_confidence_threshold,
         defer_threshold=_defer_threshold,
+        dfu_seg_fallback_prob=dfu_seg_fallback_prob,
+        dfu_promotion_threshold=dfu_promotion_threshold,
+        input_size=518,
     )
 
 
@@ -383,25 +404,26 @@ def health_check() -> HealthResponse:
     return HealthResponse(
         status="healthy",
         model_loaded=_pipeline is not None,
-        version="2.0.0",
+        version="2.1.0",
     )
 
 
 @app.get("/model/info", response_model=ModelInfoResponse)
 def model_info() -> ModelInfoResponse:
     """Get model metadata."""
-    segmenter_name = "U-Net++ / EfficientNet-B4" if _pipeline is not None else "Unavailable"
+    backbone = _getenv("DIAFOOT_BACKBONE", default=DEFAULT_BACKBONE)
+    segmenter_name = f"DINOv2 ({backbone}) + UPerNet" if _pipeline is not None else "Unavailable"
     return ModelInfoResponse(
-        classifier="EfficientNet-V2-M (3-class triage)",
+        classifier=f"DINOv2 ({backbone}) 3-class triage",
         segmenter=segmenter_name,
-        input_size=[512, 512],
+        input_size=[518, 518],
         num_classes=3,
         confidence_threshold=_confidence_threshold,
         defer_threshold=_defer_threshold,
         defer_threshold_source=_defer_threshold_source,
         max_image_size_mb=_max_image_size_mb,
         rate_limit_rpm=_rate_limit_rpm,
-        version="2.0.0",
+        version="2.1.0",
     )
 
 

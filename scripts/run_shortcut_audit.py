@@ -121,7 +121,7 @@ def main() -> None:
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="checkpoints/classifier/best_epoch004_1.0000.pt",
+        default="checkpoints/dinov2_classifier/best.pt",
     )
     parser.add_argument("--split-csv", type=str, default="data/splits/test.csv")
     parser.add_argument("--device", type=str, default="cuda")

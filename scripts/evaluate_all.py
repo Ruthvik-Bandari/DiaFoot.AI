@@ -124,6 +124,10 @@ def main() -> None:
             "path": "checkpoints/fusegnet/best_epoch021_0.4171.pt",
             "model_type": "fusegnet",
         },
+        "DINOv2 Segmenter": {
+            "path": "checkpoints/dinov2_segmenter/best.pt",
+            "model_type": "unetpp",
+        },
     }
 
     for name, config in checkpoints.items():

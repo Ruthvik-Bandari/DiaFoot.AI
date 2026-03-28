@@ -1,13 +1,19 @@
 """DiaFoot.AI v2 — Evaluation Entry Point.
 
-Phase 4: Evaluate trained models on test set.
+Supports DINOv2 and legacy U-Net++ models.
 
 Usage:
-    # Evaluate classifier
+    # Evaluate DINOv2 classifier
     python scripts/evaluate.py --task classify \
+        --checkpoint checkpoints/dinov2_classifier/best.pt
 
-    # Evaluate segmentation
+    # Evaluate DINOv2 segmentation
     python scripts/evaluate.py --task segment \
+        --checkpoint checkpoints/dinov2_segmenter/best.pt
+
+    # Evaluate legacy U-Net++ (for comparison)
+    python scripts/evaluate.py --task segment --model unetpp \
+        --checkpoint checkpoints/unetpp_baseline/best.pt
 """
 
 from __future__ import annotations
@@ -35,25 +41,47 @@ from src.evaluation.metrics import (
     compute_segmentation_metrics,
     print_segmentation_report,
 )
-from src.models.classifier import TriageClassifier
-from src.models.unetpp import build_unetpp
 
 
-def evaluate_classifier(checkpoint_path: str, splits_dir: str, device: str) -> None:
+def _load_classifier(checkpoint_path: str, backbone: str, device: str) -> torch.nn.Module:
+    """Load DINOv2 classifier from checkpoint."""
+    from src.models.dinov2_classifier import DINOv2Classifier
+
+    model = DINOv2Classifier(backbone=backbone, num_classes=3, freeze_backbone=True, dropout=0.3)
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+    model.load_state_dict(state)
+    return model.to(device).eval()
+
+
+def _load_segmenter(checkpoint_path: str, model_type: str, backbone: str, device: str) -> torch.nn.Module:
+    """Load segmentation model from checkpoint."""
+    if model_type == "dinov2":
+        from src.models.dinov2_segmenter import DINOv2Segmenter
+
+        model = DINOv2Segmenter(backbone=backbone, num_classes=1, freeze_backbone=True)
+    else:
+        from src.models.unetpp import build_unetpp
+
+        model = build_unetpp(encoder_name="efficientnet-b4", encoder_weights=None, classes=1)
+
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+    model.load_state_dict(state)
+    return model.to(device).eval()
+
+
+def evaluate_classifier(checkpoint_path: str, splits_dir: str, device: str, backbone: str) -> None:
     """Evaluate triage classifier on test set."""
     logger = logging.getLogger("eval_classifier")
 
-    model = TriageClassifier(backbone="tf_efficientnetv2_m", num_classes=3, pretrained=False)
-    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-    model.load_state_dict(ckpt["model_state_dict"])
-    model = model.to(device)
-    model.eval()
+    model = _load_classifier(checkpoint_path, backbone, device)
 
     test_ds = DFUDataset(
         split_csv=Path(splits_dir) / "test.csv",
         transform=get_val_transforms(),
     )
-    test_loader = torch.utils.data.DataLoader(test_ds, batch_size=32, shuffle=False, num_workers=4)
+    test_loader = torch.utils.data.DataLoader(test_ds, batch_size=16, shuffle=False, num_workers=4)
 
     all_labels = []
     all_preds = []
@@ -103,15 +131,13 @@ def evaluate_classifier(checkpoint_path: str, splits_dir: str, device: str) -> N
     logger.info("Calibration report saved to %s", calibration_path)
 
 
-def evaluate_segmentation(checkpoint_path: str, splits_dir: str, device: str) -> None:
+def evaluate_segmentation(
+    checkpoint_path: str, splits_dir: str, device: str, model_type: str, backbone: str
+) -> None:
     """Evaluate segmentation model on test set."""
     logger = logging.getLogger("eval_segmentation")
 
-    model = build_unetpp(encoder_name="efficientnet-b4", encoder_weights=None, classes=1)
-    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-    model.load_state_dict(ckpt["model_state_dict"])
-    model = model.to(device)
-    model.eval()
+    model = _load_segmenter(checkpoint_path, model_type, backbone, device)
 
     test_ds = DFUDataset(
         split_csv=Path(splits_dir) / "test.csv",
@@ -175,6 +201,19 @@ def main() -> None:
     parser.add_argument("--splits-dir", type=str, default="data/splits")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="dinov2",
+        choices=["dinov2", "unetpp"],
+        help="Model type (dinov2 or unetpp for legacy)",
+    )
+    parser.add_argument(
+        "--backbone",
+        type=str,
+        default="dinov2_vitb14",
+        choices=["dinov2_vits14", "dinov2_vitb14", "dinov2_vitl14"],
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -186,9 +225,9 @@ def main() -> None:
     dev = args.device if torch.cuda.is_available() else "cpu"
 
     if args.task == "classify":
-        evaluate_classifier(args.checkpoint, args.splits_dir, dev)
+        evaluate_classifier(args.checkpoint, args.splits_dir, dev, args.backbone)
     elif args.task == "segment":
-        evaluate_segmentation(args.checkpoint, args.splits_dir, dev)
+        evaluate_segmentation(args.checkpoint, args.splits_dir, dev, args.model, args.backbone)
 
 
 if __name__ == "__main__":

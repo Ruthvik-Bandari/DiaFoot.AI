@@ -4,7 +4,7 @@ Compares model performance with and without Test-Time Augmentation.
 
 Usage:
     python scripts/run_tta_eval.py \
-        --checkpoint checkpoints/segmentation_v2/best_epoch018_0.4109.pt \
+        --checkpoint checkpoints/dinov2_segmenter/best.pt \
         --device cuda
 """
 

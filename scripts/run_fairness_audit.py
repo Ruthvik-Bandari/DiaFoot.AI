@@ -4,8 +4,8 @@ Connects ITA skin tone scores to actual model predictions.
 
 Usage:
     python scripts/run_fairness_audit.py \
-        --seg-checkpoint checkpoints/segmentation_v2/best_epoch018_0.4109.pt \
-        --cls-checkpoint checkpoints/classifier/best_epoch004_1.0000.pt
+        --seg-checkpoint checkpoints/dinov2_segmenter/best.pt \
+        --cls-checkpoint checkpoints/dinov2_classifier/best.pt
 """
 
 from __future__ import annotations

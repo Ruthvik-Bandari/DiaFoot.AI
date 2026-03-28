@@ -1,13 +1,24 @@
 """DiaFoot.AI v2 — ONNX Export Pipeline.
 
-Exports the trained segmentation model to ONNX format for production inference.
+Exports trained DINOv2 or U-Net++ models to ONNX format for production inference.
 Validates that PyTorch and ONNX outputs match within tolerance.
 
 Usage:
+    # Export DINOv2 segmenter
     python scripts/export_onnx.py \
-        --checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt \
-        --output models/diafoot_segmenter.onnx \
+        --checkpoint checkpoints/dinov2_segmenter/best.pt \
+        --model dinov2 --output models/diafoot_segmenter.onnx \
         --validate --verbose
+
+    # Export DINOv2 classifier
+    python scripts/export_onnx.py \
+        --checkpoint checkpoints/dinov2_classifier/best.pt \
+        --model dinov2-classifier --output models/diafoot_classifier.onnx
+
+    # Export legacy U-Net++
+    python scripts/export_onnx.py \
+        --checkpoint checkpoints/unetpp_baseline/best.pt \
+        --model unetpp --output models/diafoot_unetpp.onnx
 """
 
 from __future__ import annotations
@@ -23,25 +34,49 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.models.unetpp import build_unetpp
-
 logger = logging.getLogger("onnx_export")
+
+
+def _load_model(
+    checkpoint_path: str, model_type: str, backbone: str
+) -> torch.nn.Module:
+    """Load model from checkpoint."""
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+
+    if model_type == "dinov2":
+        from src.models.dinov2_segmenter import DINOv2Segmenter
+
+        model = DINOv2Segmenter(backbone=backbone, num_classes=1, freeze_backbone=True)
+    elif model_type == "dinov2-classifier":
+        from src.models.dinov2_classifier import DINOv2Classifier
+
+        model = DINOv2Classifier(backbone=backbone, num_classes=3, freeze_backbone=True)
+    elif model_type == "unetpp":
+        from src.models.unetpp import build_unetpp
+
+        model = build_unetpp(
+            encoder_name="efficientnet-b4",
+            encoder_weights=None,
+            classes=1,
+            decoder_attention_type="scse",
+        )
+    else:
+        msg = f"Unknown model type: {model_type}"
+        raise ValueError(msg)
+
+    model.load_state_dict(state)
+    model.eval()
+    return model
 
 
 def export_to_onnx(
     model: torch.nn.Module,
     output_path: Path,
-    input_size: tuple[int, int] = (512, 512),
+    input_size: tuple[int, int] = (518, 518),
     opset_version: int = 17,
 ) -> None:
-    """Export PyTorch model to ONNX format.
-
-    Args:
-        model: Trained PyTorch model in eval mode.
-        output_path: Where to save the .onnx file.
-        input_size: (H, W) input dimensions.
-        opset_version: ONNX opset version.
-    """
+    """Export PyTorch model to ONNX format."""
     model.eval()
     dummy_input = torch.randn(1, 3, *input_size)
 
@@ -78,22 +113,11 @@ def export_to_onnx(
 def validate_onnx(
     pytorch_model: torch.nn.Module,
     onnx_path: Path,
-    input_size: tuple[int, int] = (512, 512),
+    input_size: tuple[int, int] = (518, 518),
     atol: float = 1e-5,
     num_tests: int = 5,
 ) -> bool:
-    """Validate ONNX model matches PyTorch output.
-
-    Args:
-        pytorch_model: Original PyTorch model.
-        onnx_path: Path to exported ONNX model.
-        input_size: (H, W) input dimensions.
-        atol: Absolute tolerance for output comparison.
-        num_tests: Number of random inputs to test.
-
-    Returns:
-        True if all tests pass.
-    """
+    """Validate ONNX model matches PyTorch output."""
     try:
         import onnxruntime as ort
     except ImportError:
@@ -109,15 +133,12 @@ def validate_onnx(
     for i in range(num_tests):
         test_input = torch.randn(1, 3, *input_size)
 
-        # PyTorch inference
         with torch.no_grad():
             pt_output = pytorch_model(test_input).numpy()
 
-        # ONNX inference
         ort_input = {session.get_inputs()[0].name: test_input.numpy()}
         ort_output = session.run(None, ort_input)[0]
 
-        # Compare
         max_diff = float(np.max(np.abs(pt_output - ort_output)))
         max_diffs.append(max_diff)
         passed = max_diff < atol
@@ -142,7 +163,6 @@ def validate_onnx(
         atol,
     )
 
-    # Try with relaxed tolerance if strict fails
     if not all_passed:
         relaxed_atol = 1e-3
         relaxed_pass = all(d < relaxed_atol for d in max_diffs)
@@ -159,7 +179,7 @@ def validate_onnx(
 
 def benchmark_onnx(
     onnx_path: Path,
-    input_size: tuple[int, int] = (512, 512),
+    input_size: tuple[int, int] = (518, 518),
     num_runs: int = 50,
 ) -> dict:
     """Benchmark ONNX inference speed."""
@@ -206,6 +226,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="ONNX Export")
     parser.add_argument("--checkpoint", type=str, required=True)
     parser.add_argument("--output", type=str, default="models/diafoot_segmenter.onnx")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="dinov2",
+        choices=["dinov2", "dinov2-classifier", "unetpp"],
+    )
+    parser.add_argument(
+        "--backbone",
+        type=str,
+        default="dinov2_vitb14",
+        choices=["dinov2_vits14", "dinov2_vitb14", "dinov2_vitl14"],
+    )
     parser.add_argument("--validate", action="store_true")
     parser.add_argument("--benchmark", action="store_true")
     parser.add_argument("--verbose", action="store_true")
@@ -217,35 +249,30 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
+    # Determine input size
+    input_size = (518, 518) if args.model.startswith("dinov2") else (512, 512)
+
     # Load model
-    logger.info("Loading checkpoint: %s", args.checkpoint)
-    model = build_unetpp(
-        encoder_name="efficientnet-b4",
-        encoder_weights=None,
-        classes=1,
-        decoder_attention_type="scse",
-    )
-    ckpt = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
-    model.load_state_dict(ckpt["model_state_dict"])
-    model.eval()
+    logger.info("Loading checkpoint: %s (model=%s)", args.checkpoint, args.model)
+    model = _load_model(args.checkpoint, args.model, args.backbone)
 
     # Export
     output_path = Path(args.output)
-    export_to_onnx(model, output_path)
+    export_to_onnx(model, output_path, input_size=input_size)
 
     # Validate
     if args.validate:
         logger.info("Validating ONNX export...")
-        valid = validate_onnx(model, output_path)
+        valid = validate_onnx(model, output_path, input_size=input_size)
         if valid:
-            logger.info("✓ ONNX export validated — outputs match PyTorch")
+            logger.info("ONNX export validated — outputs match PyTorch")
         else:
-            logger.error("✗ ONNX validation FAILED")
+            logger.error("ONNX validation FAILED")
 
     # Benchmark
     if args.benchmark:
         logger.info("Benchmarking ONNX inference...")
-        results = benchmark_onnx(output_path)
+        results = benchmark_onnx(output_path, input_size=input_size)
         if results:
             import json
 

@@ -1,10 +1,11 @@
-"""DiaFoot.AI v2 — Inference on New Images.
+"""DiaFoot.AI v2 — Inference on New Images (DINOv2).
 
-Run the trained pipeline on any foot image.
+Run the trained DINOv2 pipeline on any foot image.
 
 Usage:
     python scripts/predict.py --image path/to/foot_image.jpg
     python scripts/predict.py --image path/to/image.jpg --save-mask output_mask.png
+    python scripts/predict.py --image path/to/image.jpg --backbone dinov2_vitl14
 """
 
 from __future__ import annotations
@@ -21,13 +22,11 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.data.augmentation import get_val_transforms
-from src.models.classifier import TriageClassifier
-from src.models.unetpp import build_unetpp
 
 CLASS_NAMES = {0: "Healthy", 1: "Non-DFU Wound", 2: "DFU (Diabetic Foot Ulcer)"}
 
 
-def load_and_preprocess(image_path: str) -> tuple[np.ndarray, torch.Tensor]:
+def load_and_preprocess(image_path: str, input_size: int = 518) -> tuple[np.ndarray, torch.Tensor]:
     """Load image and prepare for inference."""
     image = cv2.imread(image_path)
     if image is None:
@@ -39,7 +38,7 @@ def load_and_preprocess(image_path: str) -> tuple[np.ndarray, torch.Tensor]:
 
     # Preprocess for model
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    image_resized = cv2.resize(image_rgb, (512, 512))
+    image_resized = cv2.resize(image_rgb, (input_size, input_size))
 
     transform = get_val_transforms()
     transformed = transform(image=image_resized)
@@ -50,17 +49,23 @@ def load_and_preprocess(image_path: str) -> tuple[np.ndarray, torch.Tensor]:
 
 def main() -> None:
     """Run inference on a single image."""
-    parser = argparse.ArgumentParser(description="DiaFoot.AI v2 — Predict")
+    parser = argparse.ArgumentParser(description="DiaFoot.AI v2 — Predict (DINOv2)")
     parser.add_argument("--image", type=str, required=True, help="Path to foot image")
     parser.add_argument(
         "--classifier-checkpoint",
         type=str,
-        default="checkpoints/classifier/best_epoch004_1.0000.pt",
+        default="checkpoints/dinov2_classifier/best.pt",
     )
     parser.add_argument(
         "--segmenter-checkpoint",
         type=str,
-        default="checkpoints/segmentation/best_epoch019_0.6781.pt",
+        default="checkpoints/dinov2_segmenter/best.pt",
+    )
+    parser.add_argument(
+        "--backbone",
+        type=str,
+        default="dinov2_vitb14",
+        choices=["dinov2_vits14", "dinov2_vitb14", "dinov2_vitl14"],
     )
     parser.add_argument("--save-mask", type=str, default=None, help="Save segmentation mask")
     parser.add_argument("--device", type=str, default="cpu")
@@ -72,23 +77,27 @@ def main() -> None:
         args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
     )
 
-    # Load image
-    original, tensor = load_and_preprocess(args.image)
+    # Load image (518×518 for DINOv2)
+    original, tensor = load_and_preprocess(args.image, input_size=518)
     tensor = tensor.to(device)
 
     print(f"\n{'=' * 50}")
-    print("DiaFoot.AI v2 — Inference")
+    print("DiaFoot.AI v2 — Inference (DINOv2)")
     print(f"Image: {args.image}")
+    print(f"Backbone: {args.backbone}")
     print(f"{'=' * 50}")
 
     # Step 1: Classification
     classifier_path = Path(args.classifier_checkpoint)
     if classifier_path.exists():
-        classifier = TriageClassifier(
-            backbone="tf_efficientnetv2_m", num_classes=3, pretrained=False
+        from src.models.dinov2_classifier import DINOv2Classifier
+
+        classifier = DINOv2Classifier(
+            backbone=args.backbone, num_classes=3, freeze_backbone=True, dropout=0.3
         )
         ckpt = torch.load(str(classifier_path), map_location="cpu", weights_only=True)
-        classifier.load_state_dict(ckpt["model_state_dict"])
+        state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+        classifier.load_state_dict(state)
         classifier = classifier.to(device).eval()
 
         with torch.no_grad():
@@ -109,9 +118,14 @@ def main() -> None:
     # Step 2: Segmentation (if wound detected)
     segmenter_path = Path(args.segmenter_checkpoint)
     if pred_class in (1, 2) and segmenter_path.exists():
-        segmenter = build_unetpp(encoder_name="efficientnet-b4", encoder_weights=None, classes=1)
+        from src.models.dinov2_segmenter import DINOv2Segmenter
+
+        segmenter = DINOv2Segmenter(
+            backbone=args.backbone, num_classes=1, freeze_backbone=True
+        )
         ckpt = torch.load(str(segmenter_path), map_location="cpu", weights_only=True)
-        segmenter.load_state_dict(ckpt["model_state_dict"])
+        state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+        segmenter.load_state_dict(state)
         segmenter = segmenter.to(device).eval()
 
         with torch.no_grad():

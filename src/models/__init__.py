@@ -1,1 +1,1 @@
-"""Model architectures: classifier, U-Net++, nnU-Net v2, MedSAM2, FUSegNet."""
+"""Model architectures: DINOv2 classifier, DINOv2 segmenter, U-Net++, FUSegNet."""

@@ -1,7 +1,14 @@
-"""DiaFoot.AI v2 — Improved Training Entry Point.
+"""DiaFoot.AI v2 — Training Entry Point with DINOv2 Transfer Learning.
 
-Key fix: Segmentation trains ONLY on images with actual wounds (DFU + non-DFU).
-Healthy images with empty masks are excluded from segmentation training.
+Supports three training modes:
+    1. DINOv2 classifier (3-class triage)
+    2. DINOv2 segmenter (wound segmentation with frozen ViT encoder)
+    3. Legacy U-Net++ segmenter (EfficientNet-B4, kept for ablation comparison)
+
+DINOv2 training strategy:
+    Phase 1 (Linear Probe): Freeze backbone, train head/decoder only
+    Phase 2 (LoRA Fine-tune): Add LoRA adapters to attention layers
+    Phase 3 (Partial Unfreeze): Optionally unfreeze last N blocks
 """
 
 from __future__ import annotations
@@ -18,8 +25,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.data.augmentation import get_train_transforms, get_val_transforms
 from src.data.torch_dataset import DFUDataset
-from src.models.classifier import TriageClassifier
-from src.models.unetpp import build_unetpp
 from src.training.classification_losses import FocalLoss
 from src.training.losses import DiceCELoss
 from src.training.schedulers import CosineAnnealingWithWarmup
@@ -126,16 +131,21 @@ def build_dataloaders(
 
 
 def train_classifier(args: argparse.Namespace) -> None:
-    """Train triage classifier on ALL classes."""
+    """Train DINOv2 triage classifier on ALL classes."""
     logger = logging.getLogger("train_classifier")
 
-    model = TriageClassifier(
-        backbone="tf_efficientnetv2_m",
+    from src.models.dinov2_classifier import DINOv2Classifier
+
+    model = DINOv2Classifier(
+        backbone=args.backbone,
         num_classes=3,
         dropout=0.3,
-        pretrained=True,
+        freeze_backbone=not args.unfreeze_backbone,
+        use_lora=args.use_lora,
+        lora_rank=args.lora_rank,
+        lora_alpha=args.lora_alpha,
     )
-    logger.info("Model: TriageClassifier (tf_efficientnetv2_m)")
+    logger.info("Model: DINOv2Classifier (%s, lora=%s)", args.backbone, args.use_lora)
 
     train_loader, val_loader = build_dataloaders(
         args.splits_dir,
@@ -145,7 +155,10 @@ def train_classifier(args: argparse.Namespace) -> None:
     logger.info("Data: %d train, %d val batches (all classes)", len(train_loader), len(val_loader))
 
     loss_fn = FocalLoss(gamma=2.0)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
+
+    # Only optimize trainable parameters
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.AdamW(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
     scheduler = CosineAnnealingWithWarmup(optimizer, warmup_epochs=5, max_epochs=args.epochs)
 
     config = TrainConfig(
@@ -153,7 +166,7 @@ def train_classifier(args: argparse.Namespace) -> None:
         precision="bf16-mixed",
         compile_model=False,
         gradient_clip=1.0,
-        checkpoint_dir="checkpoints/classifier",
+        checkpoint_dir="checkpoints/dinov2_classifier",
         monitor_metric="val/accuracy",
         monitor_mode="max",
         device=args.device,
@@ -163,12 +176,65 @@ def train_classifier(args: argparse.Namespace) -> None:
 
 
 def train_segmentation(args: argparse.Namespace) -> None:
-    """Train segmentation on WOUND IMAGES ONLY (DFU + non-DFU).
+    """Train DINOv2 segmenter on DFU images only.
 
-    KEY FIX: Excludes healthy feet (empty masks) from training.
-    This prevents the model from learning 'predict nothing' on 47% of data.
+    Uses DINOv2 as frozen encoder with UPerNet decoder.
+    DFU-only training is backed by ablation finding that mixed data hurts performance.
     """
     logger = logging.getLogger("train_segmentation")
+
+    from src.models.dinov2_segmenter import DINOv2Segmenter
+
+    model = DINOv2Segmenter(
+        backbone=args.backbone,
+        num_classes=1,
+        decoder_dim=256,
+        freeze_backbone=not args.unfreeze_backbone,
+        use_lora=args.use_lora,
+        lora_rank=args.lora_rank,
+        lora_alpha=args.lora_alpha,
+    )
+    logger.info("Model: DINOv2Segmenter (%s, lora=%s)", args.backbone, args.use_lora)
+
+    # CRITICAL: Train segmentation on DFU morphology only (ablation-backed)
+    train_loader, val_loader = build_dataloaders(
+        args.splits_dir,
+        args.batch_size,
+        args.num_workers,
+        filter_classes=["dfu"],
+    )
+    logger.info(
+        "Data: %d train, %d val batches (DFU only)",
+        len(train_loader),
+        len(val_loader),
+    )
+
+    loss_fn = DiceCELoss()
+
+    # Only optimize trainable parameters
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.AdamW(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
+    scheduler = CosineAnnealingWithWarmup(optimizer, warmup_epochs=5, max_epochs=args.epochs)
+
+    config = TrainConfig(
+        epochs=args.epochs,
+        precision="bf16-mixed",
+        compile_model=False,
+        gradient_clip=1.0,
+        checkpoint_dir="checkpoints/dinov2_segmenter",
+        monitor_metric="val/loss",
+        monitor_mode="min",
+        device=args.device,
+    )
+    trainer = Trainer(model=model, config=config)
+    trainer.fit(train_loader, val_loader, loss_fn, optimizer, scheduler)
+
+
+def train_segmentation_unetpp(args: argparse.Namespace) -> None:
+    """Train legacy U-Net++ segmenter (for ablation comparison with DINOv2)."""
+    logger = logging.getLogger("train_segmentation_unetpp")
+
+    from src.models.unetpp import build_unetpp
 
     model = build_unetpp(
         encoder_name="efficientnet-b4",
@@ -176,17 +242,16 @@ def train_segmentation(args: argparse.Namespace) -> None:
         classes=1,
         decoder_attention_type="scse",
     )
-    logger.info("Model: U-Net++ (efficientnet-b4)")
+    logger.info("Model: U-Net++ (efficientnet-b4) — legacy baseline")
 
-    # CRITICAL: Only train on images with actual wounds
     train_loader, val_loader = build_dataloaders(
         args.splits_dir,
         args.batch_size,
         args.num_workers,
-        filter_classes=["dfu", "non_dfu"],  # Exclude healthy
+        filter_classes=["dfu"],
     )
     logger.info(
-        "Data: %d train, %d val batches (DFU + non-DFU only, healthy excluded)",
+        "Data: %d train, %d val batches (DFU only)",
         len(train_loader),
         len(val_loader),
     )
@@ -200,7 +265,7 @@ def train_segmentation(args: argparse.Namespace) -> None:
         precision="bf16-mixed",
         compile_model=False,
         gradient_clip=1.0,
-        checkpoint_dir="checkpoints/segmentation_v2",
+        checkpoint_dir="checkpoints/unetpp_baseline",
         monitor_metric="val/loss",
         monitor_mode="min",
         device=args.device,
@@ -211,15 +276,44 @@ def train_segmentation(args: argparse.Namespace) -> None:
 
 def main() -> None:
     """Run training."""
-    parser = argparse.ArgumentParser(description="DiaFoot.AI v2 Training (Improved)")
-    parser.add_argument("--task", type=str, required=True, choices=["classify", "segment"])
-    parser.add_argument("--config", type=str, default="configs/training/baseline.yaml")
+    parser = argparse.ArgumentParser(description="DiaFoot.AI v2 Training (DINOv2)")
+    parser.add_argument(
+        "--task",
+        type=str,
+        required=True,
+        choices=["classify", "segment", "segment-unetpp"],
+        help="classify: DINOv2 classifier, segment: DINOv2 segmenter, segment-unetpp: legacy baseline",
+    )
+    parser.add_argument("--config", type=str, default="configs/training/dinov2_baseline.yaml")
     parser.add_argument("--splits-dir", type=str, default="data/splits")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--epochs", type=int, default=50)
-    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=8)
     parser.add_argument("--verbose", action="store_true")
+
+    # DINOv2-specific arguments
+    parser.add_argument(
+        "--backbone",
+        type=str,
+        default="dinov2_vitb14",
+        choices=["dinov2_vits14", "dinov2_vitb14", "dinov2_vitl14"],
+        help="DINOv2 backbone size",
+    )
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
+    parser.add_argument("--weight-decay", type=float, default=1e-2, help="Weight decay")
+    parser.add_argument(
+        "--use-lora",
+        action="store_true",
+        help="Apply LoRA adapters to backbone attention layers",
+    )
+    parser.add_argument("--lora-rank", type=int, default=8, help="LoRA rank")
+    parser.add_argument("--lora-alpha", type=int, default=16, help="LoRA alpha scaling")
+    parser.add_argument(
+        "--unfreeze-backbone",
+        action="store_true",
+        help="Unfreeze backbone for full fine-tuning (Phase 3)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -234,6 +328,8 @@ def main() -> None:
         train_classifier(args)
     elif args.task == "segment":
         train_segmentation(args)
+    elif args.task == "segment-unetpp":
+        train_segmentation_unetpp(args)
 
 
 if __name__ == "__main__":

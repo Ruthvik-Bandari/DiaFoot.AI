@@ -4,7 +4,7 @@ Creates overlay images showing predictions vs ground truth for the report.
 
 Usage:
     python scripts/visualize_results.py \
-        --checkpoint checkpoints/segmentation_v2/best_epoch018_0.4109.pt \
+        --checkpoint checkpoints/dinov2_segmenter/best.pt \
         --num-images 10 --device cpu
 """
 

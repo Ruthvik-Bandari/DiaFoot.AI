@@ -1,0 +1,96 @@
+# DiaFoot.AI v2 — DINOv2 Baseline Training Configuration
+# Transfer learning with Meta's DINOv2 self-supervised ViT backbone
+seed: 42
+project_name: DiaFootAI-v2
+experiment_name: dinov2-vitb14-baseline
+
+data:
+  dataset: combined
+  root_dir: data/processed
+  splits_dir: data/splits
+  image_size: [518, 518]          # DINOv2 native resolution (14×37 = 518)
+  num_classes: 3                   # Healthy, Non-DFU, DFU
+  batch_size: 16                   # Smaller batch for ViT memory usage
+  num_workers: 16
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 4
+
+model:
+  architecture: dinov2
+  backbone: dinov2_vitb14          # 86M params, best accuracy/speed
+  freeze_backbone: true            # Phase 1: linear probe
+  use_lora: false                  # Phase 2: enable LoRA
+  lora_rank: 8
+  lora_alpha: 16
+  decoder_dim: 256                 # UPerNet decoder channel dim
+
+# Classifier-specific settings
+classifier:
+  dropout: 0.3
+  num_classes: 3
+
+# Segmenter-specific settings
+segmenter:
+  num_classes: 1                   # Binary wound mask
+  decoder_dim: 256
+  feature_layers: [2, 5, 8, 11]   # Multi-scale feature extraction
+
+training:
+  # Phase 1: Linear Probe (frozen backbone)
+  phase1:
+    epochs: 20
+    lr: 1.0e-3                     # Higher LR for head-only training
+    weight_decay: 1.0e-2
+
+  # Phase 2: LoRA Fine-tuning
+  phase2:
+    epochs: 50
+    lr: 5.0e-5                     # Lower LR for adapter tuning
+    weight_decay: 1.0e-2
+    lora_rank: 8
+    lora_alpha: 16
+
+  # Phase 3: Partial Unfreeze (last 2 blocks)
+  phase3:
+    epochs: 20
+    lr: 1.0e-5                     # Very low LR for backbone fine-tuning
+    weight_decay: 1.0e-2
+
+  # Common settings
+  precision: bf16-mixed
+  compile: false                   # ViT + hooks can conflict with compile
+  optimizer:
+    name: adamw
+    betas: [0.9, 0.999]
+  scheduler:
+    name: cosine_annealing
+    warmup_epochs: 5
+  loss:
+    segmentation: dice_ce
+    classification: focal
+    focal_gamma: 2.0
+  gradient_clip: 1.0
+
+evaluation:
+  metrics: [dice, iou, hd95, nsd, assd, accuracy, f1, auroc]
+  nsd_tolerance_mm: [2, 5]
+
+logging:
+  wandb:
+    project: DiaFootAI-v2
+    entity: null
+    log_model: true
+    log_frequency: 50
+  checkpoint:
+    save_top_k: 3
+    monitor_classify: val/accuracy
+    monitor_segment: val/loss
+    mode_classify: max
+    mode_segment: min
+    save_dir: checkpoints/
+
+hardware:
+  tf32: true
+  cudnn_benchmark: true
+  deterministic: false

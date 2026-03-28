@@ -10,20 +10,22 @@ import albumentations as A  # noqa: N812
 from albumentations.pytorch import ToTensorV2
 
 
-def get_train_transforms(image_size: int = 512) -> A.Compose:
+def get_train_transforms(image_size: int = 518) -> A.Compose:
     """Get training augmentation pipeline.
 
     Mask-aware transforms that apply identically to image and mask.
     Includes geometric, color, and wound-specific distortions.
 
     Args:
-        image_size: Target image size.
+        image_size: Target image size (518 for DINOv2, 512 for legacy).
 
     Returns:
         Albumentations Compose pipeline.
     """
     return A.Compose(
         [
+            # Resize to target size (518 for DINOv2 patch alignment)
+            A.Resize(image_size, image_size),
             # Geometric
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
@@ -60,17 +62,18 @@ def get_train_transforms(image_size: int = 512) -> A.Compose:
     )
 
 
-def get_val_transforms(image_size: int = 512) -> A.Compose:
+def get_val_transforms(image_size: int = 518) -> A.Compose:
     """Get validation/test transforms (no augmentation, just normalize).
 
     Args:
-        image_size: Target image size.
+        image_size: Target image size (518 for DINOv2, 512 for legacy).
 
     Returns:
         Albumentations Compose pipeline.
     """
     return A.Compose(
         [
+            A.Resize(image_size, image_size),
             A.Normalize(
                 mean=(0.485, 0.456, 0.406),
                 std=(0.229, 0.224, 0.225),

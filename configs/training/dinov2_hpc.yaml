@@ -1,0 +1,28 @@
+# DiaFoot.AI v2 — DINOv2 HPC-Specific Settings (H100/H200/A100)
+# Merge with DINOv2 baseline: --config configs/training/dinov2_baseline.yaml
+
+hardware:
+  precision: bf16-mixed           # Native BFloat16 on H100/H200
+  compile: false                  # Disable — ViT hooks incompatible with torch.compile
+  tf32: true                      # Free 3x speedup on matmuls
+  cudnn_benchmark: true
+  deterministic: false
+
+dataloader:
+  num_workers: 16                 # Saturate CPU-GPU pipeline
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 4
+
+optimization:
+  # DINOv2 ViT-B/14 — fits in 80GB with batch_size=16 at 518×518
+  batch_size_single_gpu: 16       # ViT-B: 16 images @ 518×518 in bf16
+  batch_size_ddp_per_gpu: 16
+  gradient_accumulation: 2        # Effective batch = 32
+
+  # ViT-L: reduce to 8 if OOM
+  # batch_size_vitl_single_gpu: 8
+
+distributed:
+  backend: nccl
+  find_unused_parameters: false

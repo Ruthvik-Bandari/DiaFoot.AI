@@ -6,8 +6,8 @@ Usage:
     python scripts/run_external_validation.py \
         --internal-split data/splits/test.csv \
         --external-split data/splits/external.csv \
-        --cls-checkpoint checkpoints/classifier/best_epoch004_1.0000.pt \
-        --seg-checkpoint checkpoints/ablation_dfu_only/best_epoch090_0.1078.pt
+        --cls-checkpoint checkpoints/dinov2_classifier/best.pt \
+        --seg-checkpoint checkpoints/dinov2_segmenter/best.pt
 """
 
 from __future__ import annotations

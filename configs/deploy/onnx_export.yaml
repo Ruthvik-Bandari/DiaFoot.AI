@@ -1,18 +1,17 @@
-# ONNX Export Configuration
+# ONNX Export Configuration (DINOv2)
 export:
-  opset_version: 18
+  opset_version: 17
   dynamic_axes:
     input: {0: batch_size}
     output: {0: batch_size}
-  input_shape: [1, 3, 512, 512]
+  input_shape: [1, 3, 518, 518]   # DINOv2 native resolution
   validation_atol: 1.0e-5
   models:
     - name: classifier
-      source: checkpoints/best_classifier.pt
+      source: checkpoints/dinov2_classifier/best.pt
       output: exports/classifier.onnx
+      model_type: dinov2-classifier
     - name: segmenter
-      source: checkpoints/best_segmenter.pt
+      source: checkpoints/dinov2_segmenter/best.pt
       output: exports/segmenter.onnx
-    - name: stager
-      source: checkpoints/best_stager.pt
-      output: exports/stager.onnx
+      model_type: dinov2

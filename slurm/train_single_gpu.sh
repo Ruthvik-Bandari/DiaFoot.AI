@@ -29,11 +29,16 @@ export TORCH_COMPILE_BACKEND=inductor
 export TORCHINDUCTOR_MODE=reduce-overhead
 mkdir -p logs/slurm
 
+TASK=${1:-segment}
+BACKBONE=${BACKBONE:-dinov2_vitb14}
+
 python scripts/train.py \
-    --config "${1:-configs/training/baseline.yaml}" \
+    --task "$TASK" \
+    --backbone "$BACKBONE" \
+    --config "${2:-configs/training/dinov2_baseline.yaml}" \
     --device cuda \
-    --precision bf16-mixed \
-    --compile true \
-    --seed 42
+    --epochs 50 \
+    --batch-size 16 \
+    --use-lora
 
 echo "Finished: $(date)"

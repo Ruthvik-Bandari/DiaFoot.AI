@@ -13,6 +13,6 @@ source ~/DiaFoot.AI-v2/.venv/bin/activate
 cd ~/DiaFoot.AI-v2
 
 python scripts/run_fairness_audit.py \
-    --cls-checkpoint checkpoints/classifier/best_epoch004_1.0000.pt \
-    --seg-checkpoint checkpoints/segmentation_v2/best_epoch018_0.4109.pt \
+    --cls-checkpoint checkpoints/dinov2_classifier/best.pt \
+    --seg-checkpoint checkpoints/dinov2_segmenter/best.pt \
     --device cuda
