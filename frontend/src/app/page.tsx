@@ -204,7 +204,7 @@ export default function DashboardPage() {
       {/* Key Metrics */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {KEY_STATS.map((stat) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={stat.title}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={stat.title}>
             <Box className="stat-card">
               <StatCard {...stat} />
             </Box>
@@ -215,7 +215,7 @@ export default function DashboardPage() {
       {/* Model Info */}
       <Box className="info-section">
         <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, lg: 6 }}>
             <Card>
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
             </Card>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, lg: 6 }}>
             <Card>
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>

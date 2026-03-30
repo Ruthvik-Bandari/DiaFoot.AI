@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useForm } from "react-hook-form";
@@ -18,12 +18,10 @@ import {
   CloudUploadIcon,
   CropFreeIcon,
   ErrorIcon,
-  Grid,
   LinearProgress,
   ReplayIcon,
   Skeleton,
   StraightenIcon,
-  TimerIcon,
   Typography,
   WarningIcon,
 } from "@/lib/mui";
@@ -31,19 +29,19 @@ import { usePrediction, getIsDemoMode } from "@/lib/api";
 import { uploadFormSchema, type UploadFormData, type PredictionResponse } from "@/lib/api/schemas";
 
 function ClassificationBadge({ classification }: { classification: string }) {
-  const config: Record<string, { color: "success" | "warning" | "error" | "info"; icon: React.ReactNode }> = {
+  const config: Record<string, { color: "success" | "warning" | "error" | "info"; icon: React.ReactElement }> = {
     Healthy: { color: "success", icon: <CheckCircleIcon sx={{ fontSize: 16 }} /> },
     "Non-DFU": { color: "info", icon: <WarningIcon sx={{ fontSize: 16 }} /> },
     DFU: { color: "error", icon: <ErrorIcon sx={{ fontSize: 16 }} /> },
     "Manual Review Required": { color: "warning", icon: <WarningIcon sx={{ fontSize: 16 }} /> },
   };
-  const c = config[classification] ?? { color: "info" as const, icon: null };
+  const c = config[classification];
 
   return (
     <Chip
       label={classification}
-      color={c.color}
-      icon={c.icon ?? undefined}
+      color={c?.color ?? "info"}
+      icon={c?.icon}
       sx={{ fontSize: "1rem", fontWeight: 700, py: 2.5, px: 1 }}
     />
   );
@@ -91,15 +89,266 @@ function ResultsSkeleton() {
   return (
     <Box>
       <Skeleton variant="rounded" height={60} sx={{ mb: 2 }} />
-      <Grid container spacing={2}>
-        {[1, 2, 3].map((i) => (
-          <Grid size={{ xs: 4 }} key={i}>
-            <Skeleton variant="rounded" height={100} />
-          </Grid>
-        ))}
-      </Grid>
-      <Skeleton variant="rounded" height={200} sx={{ mt: 2 }} />
+      <Skeleton variant="rounded" height={160} sx={{ mb: 2 }} />
+      <Skeleton variant="rounded" height={200} />
     </Box>
+  );
+}
+
+function DeferBanner({ result }: { result: PredictionResponse }) {
+  if (!result.defer_to_clinician) return null;
+  if (result.classification_confidence >= 0.80) return null;
+
+  const message =
+    result.defer_reason === "low_confidence" ||
+    result.defer_reason === "low_classification_confidence" ||
+    result.defer_reason === "below_confidence_threshold"
+      ? "The model is not confident enough in its prediction. Please consult a healthcare professional."
+      : result.defer_reason === "low_image_quality"
+        ? `Image quality issues detected: ${result.quality_flags.join(", ")}. Please retake the image.`
+        : result.defer_reason === "segmentation_classifier_disagreement"
+          ? "Classifier and segmenter disagree on this case. Please review manually."
+          : "This case requires clinical review.";
+
+  return (
+    <Alert severity="warning" sx={{ mb: 2 }} className="result-card">
+      <AlertTitle>Manual Review Required</AlertTitle>
+      {message}
+    </Alert>
+  );
+}
+
+function ClassificationCard({ result }: { result: PredictionResponse }) {
+  const hasProbs = Object.keys(result.classification_probs ?? {}).length > 0;
+
+  return (
+    <Card sx={{ mb: 2 }} className="result-card">
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+              Classification Result
+            </Typography>
+            <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <ClassificationBadge classification={result.classification} />
+              {result.defer_to_clinician && result.classification_confidence < 0.80 && result.classification !== "Manual Review Required" && (
+                <ClassificationBadge classification="Manual Review Required" />
+              )}
+            </Box>
+          </Box>
+          <Typography variant="h3" fontWeight={700} color="primary.main">
+            {hasProbs ? `${(result.classification_confidence * 100).toFixed(1)}%` : "N/A"}
+          </Typography>
+        </Box>
+
+        <Box sx={{ mt: 3 }}>
+          {hasProbs ? (
+            Object.entries(result.classification_probs).map(([cls, prob]) => (
+              <ConfidenceBar
+                key={cls}
+                label={cls}
+                value={prob}
+                color={cls === "DFU" ? "#E74C3C" : cls === "Healthy" ? "#27AE60" : "#1C7293"}
+              />
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Classification was skipped due to image-quality checks.
+            </Typography>
+          )}
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WoundMetrics({ result }: { result: PredictionResponse }) {
+  if (!result.has_wound) return null;
+
+  return (
+    <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+      <Box sx={{ flex: 1 }} className="result-card">
+        <MetricCard
+          icon={<CropFreeIcon />}
+          label="Wound Coverage"
+          value={result.wound_coverage_pct.toFixed(2)}
+          unit="%"
+        />
+      </Box>
+      <Box sx={{ flex: 1 }} className="result-card">
+        <MetricCard
+          icon={<StraightenIcon />}
+          label="Wound Area"
+          value={result.wound_area_mm2.toFixed(1)}
+          unit="mm²"
+        />
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * Renders the segmentation mask as a colored overlay on top of the original
+ * image using a canvas. The mask (grayscale: 255=wound, 0=background) is
+ * painted as semi-transparent red so it's clearly visible on any photo.
+ */
+function WoundOverlay({ result, preview }: { result: PredictionResponse; preview: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!result.has_wound || !result.segmentation_mask_base64) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const photo = new Image();
+    const mask = new Image();
+
+    let loaded = 0;
+    const onBothLoaded = () => {
+      loaded++;
+      if (loaded < 2) return;
+
+      canvas.width = photo.naturalWidth;
+      canvas.height = photo.naturalHeight;
+
+      // Draw the original photo
+      ctx.drawImage(photo, 0, 0, canvas.width, canvas.height);
+
+      // Draw mask to an offscreen canvas to read pixel data
+      const offscreen = document.createElement("canvas");
+      offscreen.width = canvas.width;
+      offscreen.height = canvas.height;
+      const offCtx = offscreen.getContext("2d")!;
+      offCtx.drawImage(mask, 0, 0, canvas.width, canvas.height);
+      const maskData = offCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // Create a colored overlay: red (rgba 220, 40, 40) where mask is white
+      const overlay = ctx.createImageData(canvas.width, canvas.height);
+      for (let i = 0; i < maskData.data.length; i += 4) {
+        const isWound = maskData.data[i] > 128;
+        if (isWound) {
+          overlay.data[i] = 220;     // R
+          overlay.data[i + 1] = 40;  // G
+          overlay.data[i + 2] = 40;  // B
+          overlay.data[i + 3] = 140; // A — semi-transparent
+        }
+      }
+
+      ctx.putImageData(overlay, 0, 0);
+
+      // Re-draw the photo underneath by compositing
+      // We need photo first, then overlay, so let's redo:
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(photo, 0, 0, canvas.width, canvas.height);
+      // Now draw overlay on top
+      const overlayCanvas = document.createElement("canvas");
+      overlayCanvas.width = canvas.width;
+      overlayCanvas.height = canvas.height;
+      const overlayCtx = overlayCanvas.getContext("2d")!;
+      overlayCtx.putImageData(overlay, 0, 0);
+      ctx.drawImage(overlayCanvas, 0, 0);
+    };
+
+    photo.onload = onBothLoaded;
+    mask.onload = onBothLoaded;
+    photo.src = preview;
+    mask.src = `data:image/png;base64,${result.segmentation_mask_base64}`;
+  }, [result.has_wound, result.segmentation_mask_base64, preview]);
+
+  if (!result.has_wound || !result.segmentation_mask_base64) return null;
+
+  return (
+    <Card className="result-card" sx={{ mb: 2 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" color="primary.dark" gutterBottom>
+          Wound Segmentation Overlay
+        </Typography>
+        <canvas
+          ref={canvasRef}
+          style={{ width: "100%", height: "auto", borderRadius: 8, display: "block" }}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+          Red overlay highlights the detected wound region.
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WoundMissingNotice({ result, isDemoMode }: { result: PredictionResponse; isDemoMode: boolean }) {
+  if (!result.has_wound || result.segmentation_mask_base64) return null;
+
+  return (
+    <Card className="result-card">
+      <CardContent sx={{ p: 3, textAlign: "center" }}>
+        <Typography variant="body2" color="text.secondary">
+          Wound detected but segmentation mask not available in response.
+          {isDemoMode && " (Demo mode — no real segmentation)"}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DiagnosticsPanel({ diagnostics }: { diagnostics: Record<string, unknown> & { segmentation_ran?: boolean; segmentation_skip_reason?: string; seg_prob_min?: number; seg_prob_max?: number; seg_prob_mean?: number; pixels_above_threshold?: number; total_pixels?: number; seg_threshold_used?: number; confidence_threshold_used?: number; defer_threshold_used?: number } }) {
+  return (
+    <Card className="result-card" sx={{ mt: 2 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          Pipeline Diagnostics
+        </Typography>
+        <Box
+          component="table"
+          sx={{
+            width: "100%",
+            fontSize: "0.8rem",
+            "& td": { py: 0.5, px: 1, verticalAlign: "top" },
+            "& td:first-of-type": { fontWeight: 600, whiteSpace: "nowrap", color: "text.secondary" },
+          }}
+        >
+          <tbody>
+            <tr>
+              <td>Segmentation ran</td>
+              <td>{diagnostics.segmentation_ran ? "Yes" : "No"}</td>
+            </tr>
+            {diagnostics.segmentation_skip_reason && (
+              <tr>
+                <td>Skip reason</td>
+                <td>{String(diagnostics.segmentation_skip_reason)}</td>
+              </tr>
+            )}
+            {diagnostics.seg_prob_max != null && (
+              <>
+                <tr>
+                  <td>Seg prob range</td>
+                  <td>
+                    {Number(diagnostics.seg_prob_min).toFixed(4)} &mdash; {Number(diagnostics.seg_prob_max).toFixed(4)} (mean: {Number(diagnostics.seg_prob_mean).toFixed(4)})
+                  </td>
+                </tr>
+                <tr>
+                  <td>Pixels above threshold</td>
+                  <td>
+                    {String(diagnostics.pixels_above_threshold)} / {String(diagnostics.total_pixels)} (threshold: {Number(diagnostics.seg_threshold_used).toFixed(2)})
+                  </td>
+                </tr>
+              </>
+            )}
+            <tr>
+              <td>Confidence threshold</td>
+              <td>{Number(diagnostics.confidence_threshold_used).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Defer threshold</td>
+              <td>{Number(diagnostics.defer_threshold_used).toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -130,7 +379,6 @@ export default function PredictPage() {
     { scope: containerRef }
   );
 
-  // Animate results when they appear
   useGSAP(
     () => {
       if (result) {
@@ -167,11 +415,7 @@ export default function PredictPage() {
         const url = URL.createObjectURL(files[0]);
         setPreview(url);
         setSelectedFile(files[0]);
-        setValue("image", files[0], {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true,
-        });
+        setValue("image", files[0], { shouldValidate: true, shouldDirty: true, shouldTouch: true });
         clearErrors("image");
       }
     },
@@ -186,11 +430,7 @@ export default function PredictPage() {
         const url = URL.createObjectURL(files[0]);
         setPreview(url);
         setSelectedFile(files[0]);
-        setValue("image", files[0], {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true,
-        });
+        setValue("image", files[0], { shouldValidate: true, shouldDirty: true, shouldTouch: true });
         clearErrors("image");
       }
     },
@@ -225,10 +465,10 @@ export default function PredictPage() {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Box sx={{ display: "flex", gap: 3, flexDirection: { xs: "column", lg: "row" }, maxWidth: 1200 }}>
         {/* Upload Area */}
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Card className="upload-area" sx={{ height: "100%" }}>
+        <Box sx={{ width: { xs: "100%", lg: 340 }, flexShrink: 0 }}>
+          <Card className="upload-area">
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" color="primary.dark" gutterBottom>
                 Upload Image
@@ -265,12 +505,7 @@ export default function PredictPage() {
                       component="img"
                       src={preview}
                       alt="Preview"
-                      sx={{
-                        maxWidth: "100%",
-                        maxHeight: 260,
-                        borderRadius: 2,
-                        objectFit: "contain",
-                      }}
+                      sx={{ maxWidth: "100%", maxHeight: 260, borderRadius: 2, objectFit: "contain" }}
                     />
                   ) : (
                     <>
@@ -325,182 +560,47 @@ export default function PredictPage() {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
         {/* Results */}
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Box ref={resultsRef}>
-            {mutation.isPending && <ResultsSkeleton />}
+        <Box sx={{ flex: 1, minWidth: 0 }} ref={resultsRef}>
+          {mutation.isPending && <ResultsSkeleton />}
 
-            {mutation.isError && (
-              <Alert severity="error">
-                <AlertTitle>Analysis Failed</AlertTitle>
-                {mutation.error instanceof Error
-                  ? mutation.error.message
-                  : "An error occurred during analysis. Please try again."}
-              </Alert>
-            )}
+          {mutation.isError && (
+            <Alert severity="error">
+              <AlertTitle>Analysis Failed</AlertTitle>
+              {mutation.error instanceof Error
+                ? mutation.error.message
+                : "An error occurred during analysis. Please try again."}
+            </Alert>
+          )}
 
-            {result && (
-              <Box>
-                {(() => {
-                  const hasClassificationProbs = Object.keys(result.classification_probs ?? {}).length > 0;
-                  return (
-                    <>
-                {/* Defer Banner */}
-                {result.defer_to_clinician && (
-                  <Alert severity="warning" sx={{ mb: 2 }} className="result-card">
-                    <AlertTitle>Manual Review Required</AlertTitle>
-                    {result.defer_reason === "low_confidence" || result.defer_reason === "low_classification_confidence" || result.defer_reason === "below_confidence_threshold"
-                      ? "The model is not confident enough in its prediction. Please consult a healthcare professional."
-                      : result.defer_reason === "low_image_quality"
-                        ? `Image quality issues detected: ${result.quality_flags.join(", ")}. Please retake the image.`
-                        : result.defer_reason === "segmentation_classifier_disagreement"
-                          ? "Classifier and segmenter disagree on this case. Please review manually."
-                        : "This case requires clinical review."}
-                  </Alert>
-                )}
+          {result && (
+            <Box>
+              <DeferBanner result={result} />
+              <ClassificationCard result={result} />
+              <WoundMetrics result={result} />
+              {preview && <WoundOverlay result={result} preview={preview} />}
+              <WoundMissingNotice result={result} isDemoMode={isDemoMode} />
+              {result.diagnostics && <DiagnosticsPanel diagnostics={result.diagnostics} />}
+            </Box>
+          )}
 
-                {/* Classification */}
-                <Card sx={{ mb: 2 }} className="result-card">
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                          Classification Result
-                        </Typography>
-                        <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
-                          <ClassificationBadge classification={result.classification} />
-                          {result.defer_to_clinician && result.classification !== "Manual Review Required" && (
-                            <ClassificationBadge classification="Manual Review Required" />
-                          )}
-                        </Box>
-                      </Box>
-                      <Typography variant="h3" fontWeight={700} color="primary.main">
-                        {hasClassificationProbs
-                          ? `${(result.classification_confidence * 100).toFixed(1)}%`
-                          : "N/A"}
-                      </Typography>
-                    </Box>
-
-                    {/* Probability bars */}
-                    <Box sx={{ mt: 3 }}>
-                      {hasClassificationProbs ? (
-                        Object.entries(result.classification_probs).map(([cls, prob]) => (
-                          <ConfidenceBar
-                            key={cls}
-                            label={cls}
-                            value={prob}
-                            color={cls === "DFU" ? "#E74C3C" : cls === "Healthy" ? "#27AE60" : "#1C7293"}
-                          />
-                        ))
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Classification was skipped due to image-quality checks.
-                        </Typography>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-
-                {/* Metrics */}
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid size={{ xs: 4 }} className="result-card">
-                    <MetricCard
-                      icon={<TimerIcon />}
-                      label="Inference Time"
-                      value={result.inference_time_ms.toFixed(0)}
-                      unit="ms"
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 4 }} className="result-card">
-                    <MetricCard
-                      icon={<CropFreeIcon />}
-                      label="Wound Coverage"
-                      value={result.wound_coverage_pct.toFixed(2)}
-                      unit="%"
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 4 }} className="result-card">
-                    <MetricCard
-                      icon={<StraightenIcon />}
-                      label="Wound Area"
-                      value={result.wound_area_mm2.toFixed(1)}
-                      unit="mm²"
-                    />
-                  </Grid>
-                </Grid>
-
-                {/* Wound Overlay */}
-                {result.has_wound && result.segmentation_mask_base64 && preview && (
-                  <Card className="result-card">
-                    <CardContent sx={{ p: 3 }}>
-                      <Typography variant="h6" color="primary.dark" gutterBottom>
-                        Wound Segmentation Overlay
-                      </Typography>
-                      <Box sx={{ position: "relative", display: "inline-block", width: "100%" }}>
-                        <Box
-                          component="img"
-                          src={preview}
-                          alt="Original"
-                          sx={{ width: "100%", borderRadius: 2, display: "block" }}
-                        />
-                        <Box
-                          component="img"
-                          src={`data:image/png;base64,${result.segmentation_mask_base64}`}
-                          alt="Segmentation mask"
-                          sx={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            borderRadius: 2,
-                            opacity: 0.4,
-                            mixBlendMode: "multiply",
-                            filter: "hue-rotate(170deg) saturate(3)",
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-                        Teal overlay shows detected wound boundary. Opacity: 40%.
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {result.has_wound && !result.segmentation_mask_base64 && (
-                  <Card className="result-card">
-                    <CardContent sx={{ p: 3, textAlign: "center" }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Wound detected but segmentation mask not available in response.
-                        {isDemoMode && " (Demo mode — no real segmentation)"}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                )}
-                    </>
-                  );
-                })()}
-              </Box>
-            )}
-
-            {!mutation.isPending && !result && !mutation.isError && (
-              <Card sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
-                <CardContent sx={{ textAlign: "center" }}>
-                  <CameraAltIcon sx={{ fontSize: 64, color: "divider", mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    Upload an image to see results
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    The model will classify the image and segment any detected wounds
-                  </Typography>
-                </CardContent>
-              </Card>
-            )}
-          </Box>
-        </Grid>
-      </Grid>
+          {!mutation.isPending && !result && !mutation.isError && (
+            <Card sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+              <CardContent sx={{ textAlign: "center" }}>
+                <CameraAltIcon sx={{ fontSize: 64, color: "divider", mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  Upload an image to see results
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  The model will classify the image and segment any detected wounds
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 }

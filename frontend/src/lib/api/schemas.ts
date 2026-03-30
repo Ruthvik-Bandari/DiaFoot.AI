@@ -12,6 +12,7 @@ export const predictionResponseSchema = z.object({
   wound_coverage_pct: z.number(),
   inference_time_ms: z.number(),
   segmentation_mask_base64: z.string().nullable().optional(),
+  diagnostics: z.record(z.string(), z.any()).nullable().optional(),
 });
 
 export type PredictionResponse = z.infer<typeof predictionResponseSchema>;

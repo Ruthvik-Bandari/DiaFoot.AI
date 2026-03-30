@@ -39,15 +39,15 @@ from src.inference.pipeline import InferencePipeline
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONFIDENCE_THRESHOLD = 0.95
-DEFAULT_DEFER_THRESHOLD = 0.60
+DEFAULT_CONFIDENCE_THRESHOLD = 0.70
+DEFAULT_DEFER_THRESHOLD = 0.50
 DEFAULT_CALIBRATION_PATH = "results/classification_calibration.json"
 DEFAULT_CLASSIFIER_CKPT = "checkpoints/dinov2_classifier/best_epoch009_0.9785.pt"
 DEFAULT_SEGMENTER_CKPT = "checkpoints/dinov2_segmenter/best_epoch009_0.1062.pt"
 DEFAULT_DFU_SEG_FALLBACK_PROB = 0.10
 DEFAULT_DFU_PROMOTION_THRESHOLD = 0.04
 DEFAULT_MIN_IMAGE_SIDE = 256
-DEFAULT_BLUR_VARIANCE_THRESHOLD = 30.0
+DEFAULT_BLUR_VARIANCE_THRESHOLD = 10.0
 DEFAULT_BRIGHTNESS_MIN = 20.0
 DEFAULT_BRIGHTNESS_MAX = 235.0
 DEFAULT_BACKBONE = "dinov2_vitb14"
@@ -280,6 +280,7 @@ class PredictionResponse(BaseModel):
     wound_coverage_pct: float
     inference_time_ms: float
     segmentation_mask_base64: str | None = None
+    diagnostics: dict[str, Any] | None = None
 
 
 class HealthResponse(BaseModel):
@@ -593,4 +594,5 @@ async def predict(file: UploadFile = File()) -> PredictionResponse:  # noqa: B00
         wound_coverage_pct=result.wound_coverage_pct,
         inference_time_ms=elapsed,
         segmentation_mask_base64=mask_b64,
+        diagnostics=result.diagnostics or None,
     )

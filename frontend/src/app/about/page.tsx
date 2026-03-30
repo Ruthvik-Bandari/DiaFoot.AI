@@ -117,7 +117,7 @@ export default function AboutPage() {
 
       <Grid container spacing={3}>
         {/* Project Overview */}
-        <Grid size={{ xs: 12, md: 6 }} className="about-section">
+        <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -141,7 +141,7 @@ export default function AboutPage() {
         </Grid>
 
         {/* Architecture */}
-        <Grid size={{ xs: 12, md: 6 }} className="about-section">
+        <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -176,8 +176,8 @@ export default function AboutPage() {
         </Grid>
 
         {/* Cross-Validation Results */}
-        <Grid size={{ xs: 12, md: 6 }} className="about-section">
-          <Card>
+        <Grid size={{ xs: 12, lg: 6 }} className="about-section">
+          <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                 <ScienceIcon color="primary" />
@@ -219,8 +219,8 @@ export default function AboutPage() {
         </Grid>
 
         {/* Data Ablation */}
-        <Grid size={{ xs: 12, md: 6 }} className="about-section">
-          <Card>
+        <Grid size={{ xs: 12, lg: 6 }} className="about-section">
+          <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                 <StorageIcon color="primary" />
@@ -265,8 +265,8 @@ export default function AboutPage() {
         </Grid>
 
         {/* Tech Stack */}
-        <Grid size={{ xs: 12, md: 6 }} className="about-section">
-          <Card>
+        <Grid size={{ xs: 12, lg: 6 }} className="about-section">
+          <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                 <StorageIcon color="primary" />
@@ -302,8 +302,8 @@ export default function AboutPage() {
         </Grid>
 
         {/* Honest Limitations */}
-        <Grid size={{ xs: 12, md: 6 }} className="about-section">
-          <Card>
+        <Grid size={{ xs: 12, lg: 6 }} className="about-section">
+          <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                 <WarningAmberIcon sx={{ color: "#F39C12" }} />
@@ -340,7 +340,7 @@ export default function AboutPage() {
                 <Typography variant="h6" color="primary.dark">Dataset & Peer Feedback</Typography>
               </Box>
               <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 4 }}>
+                <Grid size={{ xs: 12, lg: 4 }}>
                   <Typography variant="subtitle2" color="primary.main" gutterBottom>Dataset</Typography>
                   <InfoRow label="Total images" value="8,105" />
                   <InfoRow label="DFU" value="2,119 (FUSeg + AZH)" />
@@ -348,7 +348,7 @@ export default function AboutPage() {
                   <InfoRow label="Non-DFU" value="2,686" />
                   <InfoRow label="Splits" value="70 / 15 / 15" />
                 </Grid>
-                <Grid size={{ xs: 12, md: 8 }}>
+                <Grid size={{ xs: 12, lg: 8 }}>
                   <Typography variant="subtitle2" color="primary.main" gutterBottom>
                     Peer Feedback → Implementation
                   </Typography>
