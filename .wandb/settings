@@ -1,4 +1,0 @@
-[default]
-project = DiaFootAI-v2
-entity =
-base_url = https://api.wandb.ai

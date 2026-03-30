@@ -1,7 +1,0 @@
-# Weights & Biases Configuration
-# Usage: wandb login && wandb init -p DiaFootAI-v2
-
-[default]
-project = DiaFootAI-v2
-entity =
-base_url = https://api.wandb.ai

@@ -19,21 +19,30 @@ venv/
 data/raw/
 data/cleaned/
 data/processed/
-data/splits/
+data/processed_external/
+data/processed_external_seg/
 data/synthetic/
-!data/metadata/
+data/clinical/
 
-# Checkpoints & Exports
+# Keep metadata and splits for reproducibility
+!data/metadata/
+!data/splits/
+
+# Checkpoints & model weights
 checkpoints/
 exports/
+/models/
 *.pt
 *.pth
 *.onnx
+*.onnx.data
 *.safetensors
 
 # Logs
 logs/
 wandb/
+.wandb/
+.wandb_config
 mlruns/
 
 # Jupyter
@@ -54,33 +63,34 @@ Thumbs.db
 # Coverage
 htmlcov/
 .coverage
+
+# Large legacy data
 DFU/
 archive.zip
 *.zip
 wound image dataset/
 
-# Models & exports (top-level only, not src/models/)
-/models/
-*.onnx
+# Binary reports (keep .md only)
+Midterm_Report_DiaFootAI_v2.docx
+Midterm_Report_DiaFootAI_v2.pdf
+Midterm_Report_DiaFootAI_v2.rtf
 
-# Large data
-data/processed_external/
-data/clinical/
-DFU/
-
-# Screenshots & misc
+# Generated images & screenshots
 *.png
 Screenshot*
-requirements.local.txt
-render.yaml
 
-# Predictions log
+# Results: keep JSON metrics, ignore generated images & large logs
+results/figures/
+results/failure_atlas/images/
 results/predictions.jsonl
-!data/splits/
-!results/
 
-# Frontend (Next.js)
+# Frontend
 frontend/node_modules/
 frontend/.next/
 frontend/.env.local
 frontend/.turbo/
+frontend/package-lock.json
+
+# Misc
+requirements.local.txt
+render.yaml
