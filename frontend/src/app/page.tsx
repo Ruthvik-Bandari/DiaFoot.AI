@@ -78,7 +78,7 @@ const KEY_STATS: StatCardProps[] = [
   },
   {
     title: "DFU Segmentation Dice",
-    value: "82.73%",
+    value: "89.12%",
     subtitle: "DINOv2 + UPerNet (10 epochs, frozen)",
     icon: <SpeedIcon />,
     color: "#00A896",
@@ -92,8 +92,8 @@ const KEY_STATS: StatCardProps[] = [
   },
   {
     title: "Dataset Size",
-    value: "8,105",
-    subtitle: "DFU + Healthy + Non-DFU",
+    value: "6,996",
+    subtitle: "DFU + Healthy + Non-DFU (in splits)",
     icon: <DatasetIcon />,
     color: "#1C7293",
   },
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <Typography variant="body2" color="text.secondary">Data Ablation</Typography>
-                    <Typography variant="body2" fontWeight={600}>DFU-only wins (87.4% vs 68.7%)</Typography>
+                    <Typography variant="body2" fontWeight={600}>DFU-only wins (85.13% vs 79.03%)</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <Typography variant="body2" color="text.secondary">Calibration</Typography>

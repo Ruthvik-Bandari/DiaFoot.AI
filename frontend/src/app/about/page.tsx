@@ -44,24 +44,27 @@ function InfoRow({ label, value }: InfoRowProps) {
 }
 
 const ABLATION_DATA = [
-  { variant: "DFU-only (2,119 imgs)", dice: "87.44%", loss: "0.1078", note: "Best" },
-  { variant: "DFU-only (1,010 imgs)", dice: "85.27%", loss: "0.1057", note: "Baseline" },
-  { variant: "All classes", dice: "84.14%", loss: "0.6723", note: "Heavy overfitting" },
-  { variant: "DFU + non-DFU", dice: "68.71%", loss: "0.4187", note: "Worst" },
+  { variant: "U-Net++ (DFU-only)", dice: "85.13%", iou: "77.51%", note: "Best" },
+  { variant: "U-Net++ (All classes)", dice: "82.35%", iou: "73.67%", note: "" },
+  { variant: "FUSegNet (DFU+nonDFU)", dice: "81.75%", iou: "73.00%", note: "" },
+  { variant: "U-Net++ v2 (DFU+nonDFU)", dice: "80.39%", iou: "70.72%", note: "" },
+  { variant: "U-Net++ (DFU+nonDFU)", dice: "79.03%", iou: "69.03%", note: "Worst" },
 ];
 
 const CV_DATA = [
-  { fold: "0", dice: "84.69%", iou: "78.03%" },
-  { fold: "1", dice: "86.10%", iou: "79.87%" },
-  { fold: "2", dice: "85.98%", iou: "79.00%" },
-  { fold: "3", dice: "84.74%", iou: "78.07%" },
-  { fold: "4", dice: "85.66%", iou: "78.54%" },
+  { fold: "0", dice: "84.68%", iou: "77.70%" },
+  { fold: "1", dice: "85.94%", iou: "79.30%" },
+  { fold: "2", dice: "86.63%", iou: "79.71%" },
+  { fold: "3", dice: "84.83%", iou: "78.01%" },
+  { fold: "4", dice: "84.56%", iou: "77.69%" },
 ];
 
 const LIMITATIONS = [
-  "Results are reported on this project’s internal train/validation/test and cross-validation splits.",
-  "The software is intended for research and education, not for clinical diagnosis or treatment use.",
-  "Generalization to unseen acquisition settings or underrepresented populations is not yet fully established.",
+  "Classifier learns dataset shortcuts: EfficientNet achieves 100% internal but only 21% external accuracy (0% DFU sensitivity). DINOv2 (98.36%) is less extreme but the same risk applies.",
+  "Data leakage detected: 20,774 near-duplicate healthy foot pairs across train-val splits. Content overlap: 87 train-val, 9 train-test pairs.",
+  "Limited skin tone diversity: 929/1,057 test images labeled Unknown ITA. Fairness validated on single group only (Brown, n=285).",
+  "Wound area agreement evaluated on only 3 images. Statistically insufficient for clinical claims.",
+  "The software is intended for research and education, not for clinical diagnosis or treatment.",
 ];
 
 const TECH_STACK = [
@@ -153,8 +156,8 @@ export default function AboutPage() {
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {[
-                  { stage: "Stage 1", title: "Triage Classifier", desc: "EfficientNet-V2-M → Healthy | Non-DFU | DFU", color: "#1C7293" },
-                  { stage: "Stage 2", title: "Wound Segmenter", desc: "U-Net++ + EfficientNet-B4 + scSE attention", color: "#065A82" },
+                  { stage: "Stage 1", title: "Triage Classifier", desc: "DINOv2 ViT-B/14 (frozen) + linear head → Healthy | Non-DFU | DFU", color: "#1C7293" },
+                  { stage: "Stage 2", title: "Wound Segmenter", desc: "DINOv2 ViT-B/14 (frozen) + UPerNet decoder → pixel-wise wound mask", color: "#065A82" },
                 ].map((s) => (
                   <Box
                     key={s.stage}
@@ -185,7 +188,7 @@ export default function AboutPage() {
               </Box>
               <Box sx={{ textAlign: "center", mb: 2, p: 2, borderRadius: 2, backgroundColor: "rgba(6,90,130,0.04)" }}>
                 <Typography variant="h4" fontWeight={700} color="primary.main">
-                  85.43 ± 0.61%
+                  85.33 ± 0.91%
                 </Typography>
                 <Typography variant="caption" color="text.secondary">Dice Score (mean ± std)</Typography>
               </Box>
@@ -208,8 +211,8 @@ export default function AboutPage() {
                     ))}
                     <TableRow sx={{ backgroundColor: "rgba(6,90,130,0.04)" }}>
                       <TableCell sx={{ fontWeight: 700 }}>Mean ± Std</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>85.43 ± 0.61%</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>78.70 ± 0.68%</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>85.33 ± 0.91%</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>78.48 ± 0.95%</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -227,14 +230,15 @@ export default function AboutPage() {
                 <Typography variant="h6" color="primary.dark">Data Composition Ablation</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Core finding: DFU-only training outperforms mixed training by 17 percentage points.
+                Core finding: DFU-only training outperforms all mixed-data variants.
               </Typography>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Training Data</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Model / Data</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700 }}>Dice</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>IoU</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Note</TableCell>
                     </TableRow>
                   </TableHead>
@@ -248,12 +252,15 @@ export default function AboutPage() {
                         <TableCell align="right" sx={{ fontWeight: row.note === "Best" ? 700 : 400 }}>
                           {row.dice}
                         </TableCell>
+                        <TableCell align="right">{row.iou}</TableCell>
                         <TableCell>
-                          <Chip
-                            label={row.note}
-                            size="small"
-                            color={row.note === "Best" ? "success" : row.note === "Worst" ? "error" : "default"}
-                          />
+                          {row.note && (
+                            <Chip
+                              label={row.note}
+                              size="small"
+                              color={row.note === "Best" ? "success" : row.note === "Worst" ? "error" : "default"}
+                            />
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -342,11 +349,12 @@ export default function AboutPage() {
               <Grid container spacing={3}>
                 <Grid size={{ xs: 12, lg: 4 }}>
                   <Typography variant="subtitle2" color="primary.main" gutterBottom>Dataset</Typography>
-                  <InfoRow label="Total images" value="8,105" />
-                  <InfoRow label="DFU" value="2,119 (FUSeg + AZH)" />
+                  <InfoRow label="Processed" value="8,105 images" />
+                  <InfoRow label="In splits" value="6,996 images" />
+                  <InfoRow label="DFU" value="1,010 (FUSeg + AZH)" />
                   <InfoRow label="Healthy" value="3,300" />
                   <InfoRow label="Non-DFU" value="2,686" />
-                  <InfoRow label="Splits" value="70 / 15 / 15" />
+                  <InfoRow label="Splits" value="4,894 / 1,045 / 1,057" />
                 </Grid>
                 <Grid size={{ xs: 12, lg: 8 }}>
                   <Typography variant="subtitle2" color="primary.main" gutterBottom>
@@ -357,7 +365,7 @@ export default function AboutPage() {
                     { from: "Shivam Dubey", feedback: "Add attention mechanisms → scSE in decoder" },
                     { from: "Yash Jain", feedback: "Benchmark stronger segmentation baselines → integrated MedSAM2 and nnU-Net with matched-split evaluation" },
                     { from: "Yucheng Yan", feedback: "Prioritize ablation → Data composition as core experiment" },
-                    { from: "Om Patel", feedback: "Implement TTA → 16-augmentation TTA (+3.88% Dice)" },
+                    { from: "Om Patel", feedback: "Implement TTA → 16-augmentation TTA (+3.88% Dice overall)" },
                     { from: "Ching-Yi Mao", feedback: "Address algorithmic bias → ITA audit + honest disclosure" },
                   ].map((fb) => (
                     <Box key={fb.from} sx={{ display: "flex", gap: 1, mb: 0.8 }}>
