@@ -59,12 +59,12 @@ DINOv2 is Meta's self-supervised Vision Transformer trained on 142M curated imag
 
 - **Domain-agnostic features** -- DINOv2 learns semantic structure (shape, texture, boundaries) rather than camera/dataset-specific shortcuts
 - **Parameter efficient** -- Only 0.2% of parameters are trainable (classifier head), yet achieves 98.36% accuracy
-- **Strong transfer** -- Achieves 82.73% Dice on wound segmentation with just 10 epochs on a frozen backbone
+- **Strong transfer** -- Achieves 89.12% Dice on wound segmentation with just 10 epochs on a frozen backbone
 - **Better calibration** -- ECE of 0.0075 after temperature scaling enables reliable clinical deferral
 
 ### Why Cascaded?
 
-The data composition ablation proved that the segmenter performs best when trained exclusively on DFU images (87.44% Dice with U-Net++). Adding non-DFU wounds actually hurt performance (68.71% Dice). The classifier handles triage; the segmenter focuses on DFU morphology.
+The data composition ablation proved that the segmenter performs best when trained exclusively on DFU images (85.13% Dice with U-Net++). Adding non-DFU wounds hurt performance (79.03% Dice). The classifier handles triage; the segmenter focuses on DFU morphology.
 
 ---
 
@@ -93,25 +93,47 @@ Per-class breakdown:
 
 | Metric | DINOv2 (10 epochs, frozen) | Previous U-Net++ (90 epochs) |
 |--------|---------------------------|------------------------------|
-| **Dice Score** | **82.73%** | 85.89% |
-| **IoU (Jaccard)** | **74.18%** | 79.35% |
-| **HD95** | **19.24 px** | 17.3 px |
-| **NSD@2mm** | **75.66%** | 85.86% |
-| **NSD@5mm** | **92.84%** | 94.74% |
-| **Wound Area** | 1,332 mm2 predicted vs 1,299 mm2 GT | +/- 1.1% |
+| **Dice Score** | **89.12%** | 85.13% |
+| **IoU (Jaccard)** | **82.87%** | 77.51% |
+| **HD95** | **11.32 px** | -- |
+| **NSD@2mm** | **88.80%** | -- |
+| **NSD@5mm** | **97.23%** | 95.23% |
+| **Wound Area** | 1,274 mm2 predicted vs 1,270 mm2 GT | -- |
+
+Dice 95% CI: [87.07%, 90.96%]; IoU 95% CI: [80.77%, 84.87%]
+
+### External Segmentation Validation (n=552)
+
+The segmenter generalizes well to unseen external data:
+
+| Metric | Internal (n=263) | External (n=552) | Drop |
+|--------|-----------------|-------------------|------|
+| Dice | 89.12% | **89.29%** | -0.17% (improved) |
+| IoU | 82.87% | **82.94%** | -0.06% (improved) |
+| HD95 | 11.32 px | **9.51 px** | +1.80 (improved) |
+
+### 5-Fold Cross-Validation (U-Net++ Segmentation)
+
+| Fold | Dice | IoU | n_val |
+|------|------|-----|-------|
+| 0 | 84.68% | 77.70% | 371 |
+| 1 | 85.94% | 79.30% | 371 |
+| 2 | 86.63% | 79.71% | 371 |
+| 3 | 84.83% | 78.01% | 371 |
+| 4 | 84.56% | 77.69% | 372 |
+| **Mean +/- Std** | **85.33 +/- 0.91%** | **78.48 +/- 0.95%** | -- |
 
 ### Data Composition Ablation
 
 The single most important experiment -- proving that data composition matters more than architecture:
 
-| Training Data | Best Dice | Val Loss |
-|---------------|-----------|----------|
-| **DFU-only (1,881 images)** | **87.44%** | 0.1078 |
-| DFU-only (1,010 images) | 85.27% | 0.1057 |
-| DFU + non-DFU | 68.71% | 0.4187 |
-| All classes | 84.14%* | 0.6723 |
-
-*Inflated by healthy images scoring perfectly on empty masks.*
+| Training Data | Dice | IoU | NSD@5mm |
+|---------------|------|-----|---------|
+| **U-Net++ (DFU-only)** | **85.13%** | **77.51%** | **95.23%** |
+| U-Net++ (All classes) | 82.35% | 73.67% | 93.34% |
+| FUSegNet (DFU+nonDFU) | 81.75% | 73.00% | 92.28% |
+| U-Net++ v2 (DFU+nonDFU, fixed) | 80.39% | 70.72% | 90.80% |
+| U-Net++ (DFU+nonDFU) | 79.03% | 69.03% | 91.18% |
 
 ### Training Efficiency
 
@@ -122,26 +144,61 @@ The single most important experiment -- proving that data composition matters mo
 | Classifier training time | 6 min (10 epochs) | 30+ min (50 epochs) |
 | Segmenter training time | 2 min (10 epochs) | 90+ min (90 epochs) |
 
-### Fairness Analysis (ITA-Stratified)
+### Training Setup
 
-| ITA Group | Count | Dice | IoU | HD95 |
-|-----------|-------|------|-----|------|
-| Brown | 263 | 82.73% | 74.18% | 19.24 |
-| **Fairness gap** | -- | **0.00%** | -- | -- |
+| Parameter | Classifier | Segmenter |
+|-----------|-----------|-----------|
+| Optimizer | AdamW | AdamW |
+| LR (Phase 1 / Phase 2) | 1e-3 / 5e-5 | 1e-3 / 5e-5 |
+| Batch size | 16 | 16 |
+| Epochs (Phase 1 / Phase 2) | 10 / 30 | 10 / 30 |
+| Loss | FocalLoss (gamma=2.0) | DiceCELoss |
+| Scheduler | Cosine + 5 warmup epochs | Cosine + 5 warmup epochs |
+| Precision | bf16-mixed | bf16-mixed |
+| GPU | NVIDIA A100 (1 GPU) | NVIDIA A100 (1 GPU) |
 
-**Limitation:** The dataset is predominantly composed of a single ITA skin tone group. The model has not been validated across the full Fitzpatrick I-VI spectrum.
+### ONNX Export & Deployment
+
+| Metric | Value |
+|--------|-------|
+| Parity (max abs diff) | 0.00569 |
+| Mask agreement (min) | 99.9996% |
+| PyTorch latency | 1,055.8 ms |
+| ONNX latency | 235.0 ms |
+| **Speedup** | **4.5x** |
+| File size | 1.8 MB (architecture) + 78 MB (weights) |
+
+### Shortcut Audit
+
+| Perturbation | Baseline Acc | Perturbed Acc | Drop |
+|-------------|-------------|--------------|------|
+| noise_border | 100% | 96.55% | 3.45% |
+| center_only | 100% | 100% | 0.0% |
+| blur_background | 100% | 99.69% | 0.31% |
+
+The classifier relies on center content and is robust to background blur.
+
+### Fairness Analysis (ITA-Stratified, DFU-Only)
+
+| ITA Group | Count | Dice | IoU | HD95 | NSD@2mm |
+|-----------|-------|------|-----|------|---------|
+| Brown | 285 | 85.89% | 79.35% | 17.3 | 85.86% |
+| **Fairness gap** | -- | **0.00%** | -- | -- | -- |
+| **Bias concern** | -- | **false** | -- | -- | -- |
+
+**Limitation:** The dataset is predominantly composed of a single ITA skin tone group (929/1,057 test images labeled "Unknown" ITA). The model has not been validated across the full Fitzpatrick I-VI spectrum.
 
 ---
 
 ## Dataset
 
-### Composition (8,105 total samples)
+### Composition (8,105 processed images, 6,996 in final splits)
 
-| Category | Images | Purpose |
-|----------|--------|---------|
-| **DFU** | 2,119 | Wound segmentation training (FUSeg + AZH) |
-| **Healthy Feet** | 3,300 | True negatives for classifier |
-| **Non-DFU Conditions** | 2,686 | Hard negatives (general wounds, not DFU) |
+| Category | Processed | In Splits | Purpose |
+|----------|-----------|-----------|---------|
+| **DFU** | 2,119 | 1,010 | Wound segmentation training (FUSeg + AZH) |
+| **Healthy Feet** | 3,300 | 3,300 | True negatives for classifier |
+| **Non-DFU Conditions** | 2,686 | 2,686 | Hard negatives (general wounds, not DFU) |
 
 ### Sources
 
@@ -153,13 +210,21 @@ The single most important experiment -- proving that data composition matters mo
 | Mendeley Wound Dataset (Normal) | 2,757 | Healthy foot images |
 | Mendeley Wound Dataset (Wounds) | 2,686 | Non-DFU wound images with masks |
 
+### Train/Val/Test Splits
+
+| Split | Total | DFU | Healthy | Non-DFU |
+|-------|-------|-----|---------|---------|
+| Train | 4,894 (70%) | 704 | 2,310 | 1,880 |
+| Val | 1,045 (15%) | 148 | 495 | 402 |
+| Test | 1,057 (15%) | 158 | 495 | 404 |
+
 ### Data Pipeline
 
 1. **Integrity check** -- verify every image opens and is not corrupt
 2. **Mask validation** -- binary format check, dimension alignment, coverage statistics
 3. **Deduplication** -- perceptual hash (dHash) to remove cross-dataset duplicates
 4. **Preprocessing** -- resize to 512x512 (aspect-preserving pad), CLAHE contrast enhancement, mask binarization
-5. **Stratified splits** -- 70/15/15 train/val/test, stratified by class and ITA skin tone group, zero data leakage verified
+5. **Stratified splits** -- 70/15/15 train/val/test, stratified by class and ITA skin tone group
 
 ---
 
@@ -285,15 +350,19 @@ DiaFoot.AI/
 
 ## Honest Limitations
 
-1. **Classifier may still learn dataset shortcuts.** While DINOv2 achieves 98.36% test accuracy (vs EfficientNet's 100%), the three data categories come from visually distinct sources. External validation is needed to confirm generalization. A production system requires same-source data across all classes.
+1. **Classifier learns dataset shortcuts -- confirmed by external validation.** The EfficientNet classifier achieves 100% internal accuracy but only 21% on external data, with 0% DFU sensitivity. The DINOv2 classifier (98.36%) is less extreme but the three data categories come from visually distinct sources (different cameras, backgrounds). A production system requires same-source data across all classes.
 
-2. **Segmentation slightly below fully fine-tuned baseline.** DINOv2 frozen backbone achieves 82.73% Dice vs U-Net++'s 85.89%, but with 10x fewer training epochs and 0.2% trainable parameters. Further LoRA fine-tuning or full backbone unfreezing could close this gap.
+2. **Data leakage detected in healthy feet.** The leakage audit found 20,774 near-duplicate pairs (perceptual hash distance=0) across train-val splits, primarily in Kaggle healthy foot patches. Content overlap: 87 train-val, 9 train-test pairs. This inflates healthy class metrics.
 
-3. **Wagner staging was not trained.** The architecture supports it, but clinical grade labels were unavailable. This requires clinical partnerships.
+3. **Limited skin tone diversity.** 929 of 1,057 test images are labeled "Unknown" ITA. The fairness audit covers only a single ITA group (Brown, n=285 DFU). Conclusions cannot be generalized to the full Fitzpatrick I-VI spectrum.
 
-4. **Limited skin tone diversity.** The dataset is predominantly a single ITA group. Fairness conclusions cannot be generalized to the full Fitzpatrick I-VI spectrum.
+4. **Wound area agreement evaluated on only 3 images** (MAE: 7.23 mm2, Pearson r: 0.9997). This is statistically insufficient for clinical claims despite high correlation.
 
-5. **Not validated on standardized benchmarks.** Results are on our own data splits. Comparison against the DFUC 2022 challenge leaderboard would require access to their test set.
+5. **Wagner staging was not trained.** The architecture supports it, but clinical-grade labels were unavailable. This requires clinical partnerships.
+
+6. **Not validated on standardized benchmarks.** Results are on our own data splits. Comparison against the DFUC 2022 challenge leaderboard would require access to their test set.
+
+7. **Patient overlap across splits.** The data pipeline report shows 22 train-val, 15 train-test, and 4 val-test patient overlaps.
 
 ---
 
