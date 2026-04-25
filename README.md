@@ -1,5 +1,8 @@
 # DiaFoot.AI v2 — Diabetic Foot Ulcer Detection & Segmentation
 
+[![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model-blue)](https://huggingface.co/RuthvikBandari/DiaFoot.AI-v2)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > **IMPORTANT DISCLAIMER:** This is an academic research project developed for educational purposes as part of the AAI6620 Computer Vision course at Northeastern University. **This software is NOT a medical device, is NOT FDA-cleared, and is NOT intended for clinical use, diagnosis, treatment, or any medical decision-making.** It does not replace professional medical judgment. Always consult a qualified healthcare provider for any medical concerns. The authors assume no liability for any use of this software in clinical or diagnostic settings.
 
 ---
@@ -65,6 +68,40 @@ DINOv2 is Meta's self-supervised Vision Transformer trained on 142M curated imag
 ### Why Cascaded?
 
 The data composition ablation proved that the segmenter performs best when trained exclusively on DFU images (85.13% Dice with U-Net++). Adding non-DFU wounds hurt performance (79.03% Dice). The classifier handles triage; the segmenter focuses on DFU morphology.
+
+---
+
+## Pretrained Models
+
+All trained model weights, configs, and evaluation results are hosted on **Hugging Face**:
+
+🤗 **[RuthvikBandari/DiaFoot.AI-v2](https://huggingface.co/RuthvikBandari/DiaFoot.AI-v2)**
+
+| Asset | Description | Size |
+|-------|-------------|------|
+| `checkpoints/` | DINOv2 classifier & segmenter weights (.pt) | ~331 MB |
+| `configs/` | Training & data configuration YAML files | — |
+| `results/` | Evaluation metrics, failure atlas, reports | — |
+
+### Download Weights
+
+You can download the pretrained checkpoints directly:
+
+```bash
+# Option 1: Clone the entire HF repo (includes checkpoints, configs, results)
+git lfs install
+git clone https://huggingface.co/RuthvikBandari/DiaFoot.AI-v2
+
+# Option 2: Download individual files via huggingface_hub
+pip install huggingface_hub
+python -c "
+from huggingface_hub import hf_hub_download
+# Classifier checkpoint
+hf_hub_download('RuthvikBandari/DiaFoot.AI-v2', 'checkpoints/dinov2_classifier/best_epoch009_0.9785.pt', local_dir='.')
+# Segmenter checkpoint
+hf_hub_download('RuthvikBandari/DiaFoot.AI-v2', 'checkpoints/dinov2_segmenter/best_epoch009_0.1062.pt', local_dir='.')
+"
+```
 
 ---
 
@@ -254,6 +291,19 @@ git clone https://github.com/Ruthvik-Bandari/DiaFoot.AI.git
 cd DiaFoot.AI
 pip install -r requirements.txt
 ```
+
+### Download Pretrained Weights from Hugging Face
+
+```bash
+# Install Git LFS (required for large files)
+git lfs install
+
+# Clone pretrained weights into the project
+git clone https://huggingface.co/RuthvikBandari/DiaFoot.AI-v2 hf_models
+cp -r hf_models/checkpoints/ checkpoints/
+```
+
+Or use the `huggingface_hub` Python package (see [Pretrained Models](#pretrained-models) above).
 
 ### Inference (Single Image)
 
