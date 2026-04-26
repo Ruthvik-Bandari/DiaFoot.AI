@@ -111,7 +111,7 @@ export default function AboutPage() {
       >
         <AlertTitle sx={{ fontWeight: 700 }}>Regulatory & Ethical Notice</AlertTitle>
         <Typography variant="body2">
-          This is an academic project developed for educational purposes only (AAI6620, Northeastern University).
+          This is an academic project developed for educational purposes only (AAI6630, Northeastern University).
           This software is <strong>NOT</strong> a medical device, is <strong>NOT</strong> FDA-cleared, and is{" "}
           <strong>NOT</strong> intended for clinical use, diagnosis, treatment, or any medical decision-making.
           Any use for clinical purposes is strictly prohibited.
@@ -135,9 +135,9 @@ export default function AboutPage() {
               </Typography>
               <Divider sx={{ my: 2 }} />
               <InfoRow label="Author" value="Ruthvik Bandari" />
-              <InfoRow label="Course" value="AAI6620 Computer Vision" />
+              <InfoRow label="Course" value="AAI6630 Computer Vision" />
               <InfoRow label="University" value="Northeastern University" />
-              <InfoRow label="Date" value="March 2026" />
+              <InfoRow label="Date" value="April 2026" />
               <InfoRow label="Version" value="2.0.0" />
             </CardContent>
           </Card>
