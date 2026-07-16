@@ -131,6 +131,71 @@ class TestValidateONNX:
         assert ok is True
 
 
+class TestOpsetMismatchWarning:
+    """Verify export_to_onnx warns loudly when the produced opset differs
+    from the requested opset_version (Finding 2: opset mismatch is silent).
+    """
+
+    @staticmethod
+    def _fake_export_with_opset(actual_opset: int):
+        """Build a fake torch.onnx.export that writes a real ONNX file
+        declaring `actual_opset` as its ai.onnx opset, regardless of the
+        requested opset_version.
+        """
+        import onnx
+
+        def _fake_export(*args: object, **kwargs: object) -> None:
+            output_path = Path(args[2])
+            model_proto = onnx.helper.make_model(
+                onnx.helper.make_graph([], "g", [], []),
+                opset_imports=[onnx.helper.make_opsetid("", actual_opset)],
+            )
+            onnx.save(model_proto, str(output_path))
+
+        return _fake_export
+
+    def test_warns_when_actual_opset_differs_from_requested(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        caplog,
+    ) -> None:
+        monkeypatch.setattr(
+            onnx_export.torch.onnx, "export", self._fake_export_with_opset(18)
+        )
+
+        model = _IdentityModel()
+        with caplog.at_level("WARNING", logger=onnx_export.logger.name):
+            onnx_export.export_to_onnx(
+                model, tmp_path / "model.onnx", opset_version=17, dynamic_batch=False
+            )
+
+        warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warning_records) == 1
+        message = warning_records[0].message
+        assert "17" in message
+        assert "18" in message
+
+    def test_no_warning_when_actual_opset_matches_requested(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        caplog,
+    ) -> None:
+        monkeypatch.setattr(
+            onnx_export.torch.onnx, "export", self._fake_export_with_opset(17)
+        )
+
+        model = _IdentityModel()
+        with caplog.at_level("WARNING", logger=onnx_export.logger.name):
+            onnx_export.export_to_onnx(
+                model, tmp_path / "model.onnx", opset_version=17, dynamic_batch=False
+            )
+
+        warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert warning_records == []
+
+
 class TestExportRoundTrip:
     """Real (non-mocked) export + onnxruntime round-trip tests.
 

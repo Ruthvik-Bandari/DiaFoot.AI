@@ -14,6 +14,31 @@ import torch.nn as nn
 logger = logging.getLogger(__name__)
 
 
+def _read_onnx_opset(path: str | Path) -> int | None:
+    """Read the ai.onnx (default domain) opset version from an ONNX file.
+
+    Returns None if `onnx` is unavailable or the file cannot be parsed, so
+    callers can treat this as a best-effort check rather than a hard
+    dependency.
+    """
+    try:
+        import onnx
+    except ImportError:
+        logger.debug("onnx not importable, skipping opset check")
+        return None
+
+    try:
+        model_proto = onnx.load(str(path))
+    except Exception:
+        logger.debug("could not read back %s for opset check, skipping", path)
+        return None
+
+    for opset in model_proto.opset_import:
+        if opset.domain in ("", "ai.onnx"):
+            return opset.version
+    return None
+
+
 def export_to_onnx(
     model: nn.Module,
     output_path: str | Path,
@@ -63,6 +88,18 @@ def export_to_onnx(
 
     file_size_mb = output_path.stat().st_size / (1024 * 1024)
     logger.info("Exported ONNX model: %s (%.1f MB)", output_path, file_size_mb)
+
+    actual_opset = _read_onnx_opset(output_path)
+    if actual_opset is not None and actual_opset != opset_version:
+        logger.warning(
+            "Exported ONNX model opset (%d) differs from requested opset_version "
+            "(%d): %s. Downstream runtimes pinned to opset %d may reject this model.",
+            actual_opset,
+            opset_version,
+            output_path,
+            opset_version,
+        )
+
     return output_path
 
 
