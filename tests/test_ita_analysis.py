@@ -1,6 +1,7 @@
 """DiaFoot.AI v2 — ITA Analysis Tests (Phase 1, Commit 6)."""
 
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -60,6 +61,28 @@ class TestComputeIta:
     def test_nonexistent_image(self, tmp_path: Path) -> None:
         result = compute_ita(tmp_path / "nonexistent.jpg")
         assert result is None
+
+    def test_negative_b_star_uses_documented_atan_formula(self, tmp_path: Path) -> None:
+        # A light, bluish patch has b* < 0 — the regime where the documented
+        # formula atan((L*-50)/b*) diverges from atan2(L*-50, b*). The buggy
+        # atan2 form returns a positive, out-of-range angle (~+123 deg ->
+        # "Very Light"); the correct atan form is negative.
+        img = np.full((64, 64, 3), [200, 190, 230], dtype=np.uint8)
+        path = tmp_path / "bluish.png"
+        Image.fromarray(img).save(path)
+
+        l_star, _a_star, b_star = rgb_to_lab(img)
+        l_med = float(np.median(l_star))
+        b_med = float(np.median(b_star))
+        # Precondition for the atan/atan2 divergence: L* > 50 and b* < 0.
+        assert l_med > 50.0
+        assert b_med < 0.0
+        expected = math.atan((l_med - 50.0) / b_med) * (180.0 / math.pi)
+
+        ita = compute_ita(path)
+        assert ita is not None
+        assert ita < 0.0
+        assert ita == pytest.approx(expected, abs=0.05)
 
     def test_mask_exclusion_and_resize(self, tmp_path: Path) -> None:
         img = np.full((64, 64, 3), [190, 150, 120], dtype=np.uint8)

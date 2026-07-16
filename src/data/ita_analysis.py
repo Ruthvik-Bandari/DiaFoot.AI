@@ -137,7 +137,10 @@ def compute_ita(image_path: str | Path, mask_path: str | Path | None = None) -> 
         if abs(b_median) < 1e-6:
             b_median = 1e-6
 
-        ita = math.atan2(l_median - 50.0, b_median) * (180.0 / math.pi)
+        # Documented formula: ITA = arctan((L* - 50) / b*) x (180 / pi).
+        # atan2(L*-50, b*) diverges from this whenever b* < 0, so use atan on
+        # the ratio (b_median is guarded against zero above).
+        ita = math.atan((l_median - 50.0) / b_median) * (180.0 / math.pi)
         return round(ita, 2)
 
     except Exception as e:
