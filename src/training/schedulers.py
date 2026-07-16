@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import math
 
-from torch import Tensor  # noqa: TC002  # noqa: TCH002
-from torch.optim import Optimizer  # noqa: TC002  # noqa: TCH002
+from torch import Tensor  # noqa: TC002
+from torch.optim import Optimizer  # noqa: TC002
 from torch.optim.lr_scheduler import _LRScheduler
 
 
