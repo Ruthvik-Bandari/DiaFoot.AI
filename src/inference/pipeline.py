@@ -245,16 +245,20 @@ class InferencePipeline:
                 result.wound_coverage_pct,
             )
 
-            # If segmentation finds wound but classifier says Non-DFU,
-            # escalate to manual review instead of silently returning no wound.
-            if result.has_wound and pred_class == 1:
+            # If segmentation finds a wound but the classifier did not predict
+            # DFU (i.e. Healthy or Non-DFU), escalate to manual review instead
+            # of silently returning a non-DFU verdict alongside a detected wound.
+            if result.has_wound and pred_class != 2:
                 if dfu_prob >= self.dfu_promotion_threshold:
                     result.classification = "DFU"
                     # Keep confidence consistent with displayed class.
                     result.classification_confidence = dfu_prob
                 result.defer_to_clinician = True
                 result.defer_reason = "segmentation_classifier_disagreement"
-                logger.info("Classifier/segmenter disagreement: Non-DFU + wound detected")
+                logger.info(
+                    "Classifier/segmenter disagreement: %s + wound detected",
+                    CLASS_NAMES.get(pred_class, "Unknown"),
+                )
 
         if pred_class == 1 and not result.has_wound:
             # If no disagreement was found, keep Non-DFU with no wound.

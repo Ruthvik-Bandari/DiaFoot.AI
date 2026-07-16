@@ -75,9 +75,17 @@ class TestInferencePipeline:
                 b = x.shape[0]
                 return torch.tensor([[0.0, 0.0, 0.0]] * b)
 
+        # No-wound segmenter so this isolates the low-confidence defer path;
+        # a wound-finding segmenter would (correctly) trigger the separate
+        # segmentation/classifier disagreement escalation and overwrite the
+        # reason. See test_inference.py for the disagreement path.
+        class NoWoundSegmenter(nn.Module):
+            def forward(self, x: torch.Tensor) -> torch.Tensor:
+                return torch.ones(x.shape[0], 1, x.shape[2], x.shape[3]) * -10.0
+
         pipe = InferencePipeline(
             classifier=UncertainClassifier(),
-            segmenter=DummySegmenter(),
+            segmenter=NoWoundSegmenter(),
             device="cpu",
             defer_threshold=0.9,
         )
