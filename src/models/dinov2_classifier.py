@@ -102,7 +102,8 @@ class DINOv2Classifier(nn.Module):
         lora_count = 0
 
         for name, module in self.encoder.named_modules():
-            if isinstance(module, nn.Linear) and ("qkv" in name or "q_proj" in name or "v_proj" in name):
+            is_attn_proj = "qkv" in name or "q_proj" in name or "v_proj" in name
+            if isinstance(module, nn.Linear) and is_attn_proj:
                 # For DINOv2, attention uses qkv fused linear — apply LoRA to it
                 in_features = module.in_features
                 out_features = module.out_features

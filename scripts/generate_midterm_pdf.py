@@ -1,5 +1,6 @@
-from pathlib import Path
 import re
+from pathlib import Path
+
 from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas

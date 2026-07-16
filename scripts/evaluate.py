@@ -49,12 +49,14 @@ def _load_classifier(checkpoint_path: str, backbone: str, device: str) -> torch.
 
     model = DINOv2Classifier(backbone=backbone, num_classes=3, freeze_backbone=True, dropout=0.3)
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+    state = ckpt.get("model_state_dict", ckpt)
     model.load_state_dict(state)
     return model.to(device).eval()
 
 
-def _load_segmenter(checkpoint_path: str, model_type: str, backbone: str, device: str) -> torch.nn.Module:
+def _load_segmenter(
+    checkpoint_path: str, model_type: str, backbone: str, device: str
+) -> torch.nn.Module:
     """Load segmentation model from checkpoint."""
     if model_type == "dinov2":
         from src.models.dinov2_segmenter import DINOv2Segmenter
@@ -66,7 +68,7 @@ def _load_segmenter(checkpoint_path: str, model_type: str, backbone: str, device
         model = build_unetpp(encoder_name="efficientnet-b4", encoder_weights=None, classes=1)
 
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+    state = ckpt.get("model_state_dict", ckpt)
     model.load_state_dict(state)
     return model.to(device).eval()
 

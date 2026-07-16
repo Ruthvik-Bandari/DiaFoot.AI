@@ -42,7 +42,7 @@ def _load_model(
 ) -> torch.nn.Module:
     """Load model from checkpoint."""
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-    state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+    state = ckpt.get("model_state_dict", ckpt)
 
     if model_type == "dinov2":
         from src.models.dinov2_segmenter import DINOv2Segmenter

@@ -8,7 +8,7 @@ Architecture:
     DINOv2 ViT backbone (frozen + optional LoRA)
     → Multi-scale patch token features (extracted from layers 3, 6, 9, 12)
     → UPerNet-style FPN decoder with lateral connections
-    → 1×1 conv → Binary wound mask
+    → 1x1 conv → Binary wound mask
 
 DINOv2's self-supervised features capture rich semantic structure (wound
 boundaries, texture, morphology) without learning dataset-specific shortcuts.
@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812  # PyTorch convention
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -41,6 +41,7 @@ class ConvBNReLU(nn.Module):
     """Conv2d → BatchNorm → ReLU block."""
 
     def __init__(self, in_ch: int, out_ch: int, kernel_size: int = 3) -> None:
+        """Initialize the Conv2d, BatchNorm, and ReLU layers."""
         super().__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size, padding=kernel_size // 2, bias=False),
@@ -49,6 +50,7 @@ class ConvBNReLU(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply the Conv2d -> BatchNorm -> ReLU block."""
         return self.block(x)
 
 
@@ -56,6 +58,7 @@ class PPM(nn.Module):
     """Pyramid Pooling Module (from PSPNet) for global context."""
 
     def __init__(self, in_ch: int, out_ch: int, pool_sizes: tuple[int, ...] = (1, 2, 3, 6)) -> None:
+        """Initialize the pooling stages and the bottleneck projection."""
         super().__init__()
         self.stages = nn.ModuleList()
         for size in pool_sizes:
@@ -70,6 +73,7 @@ class PPM(nn.Module):
         self.bottleneck = ConvBNReLU(in_ch + out_ch * len(pool_sizes), out_ch)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply pyramid pooling and concatenate multi-scale context."""
         h, w = x.shape[2:]
         feats = [x]
         for stage in self.stages:
@@ -96,6 +100,7 @@ class UPerNetDecoder(nn.Module):
         decoder_dim: int = 256,
         num_classes: int = 1,
     ) -> None:
+        """Initialize the lateral, FPN, PPM, fusion, and segmentation head layers."""
         super().__init__()
 
         # Lateral projections (one per feature level)
@@ -151,7 +156,9 @@ class UPerNetDecoder(nn.Module):
         ppm_out = self.ppm(feat_maps[-1])
 
         # FPN: lateral connections + top-down pathway
-        laterals = [conv(feat) for conv, feat in zip(self.lateral_convs, feat_maps)]
+        laterals = [
+            conv(feat) for conv, feat in zip(self.lateral_convs, feat_maps, strict=True)
+        ]
 
         # Top-down fusion
         for i in range(len(laterals) - 1, 0, -1):
@@ -161,7 +168,7 @@ class UPerNetDecoder(nn.Module):
             )
 
         # FPN smoothing
-        fpn_outs = [conv(lat) for conv, lat in zip(self.fpn_convs, laterals)]
+        fpn_outs = [conv(lat) for conv, lat in zip(self.fpn_convs, laterals, strict=True)]
 
         # Upsample all to same resolution (largest feature map)
         target_feat_size = fpn_outs[0].shape[2:]
@@ -181,7 +188,9 @@ class UPerNetDecoder(nn.Module):
         seg_logits = self.seg_head(fused)
 
         # Upsample to input resolution
-        seg_logits = F.interpolate(seg_logits, size=target_size, mode="bilinear", align_corners=False)
+        seg_logits = F.interpolate(
+            seg_logits, size=target_size, mode="bilinear", align_corners=False
+        )
 
         return seg_logits
 
@@ -275,7 +284,7 @@ class DINOv2Segmenter(nn.Module):
     def _hook_fn(
         self,
         module: nn.Module,
-        input: tuple[torch.Tensor, ...],
+        _input: tuple[torch.Tensor, ...],
         output: torch.Tensor,
         layer_idx: int,
     ) -> None:
@@ -288,7 +297,8 @@ class DINOv2Segmenter(nn.Module):
         lora_count = 0
 
         for name, module in self.encoder.named_modules():
-            if isinstance(module, nn.Linear) and ("qkv" in name or "q_proj" in name or "v_proj" in name):
+            is_attn_proj = "qkv" in name or "q_proj" in name or "v_proj" in name
+            if isinstance(module, nn.Linear) and is_attn_proj:
                 in_features = module.in_features
                 out_features = module.out_features
 
@@ -345,7 +355,7 @@ class DINOv2Segmenter(nn.Module):
         Returns:
             Segmentation logits (B, num_classes, H, W).
         """
-        B, _, H, W = x.shape
+        _, _, h, w = x.shape
 
         # Clear stored features
         self._features.clear()
@@ -359,12 +369,12 @@ class DINOv2Segmenter(nn.Module):
         for layer_idx in self.feature_layers:
             feat = self._features[layer_idx]
             # Remove CLS token (first token)
-            if feat.shape[1] > (H // self.patch_size) * (W // self.patch_size):
+            if feat.shape[1] > (h // self.patch_size) * (w // self.patch_size):
                 feat = feat[:, 1:, :]
             multi_scale.append(feat)
 
         # Decode
-        seg_logits = self.decoder(multi_scale, target_size=(H, W))
+        seg_logits = self.decoder(multi_scale, target_size=(h, w))
 
         return seg_logits
 

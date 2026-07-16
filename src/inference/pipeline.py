@@ -1,6 +1,7 @@
 """DiaFoot.AI v2 — Full Multi-Task Inference Pipeline.
 
-Pipeline: Image -> Preprocess -> Classify (DINOv2) -> (if DFU) Segment (DINOv2) -> Post-process -> Results
+Pipeline: Image -> Preprocess -> Classify (DINOv2) -> (if DFU) Segment (DINOv2) ->
+Post-process -> Results
 """
 
 from __future__ import annotations
@@ -153,7 +154,8 @@ class InferencePipeline:
             result.defer_to_clinician = True
             result.defer_reason = "low_classification_confidence"
             logger.info(
-                "Defer flagged: confidence %.4f < defer_threshold %.4f — continuing to segmentation",
+                "Defer flagged: confidence %.4f < defer_threshold %.4f — "
+                "continuing to segmentation",
                 confidence, self.defer_threshold,
             )
 
@@ -176,7 +178,8 @@ class InferencePipeline:
         should_run_seg = cond_dfu or cond_nondfu_low or cond_fallback
 
         logger.info(
-            "Segmentation decision: should_run_seg=%s (is_dfu=%s, nondfu_low_conf=%s, dfu_fallback=%s)",
+            "Segmentation decision: should_run_seg=%s (is_dfu=%s, nondfu_low_conf=%s, "
+            "dfu_fallback=%s)",
             should_run_seg, cond_dfu, cond_nondfu_low, cond_fallback,
         )
 
@@ -224,7 +227,8 @@ class InferencePipeline:
 
             logger.info(
                 "Wound metrics: has_wound=%s, area_px=%d, area_mm2=%.2f, coverage=%.2f%%",
-                result.has_wound, result.wound_area_px, result.wound_area_mm2, result.wound_coverage_pct,
+                result.has_wound, result.wound_area_px,
+                result.wound_area_mm2, result.wound_coverage_pct,
             )
 
             # If segmentation finds wound but classifier says Non-DFU,

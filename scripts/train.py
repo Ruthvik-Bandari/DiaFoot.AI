@@ -282,7 +282,10 @@ def main() -> None:
         type=str,
         required=True,
         choices=["classify", "segment", "segment-unetpp"],
-        help="classify: DINOv2 classifier, segment: DINOv2 segmenter, segment-unetpp: legacy baseline",
+        help=(
+            "classify: DINOv2 classifier, segment: DINOv2 segmenter, "
+            "segment-unetpp: legacy baseline"
+        ),
     )
     parser.add_argument("--config", type=str, default="configs/training/dinov2_baseline.yaml")
     parser.add_argument("--splits-dir", type=str, default="data/splits")

@@ -77,7 +77,7 @@ def main() -> None:
         args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
     )
 
-    # Load image (518×518 for DINOv2)
+    # Load image (518x518 for DINOv2)
     original, tensor = load_and_preprocess(args.image, input_size=518)
     tensor = tensor.to(device)
 
@@ -96,7 +96,7 @@ def main() -> None:
             backbone=args.backbone, num_classes=3, freeze_backbone=True, dropout=0.3
         )
         ckpt = torch.load(str(classifier_path), map_location="cpu", weights_only=True)
-        state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+        state = ckpt.get("model_state_dict", ckpt)
         classifier.load_state_dict(state)
         classifier = classifier.to(device).eval()
 
@@ -124,7 +124,7 @@ def main() -> None:
             backbone=args.backbone, num_classes=1, freeze_backbone=True
         )
         ckpt = torch.load(str(segmenter_path), map_location="cpu", weights_only=True)
-        state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
+        state = ckpt.get("model_state_dict", ckpt)
         segmenter.load_state_dict(state)
         segmenter = segmenter.to(device).eval()
 
