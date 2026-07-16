@@ -60,6 +60,7 @@ dependencies = [
     # Inference & Export
     "onnxruntime>=1.20.0,<2.0",
     "onnx>=1.17.0,<2.0",
+    "onnxscript>=0.7.0,<1.0",  # required by torch.onnx.export(dynamo=True)
 
     # API & Serving — FastAPI 0.133.0 (Feb 24, 2026)
     "fastapi[standard]>=0.133.0",

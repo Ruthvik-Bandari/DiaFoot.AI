@@ -43,15 +43,13 @@ def export_to_onnx(
         model,
         dummy_input,
         str(output_path),
+        dynamo=True,
         export_params=True,
         opset_version=opset_version,
         do_constant_folding=True,
         input_names=["input"],
         output_names=["output"],
-        dynamic_axes={
-            "input": {0: "batch_size"},
-            "output": {0: "batch_size"},
-        } if dynamic_batch else None,
+        dynamic_shapes=({0: torch.export.Dim("batch_size")},) if dynamic_batch else None,
     )
 
     file_size_mb = output_path.stat().st_size / (1024 * 1024)
