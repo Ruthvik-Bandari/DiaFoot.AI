@@ -145,7 +145,10 @@ class InferencePipeline:
         diag["classifier_dfu_prob"] = dfu_prob
         logger.info(
             "Classification: class=%d (%s), confidence=%.4f, dfu_prob=%.4f",
-            pred_class, result.classification, confidence, dfu_prob,
+            pred_class,
+            result.classification,
+            confidence,
+            dfu_prob,
         )
 
         # Defer path: flag low-confidence predictions for manual review,
@@ -156,7 +159,8 @@ class InferencePipeline:
             logger.info(
                 "Defer flagged: confidence %.4f < defer_threshold %.4f — "
                 "continuing to segmentation",
-                confidence, self.defer_threshold,
+                confidence,
+                self.defer_threshold,
             )
 
         # Early exit: if Healthy with high confidence, skip segmentation
@@ -165,7 +169,8 @@ class InferencePipeline:
             diag["segmentation_skip_reason"] = "healthy_early_exit"
             logger.info(
                 "Healthy early exit: confidence %.4f >= threshold %.4f — skipping segmentation",
-                confidence, self.confidence_threshold,
+                confidence,
+                self.confidence_threshold,
             )
             return result
 
@@ -180,7 +185,10 @@ class InferencePipeline:
         logger.info(
             "Segmentation decision: should_run_seg=%s (is_dfu=%s, nondfu_low_conf=%s, "
             "dfu_fallback=%s)",
-            should_run_seg, cond_dfu, cond_nondfu_low, cond_fallback,
+            should_run_seg,
+            cond_dfu,
+            cond_nondfu_low,
+            cond_fallback,
         )
 
         if should_run_seg and self.segmenter is None:
@@ -212,8 +220,12 @@ class InferencePipeline:
             logger.info(
                 "Segmentation stats: prob min=%.4f, max=%.4f, mean=%.4f, "
                 "pixels_above_threshold=%d / %d (threshold=%.2f)",
-                seg_prob.min(), seg_prob.max(), seg_prob.mean(),
-                seg_mask.sum(), seg_prob.size, self.seg_threshold,
+                seg_prob.min(),
+                seg_prob.max(),
+                seg_prob.mean(),
+                seg_mask.sum(),
+                seg_prob.size,
+                self.seg_threshold,
             )
 
             result.has_wound = bool(seg_mask.any())
@@ -227,8 +239,10 @@ class InferencePipeline:
 
             logger.info(
                 "Wound metrics: has_wound=%s, area_px=%d, area_mm2=%.2f, coverage=%.2f%%",
-                result.has_wound, result.wound_area_px,
-                result.wound_area_mm2, result.wound_coverage_pct,
+                result.has_wound,
+                result.wound_area_px,
+                result.wound_area_mm2,
+                result.wound_coverage_pct,
             )
 
             # If segmentation finds wound but classifier says Non-DFU,

@@ -129,6 +129,7 @@ class DINOv2Classifier(nn.Module):
                 ) -> Callable[..., torch.Tensor]:
                     def lora_forward(x: torch.Tensor) -> torch.Tensor:
                         return orig_fwd(x) + (x @ la @ lb) * s
+
                     return lora_forward
 
                 module.forward = make_lora_forward(original_forward, lora_a, lora_b, scaling)  # type: ignore[method-assign]  # intentional per-instance LoRA forward patch

@@ -383,9 +383,7 @@ def _build_pipeline_from_checkpoints() -> InferencePipeline | None:
     if segmenter_ckpt.exists():
         from src.models.dinov2_segmenter import DINOv2Segmenter
 
-        segmenter = DINOv2Segmenter(
-            backbone=backbone, num_classes=1, freeze_backbone=True
-        )
+        segmenter = DINOv2Segmenter(backbone=backbone, num_classes=1, freeze_backbone=True)
         seg_state = _load_state_dict_from_checkpoint(segmenter_ckpt)
         segmenter.load_state_dict(seg_state)
     else:

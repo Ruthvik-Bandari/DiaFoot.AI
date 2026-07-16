@@ -104,16 +104,12 @@ class UPerNetDecoder(nn.Module):
         super().__init__()
 
         # Lateral projections (one per feature level)
-        self.lateral_convs = nn.ModuleList([
-            ConvBNReLU(embed_dim, decoder_dim, kernel_size=1)
-            for _ in range(4)
-        ])
+        self.lateral_convs = nn.ModuleList(
+            [ConvBNReLU(embed_dim, decoder_dim, kernel_size=1) for _ in range(4)]
+        )
 
         # FPN smoothing convolutions
-        self.fpn_convs = nn.ModuleList([
-            ConvBNReLU(decoder_dim, decoder_dim)
-            for _ in range(4)
-        ])
+        self.fpn_convs = nn.ModuleList([ConvBNReLU(decoder_dim, decoder_dim) for _ in range(4)])
 
         # Pyramid pooling on deepest features
         self.ppm = PPM(embed_dim, decoder_dim)
@@ -148,7 +144,7 @@ class UPerNetDecoder(nn.Module):
         for feat in multi_scale_features:
             if feat.dim() == 3:
                 b, hw, c = feat.shape
-                h = w = int(hw ** 0.5)
+                h = w = int(hw**0.5)
                 feat = feat.reshape(b, h, w, c).permute(0, 3, 1, 2)
             feat_maps.append(feat)
 
@@ -156,9 +152,7 @@ class UPerNetDecoder(nn.Module):
         ppm_out = self.ppm(feat_maps[-1])
 
         # FPN: lateral connections + top-down pathway
-        laterals = [
-            conv(feat) for conv, feat in zip(self.lateral_convs, feat_maps, strict=True)
-        ]
+        laterals = [conv(feat) for conv, feat in zip(self.lateral_convs, feat_maps, strict=True)]
 
         # Top-down fusion
         for i in range(len(laterals) - 1, 0, -1):
@@ -277,9 +271,7 @@ class DINOv2Segmenter(nn.Module):
         """Register forward hooks on target transformer blocks."""
         for layer_idx in self.feature_layers:
             block = self.encoder.blocks[layer_idx]
-            block.register_forward_hook(
-                partial(self._hook_fn, layer_idx=layer_idx)
-            )
+            block.register_forward_hook(partial(self._hook_fn, layer_idx=layer_idx))
 
     def _hook_fn(
         self,
@@ -321,6 +313,7 @@ class DINOv2Segmenter(nn.Module):
                 ) -> Callable[..., torch.Tensor]:
                     def lora_forward(x: torch.Tensor) -> torch.Tensor:
                         return orig_fwd(x) + (x @ la @ lb) * s
+
                     return lora_forward
 
                 module.forward = make_lora_forward(original_forward, lora_a, lora_b, scaling)  # type: ignore[method-assign]  # intentional per-instance LoRA forward patch

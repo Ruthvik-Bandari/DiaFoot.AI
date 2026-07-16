@@ -120,9 +120,7 @@ def main() -> None:
     if pred_class in (1, 2) and segmenter_path.exists():
         from src.models.dinov2_segmenter import DINOv2Segmenter
 
-        segmenter = DINOv2Segmenter(
-            backbone=args.backbone, num_classes=1, freeze_backbone=True
-        )
+        segmenter = DINOv2Segmenter(backbone=args.backbone, num_classes=1, freeze_backbone=True)
         ckpt = torch.load(str(segmenter_path), map_location="cpu", weights_only=True)
         state = ckpt.get("model_state_dict", ckpt)
         segmenter.load_state_dict(state)

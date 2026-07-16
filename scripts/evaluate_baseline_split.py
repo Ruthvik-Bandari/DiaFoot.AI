@@ -36,7 +36,9 @@ def main() -> None:
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--splits-dir", default="data/splits")
     p.add_argument("--split", default="val", choices=["train", "val", "test"])
-    p.add_argument("--include-classes", default="dfu,non_dfu", help="Comma-separated class names or 'all'")
+    p.add_argument(
+        "--include-classes", default="dfu,non_dfu", help="Comma-separated class names or 'all'"
+    )
     p.add_argument("--batch-size", type=int, default=8)
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--device", default="cuda")
@@ -88,7 +90,9 @@ def main() -> None:
                 selected += 1
 
     if not metrics:
-        raise RuntimeError("No samples selected for evaluation. Check --split and --include-classes.")
+        raise RuntimeError(
+            "No samples selected for evaluation. Check --split and --include-classes."
+        )
 
     summary = aggregate_metrics(metrics)
     output = {

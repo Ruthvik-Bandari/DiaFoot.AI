@@ -39,9 +39,7 @@ from src.inference.onnx_export import export_to_onnx
 logger = logging.getLogger("onnx_export")
 
 
-def _load_model(
-    checkpoint_path: str, model_type: str, backbone: str
-) -> torch.nn.Module:
+def _load_model(checkpoint_path: str, model_type: str, backbone: str) -> torch.nn.Module:
     """Load model from checkpoint."""
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     state = ckpt.get("model_state_dict", ckpt)
