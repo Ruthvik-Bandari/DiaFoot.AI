@@ -34,6 +34,8 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from src.inference.onnx_export import export_to_onnx
+
 logger = logging.getLogger("onnx_export")
 
 
@@ -68,46 +70,6 @@ def _load_model(
     model.load_state_dict(state)
     model.eval()
     return model
-
-
-def export_to_onnx(
-    model: torch.nn.Module,
-    output_path: Path,
-    input_size: tuple[int, int] = (518, 518),
-    opset_version: int = 17,
-) -> None:
-    """Export PyTorch model to ONNX format."""
-    model.eval()
-    dummy_input = torch.randn(1, 3, *input_size)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    logger.info("Exporting to ONNX (opset %d)...", opset_version)
-    start = time.time()
-
-    torch.onnx.export(
-        model,
-        dummy_input,
-        str(output_path),
-        export_params=True,
-        opset_version=opset_version,
-        do_constant_folding=True,
-        input_names=["input"],
-        output_names=["output"],
-        dynamic_axes={
-            "input": {0: "batch_size"},
-            "output": {0: "batch_size"},
-        },
-    )
-
-    elapsed = time.time() - start
-    file_size_mb = output_path.stat().st_size / (1024 * 1024)
-    logger.info(
-        "Exported: %s (%.1f MB) in %.1fs",
-        output_path,
-        file_size_mb,
-        elapsed,
-    )
 
 
 def validate_onnx(
@@ -258,7 +220,7 @@ def main() -> None:
 
     # Export
     output_path = Path(args.output)
-    export_to_onnx(model, output_path, input_size=input_size)
+    export_to_onnx(model, output_path, input_shape=(1, 3, *input_size), dynamic_batch=True)
 
     # Validate
     if args.validate:
