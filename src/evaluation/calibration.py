@@ -9,7 +9,7 @@ if the model says 80% confident, it should be correct 80% of the time.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -20,7 +20,7 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
     """Numerically stable softmax for 2D logits."""
     shifted = logits - logits.max(axis=1, keepdims=True)
     exp_logits = np.exp(shifted)
-    return exp_logits / exp_logits.sum(axis=1, keepdims=True)
+    return cast("np.ndarray", exp_logits / exp_logits.sum(axis=1, keepdims=True))
 
 
 def multiclass_brier_score(probs: np.ndarray, labels: np.ndarray) -> float:

@@ -6,6 +6,8 @@ Can be attached to segmentation features or used standalone.
 
 from __future__ import annotations
 
+from typing import cast
+
 import torch
 import torch.nn as nn
 
@@ -55,4 +57,4 @@ class WagnerStagingHead(nn.Module):
         Returns:
             (B, num_grades) logits.
         """
-        return self.head(features)
+        return cast("torch.Tensor", self.head(features))

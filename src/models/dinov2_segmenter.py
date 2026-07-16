@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import torch
 import torch.nn as nn
@@ -51,7 +51,7 @@ class ConvBNReLU(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the Conv2d -> BatchNorm -> ReLU block."""
-        return self.block(x)
+        return cast("torch.Tensor", self.block(x))
 
 
 class PPM(nn.Module):
@@ -78,7 +78,7 @@ class PPM(nn.Module):
         feats = [x]
         for stage in self.stages:
             feats.append(F.interpolate(stage(x), size=(h, w), mode="bilinear", align_corners=False))
-        return self.bottleneck(torch.cat(feats, dim=1))
+        return cast("torch.Tensor", self.bottleneck(torch.cat(feats, dim=1)))
 
 
 class UPerNetDecoder(nn.Module):
@@ -192,7 +192,7 @@ class UPerNetDecoder(nn.Module):
             seg_logits, size=target_size, mode="bilinear", align_corners=False
         )
 
-        return seg_logits
+        return cast("torch.Tensor", seg_logits)
 
 
 class DINOv2Segmenter(nn.Module):
@@ -376,7 +376,7 @@ class DINOv2Segmenter(nn.Module):
         # Decode
         seg_logits = self.decoder(multi_scale, target_size=(h, w))
 
-        return seg_logits
+        return cast("torch.Tensor", seg_logits)
 
 
 def build_dinov2_segmenter(

@@ -6,6 +6,8 @@ Top-performing architecture for DFU segmentation (89.23% Dice on FUSeg).
 
 from __future__ import annotations
 
+from typing import cast
+
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
@@ -61,4 +63,4 @@ class FUSegNet(nn.Module):
             Segmentation logits (B, classes, H, W).
         """
         # Use base model's forward (includes encoder + decoder + head)
-        return self.base(x)
+        return cast("torch.Tensor", self.base(x))

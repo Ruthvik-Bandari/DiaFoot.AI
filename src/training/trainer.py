@@ -9,7 +9,7 @@ import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import torch
 import torch.nn as nn
@@ -56,8 +56,8 @@ class Trainer:
     def _get_targets(self, batch: dict[str, Any]) -> torch.Tensor:
         """Get correct targets based on task type."""
         if self.config.monitor_metric == "val/accuracy":
-            return batch["label"].to(self.device)
-        return batch["mask"].to(self.device)
+            return cast("torch.Tensor", batch["label"].to(self.device))
+        return cast("torch.Tensor", batch["mask"].to(self.device))
 
     def _is_better(self, current: float) -> bool:
         """Check if current metric is better than best."""

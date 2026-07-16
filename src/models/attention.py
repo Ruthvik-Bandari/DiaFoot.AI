@@ -6,6 +6,8 @@ Based on FUSegNet paper — proven effective for wound boundary detection.
 
 from __future__ import annotations
 
+from typing import cast
+
 import torch
 import torch.nn as nn
 
@@ -29,7 +31,7 @@ class ChannelSE(nn.Module):
         b, c, _, _ = x.size()
         w = self.pool(x).view(b, c)
         w = self.fc(w).view(b, c, 1, 1)
-        return x * w
+        return cast("torch.Tensor", x * w)
 
 
 class SpatialSE(nn.Module):
@@ -44,7 +46,7 @@ class SpatialSE(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Apply spatial attention."""
         w = self.sigmoid(self.conv(x))
-        return x * w
+        return cast("torch.Tensor", x * w)
 
 
 class ParallelScSE(nn.Module):
@@ -76,5 +78,5 @@ class ParallelScSE(nn.Module):
         ch_out = self.channel_se(x)
         sp_out = self.spatial_se(x)
         if self.use_max:
-            return torch.max(ch_out, sp_out)
-        return ch_out + sp_out
+            return cast("torch.Tensor", torch.max(ch_out, sp_out))
+        return cast("torch.Tensor", ch_out + sp_out)

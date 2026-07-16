@@ -65,7 +65,7 @@ class TriageClassifier(nn.Module):
         """
         features = self.encoder(x)  # (B, encoder_dim)
         logits = self.head(features)  # (B, num_classes)
-        return logits
+        return cast("torch.Tensor", logits)
 
     def predict_with_confidence(
         self,

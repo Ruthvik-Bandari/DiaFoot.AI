@@ -5,6 +5,8 @@ Phase 2, Commit 9: Baseline single-task segmentation model.
 
 from __future__ import annotations
 
+from typing import cast
+
 import segmentation_models_pytorch as smp
 import torch.nn as nn  # noqa: TC002
 
@@ -30,12 +32,15 @@ def build_unetpp(
     Returns:
         SMP UnetPlusPlus model.
     """
-    return smp.UnetPlusPlus(
-        encoder_name=encoder_name,
-        encoder_weights=encoder_weights,
-        in_channels=in_channels,
-        classes=classes,
-        decoder_attention_type=decoder_attention_type,
-        encoder_depth=5,
-        decoder_channels=(256, 128, 64, 32, 16),
+    return cast(
+        "nn.Module",
+        smp.UnetPlusPlus(
+            encoder_name=encoder_name,
+            encoder_weights=encoder_weights,
+            in_channels=in_channels,
+            classes=classes,
+            decoder_attention_type=decoder_attention_type,
+            encoder_depth=5,
+            decoder_channels=(256, 128, 64, 32, 16),
+        ),
     )

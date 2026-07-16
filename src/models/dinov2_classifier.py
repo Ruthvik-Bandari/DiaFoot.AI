@@ -18,7 +18,7 @@ Supported backbones:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import torch
 import torch.nn as nn
@@ -166,7 +166,7 @@ class DINOv2Classifier(nn.Module):
         # DINOv2 forward returns [CLS] token embedding
         features = self.encoder(x)  # (B, embed_dim)
         logits = self.head(features)  # (B, num_classes)
-        return logits
+        return cast("torch.Tensor", logits)
 
     def predict_with_confidence(
         self,

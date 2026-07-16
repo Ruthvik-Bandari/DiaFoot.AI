@@ -11,6 +11,8 @@ Loss strategies:
 
 from __future__ import annotations
 
+from typing import cast
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
@@ -80,7 +82,9 @@ class DiceCELoss(nn.Module):
             ce_loss = F.binary_cross_entropy_with_logits(pred.squeeze(1), target.float())
         else:
             ce_loss = self.ce(pred, target)
-        return self.dice_weight * dice_loss + self.ce_weight * ce_loss
+        return cast(
+            "torch.Tensor", self.dice_weight * dice_loss + self.ce_weight * ce_loss
+        )
 
 
 class FocalTverskyLoss(nn.Module):
@@ -189,6 +193,8 @@ class DiceBoundaryLoss(nn.Module):
             boundary_loss = F.binary_cross_entropy(
                 pred_sig * boundary, target.float() * boundary, reduction="mean"
             )
-            return (1 - alpha) * dice_ce_loss + alpha * boundary_loss
+            return cast(
+                "torch.Tensor", (1 - alpha) * dice_ce_loss + alpha * boundary_loss
+            )
 
-        return dice_ce_loss
+        return cast("torch.Tensor", dice_ce_loss)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -83,7 +83,7 @@ class MaxContentLengthMiddleware(BaseHTTPMiddleware):
                         status_code=400,
                         content={"detail": "Invalid Content-Length header"},
                     )
-        return await call_next(request)
+        return cast("Response", await call_next(request))
 
 
 class _InMemoryRateLimiter:
@@ -141,4 +141,4 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                         "retry_after_seconds": retry_after,
                     },
                 )
-        return await call_next(request)
+        return cast("Response", await call_next(request))

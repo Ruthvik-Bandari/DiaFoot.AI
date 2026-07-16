@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import cast
 
 import torch
 import torch.nn as nn
@@ -35,7 +36,7 @@ def _read_onnx_opset(path: str | Path) -> int | None:
 
     for opset in model_proto.opset_import:
         if opset.domain in ("", "ai.onnx"):
-            return opset.version
+            return cast("int", opset.version)
     return None
 
 

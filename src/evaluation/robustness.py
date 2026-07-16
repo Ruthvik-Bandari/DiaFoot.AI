@@ -40,7 +40,7 @@ def apply_gaussian_noise(
     std = std_devs[min(severity - 1, len(std_devs) - 1)]
     noise = np.random.normal(0, std, image.shape).astype(np.float32)
     noisy = np.clip(image.astype(np.float32) + noise, 0, 255)
-    return noisy.astype(np.uint8)
+    return cast("np.ndarray", noisy.astype(np.uint8))
 
 
 def apply_brightness_shift(

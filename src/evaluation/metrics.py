@@ -5,7 +5,7 @@ Phase 4, Commit 20: Dice, IoU, HD95, NSD, ASSD + clinical metrics.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -89,7 +89,7 @@ def _erode(mask: np.ndarray) -> np.ndarray:
     """Simple erosion by 1 pixel."""
     from scipy.ndimage import binary_erosion
 
-    return binary_erosion(mask, iterations=1)
+    return cast("np.ndarray", binary_erosion(mask, iterations=1))
 
 
 def surface_dice(
