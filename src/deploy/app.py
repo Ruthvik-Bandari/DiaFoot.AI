@@ -16,7 +16,7 @@ import time
 from contextlib import asynccontextmanager
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -53,6 +53,10 @@ DEFAULT_BRIGHTNESS_MAX = 235.0
 DEFAULT_BACKBONE = "dinov2_vitb14"
 
 
+@overload
+def _getenv(*names: str, default: str) -> str: ...
+@overload
+def _getenv(*names: str, default: None = None) -> str | None: ...
 def _getenv(*names: str, default: str | None = None) -> str | None:
     """Return first non-empty environment value among aliases."""
     for name in names:

@@ -18,9 +18,13 @@ Supported backbones:
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -111,17 +115,22 @@ class DINOv2Classifier(nn.Module):
                 # Store LoRA params as buffers on the module
                 module.lora_a = lora_a
                 module.lora_b = lora_b
-                module.lora_scaling = scaling
+                module.lora_scaling = scaling  # type: ignore[assignment]  # nn.Module.__setattr__ stub only types Tensor | Module; runtime allows arbitrary attrs
 
                 # Patch forward to include LoRA
                 original_forward = module.forward
 
-                def make_lora_forward(orig_fwd, la, lb, s):
-                    def lora_forward(x):
+                def make_lora_forward(
+                    orig_fwd: Callable[..., torch.Tensor],
+                    la: torch.Tensor,
+                    lb: torch.Tensor,
+                    s: float,
+                ) -> Callable[..., torch.Tensor]:
+                    def lora_forward(x: torch.Tensor) -> torch.Tensor:
                         return orig_fwd(x) + (x @ la @ lb) * s
                     return lora_forward
 
-                module.forward = make_lora_forward(original_forward, lora_a, lora_b, scaling)
+                module.forward = make_lora_forward(original_forward, lora_a, lora_b, scaling)  # type: ignore[method-assign]  # intentional per-instance LoRA forward patch
 
                 # Keep original weights frozen, LoRA params trainable
                 module.weight.requires_grad = False

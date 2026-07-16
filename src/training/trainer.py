@@ -210,7 +210,7 @@ class Trainer:
         for epoch in range(self.config.epochs):
             t0 = time.time()
             if hasattr(loss_fn, "set_epoch"):
-                loss_fn.set_epoch(epoch)
+                loss_fn.set_epoch(epoch)  # type: ignore[operator]  # nn.Module.__getattr__ stub types dynamic attrs as Tensor | Module, not callable
 
             train_metrics = self.train_epoch(train_loader, optimizer, loss_fn, epoch)
             val_metrics = self.validate(val_loader, loss_fn)

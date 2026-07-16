@@ -11,6 +11,8 @@ If classifier predicts "Healthy" with >95% confidence, segmentation is skipped.
 
 from __future__ import annotations
 
+from typing import cast
+
 import timm
 import torch
 import torch.nn as nn
@@ -44,7 +46,7 @@ class TriageClassifier(nn.Module):
             num_classes=0,  # Remove default head
             global_pool="avg",
         )
-        encoder_dim = self.encoder.num_features
+        encoder_dim = cast("int", self.encoder.num_features)
 
         # Classification head
         self.head = nn.Sequential(

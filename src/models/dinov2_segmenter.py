@@ -18,10 +18,14 @@ from __future__ import annotations
 
 import logging
 from functools import partial
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +230,8 @@ class DINOv2Segmenter(nn.Module):
         # Default feature extraction layers (evenly spaced through the network)
         if feature_layers is None:
             if num_layers == 12:
-                self.feature_layers = (2, 5, 8, 11)  # layers 3, 6, 9, 12 (0-indexed)
+                # layers 3, 6, 9, 12 (0-indexed)
+                self.feature_layers: tuple[int, ...] = (2, 5, 8, 11)
             else:  # 24 layers (ViT-L)
                 self.feature_layers = (5, 11, 17, 23)
         else:
@@ -294,16 +299,21 @@ class DINOv2Segmenter(nn.Module):
 
                 module.lora_a = lora_a
                 module.lora_b = lora_b
-                module.lora_scaling = scaling
+                module.lora_scaling = scaling  # type: ignore[assignment]  # nn.Module.__setattr__ stub only types Tensor | Module; runtime allows arbitrary attrs
 
                 original_forward = module.forward
 
-                def make_lora_forward(orig_fwd, la, lb, s):
-                    def lora_forward(x):
+                def make_lora_forward(
+                    orig_fwd: Callable[..., torch.Tensor],
+                    la: torch.Tensor,
+                    lb: torch.Tensor,
+                    s: float,
+                ) -> Callable[..., torch.Tensor]:
+                    def lora_forward(x: torch.Tensor) -> torch.Tensor:
                         return orig_fwd(x) + (x @ la @ lb) * s
                     return lora_forward
 
-                module.forward = make_lora_forward(original_forward, lora_a, lora_b, scaling)
+                module.forward = make_lora_forward(original_forward, lora_a, lora_b, scaling)  # type: ignore[method-assign]  # intentional per-instance LoRA forward patch
 
                 module.weight.requires_grad = False
                 if module.bias is not None:

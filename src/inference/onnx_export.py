@@ -41,7 +41,7 @@ def export_to_onnx(
 
     torch.onnx.export(
         model,
-        dummy_input,
+        (dummy_input,),
         str(output_path),
         dynamo=True,
         export_params=True,

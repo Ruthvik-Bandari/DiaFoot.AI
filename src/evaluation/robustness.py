@@ -13,6 +13,7 @@ Degradation types:
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 import cv2
 import numpy as np
@@ -74,7 +75,9 @@ def apply_jpeg_compression(
     quality = qualities[min(severity - 1, len(qualities) - 1)]
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
     _, encoded = cv2.imencode(".jpg", image, encode_param)
-    return cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+    # cv2.imdecode is stubbed as returning MatLike | None; decoding a buffer we
+    # just produced from a valid image via imencode cannot yield None.
+    return cast("np.ndarray", cv2.imdecode(encoded, cv2.IMREAD_COLOR))
 
 
 # Registry of all degradations
