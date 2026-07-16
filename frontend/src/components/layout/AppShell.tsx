@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { Box, Button } from "@/lib/mui";
-import Sidebar, { SIDEBAR_WIDTH } from "./Sidebar";
+import Sidebar from "./Sidebar";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
