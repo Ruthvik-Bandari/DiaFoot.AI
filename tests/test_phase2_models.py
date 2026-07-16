@@ -73,6 +73,7 @@ class TestDINOv2Segmenter:
             num_classes=1,
             freeze_backbone=True,
         )
+        model.eval()  # inference path: decoder BatchNorm can't normalize batch=1 in train mode
         x = torch.randn(1, 3, 518, 518)
         out = model(x)
         assert out.shape == (1, 1, 518, 518)
