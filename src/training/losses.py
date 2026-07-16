@@ -82,9 +82,7 @@ class DiceCELoss(nn.Module):
             ce_loss = F.binary_cross_entropy_with_logits(pred.squeeze(1), target.float())
         else:
             ce_loss = self.ce(pred, target)
-        return cast(
-            "torch.Tensor", self.dice_weight * dice_loss + self.ce_weight * ce_loss
-        )
+        return cast("torch.Tensor", self.dice_weight * dice_loss + self.ce_weight * ce_loss)
 
 
 class FocalTverskyLoss(nn.Module):
@@ -193,8 +191,6 @@ class DiceBoundaryLoss(nn.Module):
             boundary_loss = F.binary_cross_entropy(
                 pred_sig * boundary, target.float() * boundary, reduction="mean"
             )
-            return cast(
-                "torch.Tensor", (1 - alpha) * dice_ce_loss + alpha * boundary_loss
-            )
+            return cast("torch.Tensor", (1 - alpha) * dice_ce_loss + alpha * boundary_loss)
 
         return cast("torch.Tensor", dice_ce_loss)

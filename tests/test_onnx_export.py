@@ -160,9 +160,7 @@ class TestOpsetMismatchWarning:
         monkeypatch,
         caplog,
     ) -> None:
-        monkeypatch.setattr(
-            onnx_export.torch.onnx, "export", self._fake_export_with_opset(18)
-        )
+        monkeypatch.setattr(onnx_export.torch.onnx, "export", self._fake_export_with_opset(18))
 
         model = _IdentityModel()
         with caplog.at_level("WARNING", logger=onnx_export.logger.name):
@@ -182,9 +180,7 @@ class TestOpsetMismatchWarning:
         monkeypatch,
         caplog,
     ) -> None:
-        monkeypatch.setattr(
-            onnx_export.torch.onnx, "export", self._fake_export_with_opset(17)
-        )
+        monkeypatch.setattr(onnx_export.torch.onnx, "export", self._fake_export_with_opset(17))
 
         model = _IdentityModel()
         with caplog.at_level("WARNING", logger=onnx_export.logger.name):
@@ -215,9 +211,7 @@ class TestExportRoundTrip:
         from src.models.dinov2_segmenter import DINOv2Segmenter
 
         try:
-            model = DINOv2Segmenter(
-                backbone="dinov2_vits14", num_classes=1, freeze_backbone=True
-            )
+            model = DINOv2Segmenter(backbone="dinov2_vits14", num_classes=1, freeze_backbone=True)
         except Exception:  # torch.hub.load can raise many error types
             pytest.skip("DINOv2 backbone unavailable")
 
@@ -258,9 +252,7 @@ class TestExportRoundTrip:
         from src.models.dinov2_classifier import DINOv2Classifier
 
         try:
-            model = DINOv2Classifier(
-                backbone="dinov2_vits14", num_classes=3, freeze_backbone=True
-            )
+            model = DINOv2Classifier(backbone="dinov2_vits14", num_classes=3, freeze_backbone=True)
         except Exception:  # torch.hub.load can raise many error types
             pytest.skip("DINOv2 backbone unavailable")
 
