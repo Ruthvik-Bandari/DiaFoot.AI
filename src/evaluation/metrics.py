@@ -185,9 +185,20 @@ def compute_segmentation_metrics(
             pred, target, tolerance_mm=5.0, pixel_spacing=pixel_spacing_mm
         )
     else:
-        metrics["hd95"] = 0.0 if not target.astype(bool).any() else float(max(pred.shape))
-        metrics["nsd_2mm"] = 1.0 if not target.astype(bool).any() else 0.0
-        metrics["nsd_5mm"] = 1.0 if not target.astype(bool).any() else 0.0
+        # At least one mask is empty. Only a true negative (both empty) is a
+        # perfect boundary match; a false positive (prediction on an empty
+        # target) or false negative (empty prediction on a real wound) is the
+        # worst case, not a perfect score.
+        pred_empty = not pred.astype(bool).any()
+        target_empty = not target.astype(bool).any()
+        if pred_empty and target_empty:
+            metrics["hd95"] = 0.0
+            metrics["nsd_2mm"] = 1.0
+            metrics["nsd_5mm"] = 1.0
+        else:
+            metrics["hd95"] = float(max(pred.shape))
+            metrics["nsd_2mm"] = 0.0
+            metrics["nsd_5mm"] = 0.0
 
     # Clinical metrics
     metrics["wound_area_mm2"] = wound_area_mm2(pred, pixel_spacing_mm)

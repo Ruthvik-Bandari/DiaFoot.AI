@@ -93,6 +93,35 @@ class TestComputeSegmentationMetrics:
         assert "nsd_2mm" in m
         assert "wound_area_mm2" in m
 
+    def test_false_positive_on_empty_target_is_worst_case(self) -> None:
+        # A hallucinated wound on a healthy foot (pred non-empty, target empty)
+        # must score worst-case boundary metrics, not a perfect match.
+        pred = np.zeros((64, 64), dtype=np.uint8)
+        pred[20:40, 20:40] = 1
+        target = np.zeros((64, 64), dtype=np.uint8)
+        m = compute_segmentation_metrics(pred, target)
+        assert m["hd95"] > 0.0
+        assert m["nsd_2mm"] == 0.0
+        assert m["nsd_5mm"] == 0.0
+
+    def test_true_negative_both_empty_is_perfect(self) -> None:
+        # Correctly predicting no wound on a healthy foot is a perfect match.
+        empty = np.zeros((64, 64), dtype=np.uint8)
+        m = compute_segmentation_metrics(empty, empty)
+        assert m["hd95"] == 0.0
+        assert m["nsd_2mm"] == 1.0
+        assert m["nsd_5mm"] == 1.0
+
+    def test_false_negative_empty_pred_is_worst_case(self) -> None:
+        # Missing a real wound entirely (pred empty, target non-empty) is worst-case.
+        pred = np.zeros((64, 64), dtype=np.uint8)
+        target = np.zeros((64, 64), dtype=np.uint8)
+        target[20:40, 20:40] = 1
+        m = compute_segmentation_metrics(pred, target)
+        assert m["hd95"] > 0.0
+        assert m["nsd_2mm"] == 0.0
+        assert m["nsd_5mm"] == 0.0
+
 
 class TestAggregateMetrics:
     def test_aggregation(self) -> None:
