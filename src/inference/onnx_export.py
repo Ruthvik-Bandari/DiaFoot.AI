@@ -37,7 +37,16 @@ def export_to_onnx(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     model.eval()
-    dummy_input = torch.randn(*input_shape)
+
+    # torch.export 0/1-specializes any dimension whose example size is 0 or 1,
+    # even when that dimension is explicitly marked dynamic. Tracing with a
+    # batch-1 example therefore collapses the "batch_size" Dim to a constant and
+    # raises a ConstraintViolationError. Trace with batch>=2 so the batch axis
+    # stays symbolic; the produced graph is identical for any batch value.
+    export_shape = input_shape
+    if dynamic_batch and input_shape[0] < 2:
+        export_shape = (2, *input_shape[1:])
+    dummy_input = torch.randn(*export_shape)
 
     torch.onnx.export(
         model,

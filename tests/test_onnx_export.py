@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 import torch.nn as nn
 
@@ -128,3 +129,99 @@ class TestValidateONNX:
 
         ok = onnx_export.validate_onnx(_DictOutputModel(), "dummy.onnx", input_shape=(1, 3, 8, 8))
         assert ok is True
+
+
+class TestExportRoundTrip:
+    """Real (non-mocked) export + onnxruntime round-trip tests.
+
+    These exercise the actual production models end-to-end: dynamo export
+    with dynamic batch, then onnxruntime inference at batch 1 and batch 2,
+    compared numerically against PyTorch eval-mode output. This is the
+    coverage that pure-mock tests above cannot provide.
+    """
+
+    @pytest.mark.slow
+    @pytest.mark.integration
+    def test_segmenter_dynamic_batch_round_trip(self, tmp_path: Path) -> None:
+        pytest.importorskip("onnxruntime")
+        pytest.importorskip("onnxscript")
+        import onnxruntime as ort
+
+        from src.models.dinov2_segmenter import DINOv2Segmenter
+
+        try:
+            model = DINOv2Segmenter(
+                backbone="dinov2_vits14", num_classes=1, freeze_backbone=True
+            )
+        except Exception:  # torch.hub.load can raise many error types
+            pytest.skip("DINOv2 backbone unavailable")
+
+        model.eval()
+
+        onnx_path = onnx_export.export_to_onnx(
+            model,
+            tmp_path / "segmenter.onnx",
+            input_shape=(1, 3, 518, 518),
+            dynamic_batch=True,
+        )
+        assert onnx_path.exists()
+
+        session = ort.InferenceSession(str(onnx_path))
+
+        for batch_size in (1, 2):
+            x = torch.randn(batch_size, 3, 518, 518)
+            with torch.no_grad():
+                pt_out = model(x).numpy()
+
+            assert pt_out.shape == (batch_size, 1, 518, 518)
+
+            ort_out = session.run(None, {"input": x.numpy()})[0]
+
+            max_diff = float(np.max(np.abs(pt_out - ort_out)))
+            assert np.allclose(pt_out, ort_out, atol=1e-3), (
+                f"segmenter ONNX/PyTorch mismatch at batch_size={batch_size}: "
+                f"max abs diff={max_diff}"
+            )
+
+    @pytest.mark.slow
+    @pytest.mark.integration
+    def test_classifier_dynamic_batch_round_trip(self, tmp_path: Path) -> None:
+        pytest.importorskip("onnxruntime")
+        pytest.importorskip("onnxscript")
+        import onnxruntime as ort
+
+        from src.models.dinov2_classifier import DINOv2Classifier
+
+        try:
+            model = DINOv2Classifier(
+                backbone="dinov2_vits14", num_classes=3, freeze_backbone=True
+            )
+        except Exception:  # torch.hub.load can raise many error types
+            pytest.skip("DINOv2 backbone unavailable")
+
+        model.eval()
+
+        onnx_path = onnx_export.export_to_onnx(
+            model,
+            tmp_path / "classifier.onnx",
+            input_shape=(1, 3, 518, 518),
+            dynamic_batch=True,
+        )
+        assert onnx_path.exists()
+
+        session = ort.InferenceSession(str(onnx_path))
+
+        for batch_size in (1, 2):
+            x = torch.randn(batch_size, 3, 518, 518)
+            with torch.no_grad():
+                pt_out = model(x).numpy()
+
+            assert pt_out.shape == (batch_size, 3)
+
+            ort_out = session.run(None, {"input": x.numpy()})[0]
+
+            max_diff = float(np.max(np.abs(pt_out - ort_out)))
+            assert np.allclose(pt_out, ort_out, atol=1e-3), (
+                f"classifier ONNX/PyTorch mismatch at batch_size={batch_size}: "
+                f"max abs diff={max_diff}"
+            )
