@@ -64,3 +64,30 @@ jobs:
         with:
           name: coverage-report
           path: htmlcov/
+
+  # Slow/integration lane: exercises the real DINOv2 models end to end (ONNX
+  # export + onnxruntime round-trip at batch 1 and >1). These are excluded from
+  # the fast `test` gate above (they load the ~88 MB DINOv2 backbone via
+  # torch.hub), so this job is what actually regression-guards the dynamic-batch
+  # export fix. If the backbone can't be fetched, the tests skip (they never hard
+  # fail on a network hiccup); the torch.hub cache below keeps reruns fast.
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - name: Cache DINOv2 backbone (torch.hub)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/torch/hub
+          key: torch-hub-dinov2-vits14-v1
+      - name: Install & run slow ONNX export / model integration tests
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
+          source .venv/bin/activate
+          pytest tests/ -m "slow and not gpu" --tb=short -q
