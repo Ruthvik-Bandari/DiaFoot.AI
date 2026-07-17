@@ -90,7 +90,9 @@ def staple_consensus(masks: list[np.ndarray]) -> np.ndarray:
         staple_filter.SetForegroundValue(1)
         result = staple_filter.Execute(sitk_images)
         consensus = sitk.GetArrayFromImage(result)
-        return (consensus >= 0.5).astype(np.uint8)
+        # Strict threshold (> 0.5) so a probability-0.5 tie resolves to
+        # background, consistent with compute_majority_vote's tie handling.
+        return (consensus > 0.5).astype(np.uint8)
 
     except ImportError:
         logger.warning("SimpleITK not available, falling back to majority vote")

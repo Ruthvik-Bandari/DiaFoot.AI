@@ -1,11 +1,13 @@
 """DiaFoot.AI v2 — Agreement Tests (Phase 4, Commit 21)."""
 
 import numpy as np
+import pytest
 
 from src.evaluation.annotator_agreement import (
     compute_majority_vote,
     compute_pairwise_dice,
     fleiss_kappa,
+    staple_consensus,
 )
 
 
@@ -51,6 +53,18 @@ class TestMajorityVote:
         m1 = np.ones((32, 32), dtype=np.uint8)
         m2 = np.zeros((32, 32), dtype=np.uint8)
         result = compute_majority_vote([m1, m2])
+        assert result.sum() == 0
+
+
+class TestStapleConsensus:
+    def test_tie_resolves_to_background(self) -> None:
+        # Two fully-disagreeing annotators make STAPLE output probability 0.5
+        # everywhere. The binarization must resolve that tie to background
+        # (> 0.5), consistent with compute_majority_vote — not foreground.
+        pytest.importorskip("SimpleITK")
+        ones = np.ones((8, 8), dtype=np.uint8)
+        zeros = np.zeros((8, 8), dtype=np.uint8)
+        result = staple_consensus([ones, zeros])
         assert result.sum() == 0
 
 
