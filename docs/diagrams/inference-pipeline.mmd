@@ -1,0 +1,10 @@
+graph LR
+    A[Foot image upload] --> B{Quality gate<br/>brightness / blur / size}
+    B -->|fail| D[Defer to clinician]
+    B -->|pass| C[Triage classifier<br/>DINOv2 ViT]
+    C -->|low confidence| D
+    C -->|Healthy| E[Report: Healthy<br/>no wound]
+    C -->|DFU / Non-DFU| F[Wound segmenter<br/>DINOv2 + UPerNet]
+    F --> G[Boundary refinement]
+    G --> H[Area measurement<br/>wound_area_mm2]
+    H --> I[Prediction response<br/>class + mask + area]
