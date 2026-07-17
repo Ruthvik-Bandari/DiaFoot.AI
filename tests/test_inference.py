@@ -115,3 +115,26 @@ class TestPreprocess:
         gray = np.full((32, 48), 128, dtype=np.uint8)
         tensor = pipeline.preprocess(gray)
         assert tuple(tensor.shape) == (1, 3, 64, 64)
+
+    def test_single_channel_image_does_not_crash(self) -> None:
+        # (H, W, 1) single-channel: the else branch fed it straight to a
+        # 3-channel normalization, which broadcast-failed.
+        pipeline = InferencePipeline(
+            classifier=_FixedClassifier([0.5, 0.3, 0.2]),
+            segmenter=_WoundSegmenter(),
+            input_size=64,
+        )
+        img = np.full((32, 48, 1), 128, dtype=np.uint8)
+        tensor = pipeline.preprocess(img)
+        assert tuple(tensor.shape) == (1, 3, 64, 64)
+
+    def test_rgba_image_does_not_crash(self) -> None:
+        # (H, W, 4) RGBA: same broadcast failure; alpha must be dropped.
+        pipeline = InferencePipeline(
+            classifier=_FixedClassifier([0.5, 0.3, 0.2]),
+            segmenter=_WoundSegmenter(),
+            input_size=64,
+        )
+        img = np.full((32, 48, 4), 128, dtype=np.uint8)
+        tensor = pipeline.preprocess(img)
+        assert tuple(tensor.shape) == (1, 3, 64, 64)

@@ -94,10 +94,19 @@ class InferencePipeline:
         if image.ndim == 2:
             # Grayscale (H, W) with no channel axis -> 3-channel RGB.
             img = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        elif image.ndim == 3 and image.shape[2] == 1:
+            # Single-channel (H, W, 1) -> 3-channel RGB.
+            img = cv2.cvtColor(image[:, :, 0], cv2.COLOR_GRAY2RGB)
         elif image.ndim == 3 and image.shape[2] == 3:
             img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        elif image.ndim == 3 and image.shape[2] == 4:
+            # RGBA/BGRA -> drop alpha, to 3-channel RGB.
+            img = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
         else:
-            img = image
+            raise ValueError(
+                f"Unsupported image shape {image.shape}; expected (H, W), "
+                "(H, W, 1), (H, W, 3), or (H, W, 4)"
+            )
 
         img = cv2.resize(img, (self.input_size, self.input_size))
         img = img.astype(np.float32) / 255.0
