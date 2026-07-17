@@ -1,0 +1,389 @@
+{
+  "counts": {
+    "train": 5782,
+    "val": 1162,
+    "test": 1161
+  },
+  "path_overlap": {
+    "train_x_val": 0,
+    "train_x_test": 0,
+    "val_x_test": 0
+  },
+  "canonical_overlap": {
+    "train_x_val": 0,
+    "train_x_test": 0,
+    "val_x_test": 0
+  },
+  "content_overlap": {
+    "train_x_val": 0,
+    "train_x_test": 0,
+    "val_x_test": 0
+  },
+  "near_duplicates": {
+    "threshold": 6,
+    "counts": {
+      "train_x_val": 13557,
+      "train_x_test": 96829,
+      "val_x_test": 2375
+    },
+    "examples": [
+      {
+        "pair": "train_x_val",
+        "class": "healthy",
+        "distance": 6,
+        "a": "data/processed/healthy/images/Female_normal-443.png",
+        "b": "data/processed/healthy/images/Female_normal-453.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_test_d6f3388c8eb647cf273f57faf96a7cdd_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_0dac4ad9e961452a81183370848d3ec3_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_1d87e42d6146a984a037cf13a150eec0_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_6188d90292bc07a97be430b59e9f97ff_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_2bfab02681774125930dbd7bcef9f486_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_393ca23ea4bd9b810100a85518c720c9_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_test_fc8cfa134ff61d753932f38bec770f4d_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_9cb281178383db8d50ca7e5b6af4743b_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_test_fb9adc0e6d8c4fdebd66255342088626_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_15ee4679bf92307b89e2d818e8fbccd7_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 3,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_59832f153f630e465c4e8515c03a280b_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 3,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_60740bef4f762d71f81682eb0cb5a411_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_test_fc7a762e77e901c7f62a2ad832f948d6_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_77bf2951ff40d63129ce9e3dbd96e711_1.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_train_a9b68c0cbf21fa8943ae56caac8c2742_1.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_train_41a345d5417528ecdf4d1a272f3938a9_3.png",
+        "b": "data/processed/dfu/images/azh_test_f4c9195c2593623066feff4d45f6d8c1_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_0dac4ad9e961452a81183370848d3ec3_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 2,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_1d87e42d6146a984a037cf13a150eec0_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_6188d90292bc07a97be430b59e9f97ff_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_2bfab02681774125930dbd7bcef9f486_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_393ca23ea4bd9b810100a85518c720c9_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_9cb281178383db8d50ca7e5b6af4743b_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_328fd8bc70eea53dd1749c01ce87904c_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_test_e047d6da846f9bc404870d7f5b2ea8fd_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_test_fb9adc0e6d8c4fdebd66255342088626_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_15ee4679bf92307b89e2d818e8fbccd7_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_a9b83f354ab887edc10ddb9ef19cc5d9_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_test_cd36c27714f6577b08164d1c2de4b221_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_59832f153f630e465c4e8515c03a280b_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_357ccd3395c84a1f8b164308b72ef8fa_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_1a4b3982e17b4f019481ebcba701fc24_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_train_b76b12b02c748683d1a29c0a8abfb70b_0.png",
+        "b": "data/processed/dfu/images/azh_train_77bf2951ff40d63129ce9e3dbd96e711_1.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_0dac4ad9e961452a81183370848d3ec3_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_1d87e42d6146a984a037cf13a150eec0_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_6188d90292bc07a97be430b59e9f97ff_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_2bfab02681774125930dbd7bcef9f486_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 2,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_393ca23ea4bd9b810100a85518c720c9_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_a51bb17b140b4ff5b03da4bc4538a986_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_test_fd03ed94f0816c4d94d9d235fa2739d1_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_9cb281178383db8d50ca7e5b6af4743b_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_328fd8bc70eea53dd1749c01ce87904c_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_test_e047d6da846f9bc404870d7f5b2ea8fd_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 2,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_test_fb9adc0e6d8c4fdebd66255342088626_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_15ee4679bf92307b89e2d818e8fbccd7_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 3,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_a9b83f354ab887edc10ddb9ef19cc5d9_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 6,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_test_cd36c27714f6577b08164d1c2de4b221_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_59832f153f630e465c4e8515c03a280b_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 5,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_8ee0d690e13b71793d999275b9530556_0.png"
+      },
+      {
+        "pair": "train_x_val",
+        "class": "dfu",
+        "distance": 4,
+        "a": "data/processed/dfu/images/azh_test_d950fc3ee06a1970c0361244bc6d039a_0.png",
+        "b": "data/processed/dfu/images/azh_train_357ccd3395c84a1f8b164308b72ef8fa_0.png"
+      }
+    ]
+  },
+  "leakage_flags": {
+    "path_overlap": false,
+    "canonical_overlap": false,
+    "content_overlap": false,
+    "near_duplicates": true
+  },
+  "has_any_leakage": true
+}
