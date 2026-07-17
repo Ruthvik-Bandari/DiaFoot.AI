@@ -36,19 +36,30 @@ class EMA:
 
     def update(self, model: nn.Module) -> None:
         """Update shadow weights from current model."""
-        with_no_grad = dict(self.shadow.named_parameters())
+        shadow_params = dict(self.shadow.named_parameters())
         for name, param in model.named_parameters():
-            if name in with_no_grad:
-                with_no_grad[name].data.copy_(
-                    self.decay * with_no_grad[name].data + (1.0 - self.decay) * param.data
+            if name in shadow_params:
+                shadow_params[name].data.copy_(
+                    self.decay * shadow_params[name].data + (1.0 - self.decay) * param.data
                 )
+        # Buffers (BatchNorm running_mean/var, num_batches_tracked) are not
+        # learnable and are not EMA-averaged — copy them from the live model so
+        # the shadow uses real running statistics instead of frozen init values.
+        shadow_buffers = dict(self.shadow.named_buffers())
+        for name, buf in model.named_buffers():
+            if name in shadow_buffers:
+                shadow_buffers[name].data.copy_(buf.data)
 
     def apply_shadow(self, model: nn.Module) -> None:
-        """Copy shadow weights into model (for evaluation)."""
+        """Copy shadow weights (and buffers) into model (for evaluation)."""
         model_params = dict(model.named_parameters())
         for name, param in self.shadow.named_parameters():
             if name in model_params:
                 model_params[name].data.copy_(param.data)
+        model_buffers = dict(model.named_buffers())
+        for name, buf in self.shadow.named_buffers():
+            if name in model_buffers:
+                model_buffers[name].data.copy_(buf.data)
 
     def get_shadow_model(self) -> nn.Module:
         """Return the shadow model for inference."""

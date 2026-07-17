@@ -171,6 +171,21 @@ class TestEMA:
         # Shadow should now differ from original
         # (it's a weighted average, so not identical to model)
 
+    def test_update_syncs_buffers(self) -> None:
+        # EMA must also sync non-learnable buffers (e.g. BatchNorm running stats).
+        # Iterating only named_parameters() left the shadow's BN buffers frozen at
+        # their init values (running_mean=0, running_var=1), so evaluating via the
+        # shadow model would normalize with wrong statistics.
+        model = nn.BatchNorm1d(4)
+        ema = EMA(model, decay=0.9)
+        model.train()
+        for _ in range(5):
+            model(torch.randn(8, 4) * 3.0 + 2.0)  # drive running stats off init
+        ema.update(model)
+        shadow_buffers = dict(ema.shadow.named_buffers())
+        assert not torch.allclose(shadow_buffers["running_mean"], torch.zeros(4))
+        assert not torch.allclose(shadow_buffers["running_var"], torch.ones(4))
+
 
 class TestTrainer:
     def test_fit_classification_saves_checkpoint(self, tmp_path: Path) -> None:
