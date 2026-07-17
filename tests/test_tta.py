@@ -27,10 +27,14 @@ class TestD4Transforms:
 
     def test_inverse_restores_orientation(self) -> None:
         # Each inverse must undo its forward so spatial predictions realign
-        # before averaging.
-        x = torch.randn(1, 2, 5, 5)
-        for fwd, inv in _d4_transforms(8):
-            torch.testing.assert_close(inv(fwd(x)), x)
+        # before averaging — including non-square inputs, where transpose/rot90
+        # change H<->W and the inverse must restore the original shape.
+        for shape in [(1, 2, 5, 5), (1, 2, 4, 6)]:
+            x = torch.randn(*shape)
+            for fwd, inv in _d4_transforms(8):
+                restored = inv(fwd(x))
+                assert restored.shape == x.shape
+                torch.testing.assert_close(restored, x)
 
 
 class SimpleSegModel(nn.Module):
