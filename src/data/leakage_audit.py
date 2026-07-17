@@ -10,24 +10,22 @@ Provides reusable checks for train/val/test leakage:
 from __future__ import annotations
 
 import csv
-import hashlib
 import logging
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import cv2
+from src.data.dedup import AUGMENT_TOKENS_PATTERN, canonical_stem, dhash, hamming, sha256
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
-_AUGMENT_TOKENS_PATTERN = re.compile(
-    r"(_aug\d+|_flip|_vflip|_hflip|_rot\d+|_copy\d+|_dup\d+)$",
-    flags=re.IGNORECASE,
-)
+# Re-exported for back-compat: this module used to define its own copy of
+# the augmentation-token pattern; the canonical version now lives in
+# src.data.dedup.
+_AUGMENT_TOKENS_PATTERN = AUGMENT_TOKENS_PATTERN
 
 
 @dataclass(frozen=True)
@@ -43,42 +41,20 @@ def canonical_sample_id(path: str | Path) -> str:
     """Normalize filename to a canonical ID for split overlap checks.
 
     Removes common augmentation/copy suffixes from stem, then lowercases.
+    Thin wrapper around ``src.data.dedup.canonical_stem`` kept for
+    backward compatibility with existing callers and tests.
     """
-    stem = Path(path).stem.lower()
-    # Strip repeatedly: offline augmentation can stack suffixes (e.g.
-    # "_aug3_flip"), and a single pass would only remove the last token,
-    # letting a chained-suffix copy slip past the canonical-overlap check.
-    while True:
-        stripped = _AUGMENT_TOKENS_PATTERN.sub("", stem)
-        if stripped == stem or not stripped:
-            break
-        stem = stripped
-    return stem
+    return canonical_stem(path, replace_dashes=False)
 
 
-def _sha256(path: Path) -> str:
-    data = path.read_bytes()
-    return hashlib.sha256(data).hexdigest()
-
-
-def _dhash(path: Path, hash_size: int = 8) -> int | None:
-    """Compute 64-bit dHash for an image.
-
-    Returns None when image cannot be read.
-    """
-    img = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        return None
-    resized = cv2.resize(img, (hash_size + 1, hash_size), interpolation=cv2.INTER_AREA)
-    diff = resized[:, 1:] > resized[:, :-1]
-    value = 0
-    for bit in diff.flatten():
-        value = (value << 1) | int(bool(bit))
-    return value
-
-
-def _hamming(a: int, b: int) -> int:
-    return (a ^ b).bit_count()
+# Backward-compatible aliases: these private names used to hold this
+# module's own implementations; the canonical bodies now live in
+# src.data.dedup, and audit_samples_for_leakage still calls these
+# module-level names unchanged (so e.g. tests can monkeypatch
+# ``src.data.leakage_audit._dhash``).
+_sha256 = sha256
+_dhash = dhash
+_hamming = hamming
 
 
 def _intersections_by_key(samples: list[Sample], key_fn: Callable[[Sample], str]) -> dict[str, int]:
