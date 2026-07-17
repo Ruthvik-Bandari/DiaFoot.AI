@@ -39,8 +39,12 @@ class CosineAnnealingWithWarmup(_LRScheduler):
     def get_lr(self) -> list[float | Tensor]:
         """Compute learning rate for current epoch."""
         if self.last_epoch < self.warmup_epochs:
-            # Linear warmup
-            alpha = self.last_epoch / max(1, self.warmup_epochs)
+            # Linear warmup. Use (last_epoch + 1) so epoch 0 starts at a non-zero
+            # fraction of base_lr and reaches base_lr at the final warmup epoch:
+            # last_epoch starts at 0 (step() runs once in __init__) and Trainer
+            # trains before stepping, so `last_epoch / warmup_epochs` would waste
+            # epoch 0 at LR=0.
+            alpha = (self.last_epoch + 1) / max(1, self.warmup_epochs)
             return [base_lr * alpha for base_lr in self.base_lrs]
 
         # Cosine decay

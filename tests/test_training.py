@@ -126,6 +126,15 @@ class TestCosineAnnealingWithWarmup:
         # LR should increase during warmup then decrease
         assert lrs[0] < lrs[4]  # Warmup increases
 
+    def test_warmup_first_epoch_lr_is_nonzero(self) -> None:
+        # _LRScheduler.step() runs once in __init__ (last_epoch=0), and Trainer
+        # trains epoch 0 before calling scheduler.step(), so epoch 0's LR must
+        # be > 0 — otherwise a full epoch trains at LR=0 (no learning).
+        model = nn.Linear(10, 10)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+        CosineAnnealingWithWarmup(optimizer, warmup_epochs=5, max_epochs=50)
+        assert optimizer.param_groups[0]["lr"] > 0.0
+
     def test_cosine_decreases_lr(self) -> None:
         model = nn.Linear(10, 10)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
