@@ -39,7 +39,10 @@ def compute_pairwise_dice(
             mj = masks[j].astype(bool).flatten()
             intersection = (mi & mj).sum()
             total = mi.sum() + mj.sum()
-            dice = (2.0 * intersection) / max(total, 1)
+            # Both masks empty = perfect agreement (both annotators marked "no
+            # lesion"), matching dice_score / iou_score on empty masks. max(total, 1)
+            # would score this as 0.0 (total disagreement).
+            dice = 1.0 if total == 0 else (2.0 * intersection) / total
             dice_matrix[i, j] = dice
             dice_matrix[j, i] = dice
 
@@ -59,8 +62,10 @@ def compute_majority_vote(masks: list[np.ndarray]) -> np.ndarray:
     """
     stacked = np.stack([m.astype(float) for m in masks], axis=0)
     agreement = stacked.mean(axis=0)
-    threshold = 0.5
-    return (agreement >= threshold).astype(np.uint8)
+    # Strict majority (> 0.5): a 50/50 split (even annotator count) is not a
+    # majority and must not be resolved as foreground. `>= 0.5` biased every
+    # such tie toward wound presence.
+    return (agreement > 0.5).astype(np.uint8)
 
 
 def staple_consensus(masks: list[np.ndarray]) -> np.ndarray:

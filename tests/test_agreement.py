@@ -24,6 +24,13 @@ class TestPairwiseDice:
         matrix = compute_pairwise_dice([m1, m2])
         assert matrix[0, 1] < 0.01
 
+    def test_both_empty_is_perfect_agreement(self) -> None:
+        # Two annotators both marking "no lesion" agree perfectly (Dice 1.0),
+        # consistent with metrics.dice_score / iou_score on empty masks — not 0.0.
+        empty = np.zeros((32, 32), dtype=np.uint8)
+        matrix = compute_pairwise_dice([empty, empty])
+        assert matrix[0, 1] == 1.0
+
 
 class TestMajorityVote:
     def test_unanimous(self) -> None:
@@ -37,6 +44,14 @@ class TestMajorityVote:
         m3 = np.zeros((32, 32), dtype=np.uint8)
         result = compute_majority_vote([m1, m2, m3])
         assert result.sum() == 32 * 32  # 2/3 agree
+
+    def test_even_split_tie_is_not_foreground(self) -> None:
+        # A 50/50 split between two annotators is not a majority and must not
+        # be resolved as foreground (>= 0.5 wrongly counted ties as agreement).
+        m1 = np.ones((32, 32), dtype=np.uint8)
+        m2 = np.zeros((32, 32), dtype=np.uint8)
+        result = compute_majority_vote([m1, m2])
+        assert result.sum() == 0
 
 
 class TestFleissKappa:
