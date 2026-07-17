@@ -38,6 +38,10 @@ exports/
 *.onnx.data
 *.safetensors
 
+# Results (kept out of the repo — regenerate from checkpoints; old ones were
+# computed on a leaky split and removed. Local copies are downloaded artifacts.)
+results/
+
 # Logs
 logs/
 wandb/
