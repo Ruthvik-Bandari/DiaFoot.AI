@@ -21,6 +21,8 @@ exist in a clinic waiting room.
 
 v2 restructures the system as a cascade of three stages, each with a single job:
 
+![Inference pipeline](diagrams/inference-pipeline.svg)
+
 ```
           ┌─────────────────────┐
  image ──▶│ 1. Triage classifier│──▶ Healthy / Non-DFU / DFU  (+ confidence)

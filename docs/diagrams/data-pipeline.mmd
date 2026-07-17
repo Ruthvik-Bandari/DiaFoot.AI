@@ -1,0 +1,9 @@
+graph LR
+    A[Collect<br/>DFU + healthy + non-DFU] --> B[Clean + dedup<br/>CleanVision / perceptual hash]
+    B --> C[Label + quality<br/>Wagner grades]
+    C --> D[ITA skin-tone<br/>analysis]
+    D --> E[Preprocess<br/>CLAHE, resize, binarize]
+    E --> F[Stratified splits<br/>70/15/15]
+    F --> G{Leakage audit<br/>path / hash / near-dup}
+    G -->|leakage found| F
+    G -->|zero overlap| H[Clean splits<br/>train / val / test]

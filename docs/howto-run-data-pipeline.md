@@ -13,6 +13,8 @@ and what the honest numbers look like, see
 [explanation-pipeline-design.md](explanation-pipeline-design.md) and the results
 tables in [../README.md](../README.md).
 
+![Data pipeline](diagrams/data-pipeline.svg)
+
 ## Prerequisites
 
 - **The package is installed.** From the project root, run `pip install -e .`

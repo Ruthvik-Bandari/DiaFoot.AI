@@ -35,6 +35,8 @@ leakage-audited splits, not cherry-picked subgroups.
 
 A single foot image goes through a **cascaded pipeline**:
 
+![Inference pipeline](docs/diagrams/inference-pipeline.svg)
+
 ```
 image ──▶ [1] Triage classifier ──▶ Healthy / Non-DFU / DFU
                      │
@@ -108,6 +110,8 @@ image source without re-validating. See [Limitations](#limitations).
 ---
 
 ## Architecture
+
+![System architecture](docs/diagrams/architecture.svg)
 
 Two model families are implemented. The deployed API uses the **DINOv2 path**; the U-Net++ /
 FUSegNet paths exist for research and ablation comparison.

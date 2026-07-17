@@ -1,0 +1,9 @@
+graph TD
+    DATA[src/data<br/>clean, split, dataset] --> TRAIN[src/training<br/>multi-task trainer]
+    MODELS[src/models<br/>DINOv2, U-Net++, FUSegNet] --> TRAIN
+    TRAIN --> CKPT[(Checkpoints)]
+    CKPT --> INFER[src/inference<br/>cascade, TTA, ONNX]
+    MODELS --> INFER
+    INFER --> DEPLOY[src/deploy<br/>FastAPI /predict]
+    INFER --> EVAL[src/evaluation<br/>metrics, fairness, calibration]
+    DATA --> EVAL

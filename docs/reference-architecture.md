@@ -11,6 +11,8 @@ Phase N` marker) are marked clearly.
 > deployed path is the DINOv2 classifier plus DINOv2 segmenter. For the trained
 > models and their measured results, see [../README.md](../README.md).
 
+![Package architecture](diagrams/architecture.svg)
+
 The package name is `diafootai` (v2.0.0). All modules live under the `src`
 import root, for example `from src.inference.pipeline import InferencePipeline`.
 
