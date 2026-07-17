@@ -45,7 +45,14 @@ def canonical_sample_id(path: str | Path) -> str:
     Removes common augmentation/copy suffixes from stem, then lowercases.
     """
     stem = Path(path).stem.lower()
-    stem = _AUGMENT_TOKENS_PATTERN.sub("", stem)
+    # Strip repeatedly: offline augmentation can stack suffixes (e.g.
+    # "_aug3_flip"), and a single pass would only remove the last token,
+    # letting a chained-suffix copy slip past the canonical-overlap check.
+    while True:
+        stripped = _AUGMENT_TOKENS_PATTERN.sub("", stem)
+        if stripped == stem or not stripped:
+            break
+        stem = stripped
     return stem
 
 
@@ -133,8 +140,7 @@ def audit_samples_for_leakage(
         "val_x_test": len(by_split_hash["val"] & by_split_hash["test"]),
     }
 
-    # 4) Perceptual near duplicates (class-aware + dHash prefix buckets)
-    # Bucket key: (class_name, split, top_16_bits)
+    # 4) Perceptual near duplicates (class-aware dHash Hamming distance)
     dhash_cache: dict[str, int] = {}
     hashed_entries: list[tuple[Sample, int]] = []
     for s in merged:
@@ -154,43 +160,38 @@ def audit_samples_for_leakage(
     near_dup_counts: dict[str, int] = {"train_x_val": 0, "train_x_test": 0, "val_x_test": 0}
     near_dup_examples: list[dict[str, Any]] = []
 
-    by_split_class_prefix: dict[tuple[str, str, int], list[tuple[Sample, int]]] = {}
+    # Group by (split, class) and compare every cross-split pair within a class.
+    # No dHash-prefix bucketing: bucketing on an exact top-16-bit prefix drops
+    # genuine near-duplicates (Hamming distance <= threshold) into different
+    # buckets whenever any prefix bit differs, so they were never compared and
+    # leakage went undetected. The audit is offline, so the full pairwise scan
+    # per class is acceptable.
+    by_split_class: dict[tuple[str, str], list[tuple[Sample, int]]] = {}
     for s, hv in hashed_entries:
-        prefix = (hv >> 48) & 0xFFFF
-        key = (s.split, s.class_name, prefix)
-        by_split_class_prefix.setdefault(key, []).append((s, hv))
+        by_split_class.setdefault((s.split, s.class_name), []).append((s, hv))
 
     all_classes = {s.class_name for s, _ in hashed_entries}
-    prefixes_by_split_class: dict[tuple[str, str], set[int]] = {}
-    for split_name, class_name, prefix in by_split_class_prefix:
-        prefixes_by_split_class.setdefault((split_name, class_name), set()).add(prefix)
 
     for split_a, split_b in split_pairs:
         pair_name = f"{split_a}_x_{split_b}"
         for class_name in all_classes:
-            common_prefixes = prefixes_by_split_class.get((split_a, class_name), set()) & (
-                prefixes_by_split_class.get((split_b, class_name), set())
-            )
-            for prefix in common_prefixes:
-                bucket_a = by_split_class_prefix.get((split_a, class_name, prefix))
-                bucket_b = by_split_class_prefix.get((split_b, class_name, prefix))
-                if not bucket_a or not bucket_b:
-                    continue
-                for sample_a, hash_a in bucket_a:
-                    for sample_b, hash_b in bucket_b:
-                        dist = _hamming(hash_a, hash_b)
-                        if dist <= near_duplicate_threshold:
-                            near_dup_counts[pair_name] += 1
-                            if len(near_dup_examples) < max_near_duplicate_pairs:
-                                near_dup_examples.append(
-                                    {
-                                        "pair": pair_name,
-                                        "class": class_name,
-                                        "distance": dist,
-                                        "a": sample_a.path,
-                                        "b": sample_b.path,
-                                    }
-                                )
+            bucket_a = by_split_class.get((split_a, class_name), [])
+            bucket_b = by_split_class.get((split_b, class_name), [])
+            for sample_a, hash_a in bucket_a:
+                for sample_b, hash_b in bucket_b:
+                    dist = _hamming(hash_a, hash_b)
+                    if dist <= near_duplicate_threshold:
+                        near_dup_counts[pair_name] += 1
+                        if len(near_dup_examples) < max_near_duplicate_pairs:
+                            near_dup_examples.append(
+                                {
+                                    "pair": pair_name,
+                                    "class": class_name,
+                                    "distance": dist,
+                                    "a": sample_a.path,
+                                    "b": sample_b.path,
+                                }
+                            )
 
     leakage_flags = {
         "path_overlap": any(v > 0 for v in path_overlap.values()),

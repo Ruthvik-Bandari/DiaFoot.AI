@@ -12,6 +12,8 @@ from src.data.leakage_audit import audit_samples_for_leakage, canonical_sample_i
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
 
 def _write_image(path: Path, value: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -23,6 +25,40 @@ def _write_image(path: Path, value: int) -> None:
 def test_canonical_sample_id_strips_augmentation_suffixes() -> None:
     assert canonical_sample_id("foo/bar/patient12_aug3.png") == "patient12"
     assert canonical_sample_id("foo/bar/patient12_rot90.png") == "patient12"
+
+
+def test_canonical_sample_id_strips_chained_suffixes() -> None:
+    # Multiple stacked augmentation tokens must all be stripped, not just the
+    # last one, or a chained-suffix copy leaks past the canonical-overlap check.
+    assert canonical_sample_id("foo/patient12_aug3_flip.png") == "patient12"
+    assert canonical_sample_id("foo/patient7_rot90_copy2.png") == "patient7"
+
+
+def test_audit_detects_near_duplicate_across_prefix_buckets(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Two near-duplicate images (Hamming distance 1) whose dHash top-16-bit
+    # prefixes differ must still be compared and flagged. The old exact-prefix
+    # bucketing dropped them into different buckets and never compared them.
+    a = tmp_path / "a.png"
+    b = tmp_path / "b.png"
+    _write_image(a, 10)
+    _write_image(b, 250)
+
+    # differ by exactly one bit, and that bit is inside the top 16 (prefix)
+    fake = {str(a): 0x1234 << 48, str(b): 0x1236 << 48}
+    monkeypatch.setattr(
+        "src.data.leakage_audit._dhash",
+        lambda p, hash_size=8: fake[str(p)],
+    )
+
+    train = [{"image": str(a), "class": "dfu"}]
+    val: list[dict[str, str]] = []
+    test = [{"image": str(b), "class": "dfu"}]
+
+    report = audit_samples_for_leakage(train, val, test)
+    assert report["near_duplicates"]["counts"]["train_x_test"] == 1
+    assert report["leakage_flags"]["near_duplicates"] is True
 
 
 def test_audit_detects_path_overlap(tmp_path: Path) -> None:
