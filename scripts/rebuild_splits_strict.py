@@ -15,12 +15,15 @@ from __future__ import annotations
 
 import argparse
 import csv
+import logging
 import random
 import re
 from collections import defaultdict
 from pathlib import Path
 
 import cv2
+
+logger = logging.getLogger(__name__)
 
 _AUG_TAIL = re.compile(
     r"(_aug\d+|_flip|_hflip|_vflip|_rot\d+|_copy\d+|_dup\d+)$",
@@ -30,7 +33,16 @@ _AUG_TAIL = re.compile(
 
 def canonical_stem(path_str: str) -> str:
     stem = Path(path_str).stem.lower().replace("-", "_")
-    return _AUG_TAIL.sub("", stem)
+    # Strip repeatedly: offline augmentation can stack suffixes (e.g.
+    # "_aug3_flip"), and a single pass would only remove the last token,
+    # letting a chained-suffix copy slip past grouping. Mirrors
+    # canonical_sample_id in src/data/leakage_audit.py.
+    while True:
+        stripped = _AUG_TAIL.sub("", stem)
+        if stripped == stem or not stripped:
+            break
+        stem = stripped
+    return stem
 
 
 def infer_source_id(class_name: str, image_path: Path) -> str:
@@ -55,6 +67,15 @@ def infer_patient_id(class_name: str, image_path: Path) -> str:
         m = re.match(r"azh_(?:train|test|val)_([0-9a-f]{16,})_\d+$", stem)
         if m:
             return f"azh_{m.group(1)}"
+        # An azh_-prefixed name that does not match means format drift. Falling
+        # through to the per-image id below would silently stop grouping that
+        # capture's patches — the exact leakage this rebuild prevents — so warn
+        # loudly instead of failing quietly.
+        logger.warning(
+            "AZH-style filename %r does not match azh_<split>_<case>_<patch>; "
+            "its patches will NOT be grouped. Check for filename format drift.",
+            stem,
+        )
 
     # keep numeric suffixes for healthy/non_dfu (prevents collapsing to one patient)
     # e.g. male_normal_1383, wound_main_0010
@@ -124,8 +145,13 @@ def enrich_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
         image = row["image"]
         p = Path(image)
         class_name = (row.get("class") or p.parent.parent.name).strip().lower()
-        source_id = (row.get("source_id") or infer_source_id(class_name, p)).strip().lower()
-        patient_id = (row.get("patient_id") or infer_patient_id(class_name, p)).strip().lower()
+        # Recompute identity from the filename rather than trusting the CSV
+        # columns. The existing patient_id was over-collapsed (e.g. every
+        # "male_normal" foot mapped to the single id "male_normal"), which both
+        # destroys grouping granularity and cannot express the AZH per-capture
+        # id that keeps a wound's patches together.
+        source_id = infer_source_id(class_name, p).strip().lower()
+        patient_id = infer_patient_id(class_name, p).strip().lower()
 
         out.append(
             {
@@ -152,36 +178,45 @@ def build_components(rows: list[dict[str, str]], near_threshold: int) -> dict[st
         uf = UnionFind(len(indices))
 
         local_to_global = dict(enumerate(indices))
-        hash_to_locals: dict[int, list[int]] = defaultdict(list)
 
+        # 1) Primary grouping: source-image identity from the filename.
+        #    All patches / augmentations of one source capture share a
+        #    component. This is the check that actually prevents the observed
+        #    leakage: distinct crops ("_0", "_1") of one wound never collide
+        #    under dHash, so a pixel-only grouping would let them straddle
+        #    splits. It is filename-derivable, so it works even when the image
+        #    files are absent (grouping runs before any pixels load).
+        group_to_locals: dict[str, list[int]] = defaultdict(list)
         for li, gi in local_to_global.items():
-            hv = _dhash(Path(rows[gi]["image"]))
-            if hv is None:
-                continue
-            hash_to_locals[hv].append(li)
-
-        # same-hash images -> same component
-        for locs in hash_to_locals.values():
+            row = rows[gi]
+            p = Path(row["image"])
+            key = f"{infer_source_id(cls, p)}::{infer_patient_id(cls, p)}"
+            group_to_locals[key].append(li)
+        for locs in group_to_locals.values():
             root = locs[0]
             for li in locs[1:]:
                 uf.union(root, li)
 
-        # near-hash linking using class-aware top-16-bit buckets
-        prefix_to_hashes: dict[int, list[int]] = defaultdict(list)
-        for hv in hash_to_locals:
-            prefix = (hv >> 48) & 0xFFFF
-            prefix_to_hashes[prefix].append(hv)
+        # 2) Merge perceptual near-duplicates across source images (dHash).
+        #    Full pairwise within class — NOT top-16-bit prefix bucketing,
+        #    which drops genuine near-duplicates (Hamming distance <= threshold)
+        #    into different buckets whenever any prefix bit differs, so they are
+        #    never compared and leakage survives. The rebuild is offline, so the
+        #    O(n^2)-per-class scan is acceptable. Runs only when pixels are
+        #    available; with images absent, dHash yields nothing and this step
+        #    is a no-op (source-image grouping above still applies).
+        hashed: list[tuple[int, int]] = []
+        for li, gi in local_to_global.items():
+            hv = _dhash(Path(rows[gi]["image"]))
+            if hv is not None:
+                hashed.append((li, hv))
 
-        hash_rep_local = {hv: locs[0] for hv, locs in hash_to_locals.items()}
-
-        for hashes in prefix_to_hashes.values():
-            m = len(hashes)
-            for i in range(m):
-                h1 = hashes[i]
-                for j in range(i + 1, m):
-                    h2 = hashes[j]
-                    if _hamming(h1, h2) <= near_threshold:
-                        uf.union(hash_rep_local[h1], hash_rep_local[h2])
+        for i in range(len(hashed)):
+            li1, h1 = hashed[i]
+            for j in range(i + 1, len(hashed)):
+                li2, h2 = hashed[j]
+                if _hamming(h1, h2) <= near_threshold:
+                    uf.union(li1, li2)
 
         groups = defaultdict(list)
         for li in range(len(indices)):
@@ -201,7 +236,7 @@ def assign_components(
 ) -> dict[str, list[dict[str, str]]]:
     rng = random.Random(seed)
 
-    split_rows = {"train": [], "val": [], "test": []}
+    split_rows: dict[str, list[dict[str, str]]] = {"train": [], "val": [], "test": []}
 
     for cls, components in class_components.items():
         rng.shuffle(components)
@@ -212,6 +247,11 @@ def assign_components(
             "test": max(0, total - round(total * train_ratio) - round(total * val_ratio)),
         }
         current = {"train": 0, "val": 0, "test": 0}
+        # Track whole components per split. Assignment and repair operate at
+        # component granularity; rows are materialized only afterwards. A
+        # component is a set of rows (patches / near-duplicates) that MUST stay
+        # together in one split, so it must never be broken apart.
+        comps_in_split: dict[str, list[list[int]]] = {"train": [], "val": [], "test": []}
 
         for comp in components:
             size = len(comp)
@@ -222,28 +262,36 @@ def assign_components(
                 key=lambda s: (deficits[s], -current[s]),
                 reverse=True,
             )[0]
-            for gi in comp:
-                split_rows[chosen].append(rows[gi])
+            comps_in_split[chosen].append(comp)
             current[chosen] += size
 
-        # lightweight class-presence fix: ensure each split has at least one sample if possible
-        per_split_cls = {
-            s: sum(1 for r in split_rows[s] if r["class"] == cls) for s in ("train", "val", "test")
-        }
-        empty_splits = [s for s, n in per_split_cls.items() if n == 0]
-        if empty_splits and len(components) >= 3:
-            # move one smallest component for this class from largest split to each empty split
-            cls_in_split = {
-                s: [r for r in split_rows[s] if r["class"] == cls] for s in ("train", "val", "test")
-            }
-            donor = max(("train", "val", "test"), key=lambda s: len(cls_in_split[s]))
-            donor_rows = cls_in_split[donor]
-            for es in empty_splits:
-                if len(donor_rows) <= 1:
-                    break
-                moved = donor_rows.pop()
-                split_rows[donor].remove(moved)
-                split_rows[es].append(moved)
+        # Class-presence repair: give every empty split a WHOLE component,
+        # donated from the split that currently holds the most. Moving whole
+        # components (never individual rows) is essential — plucking a row out
+        # of a component would split one source image across two splits and
+        # reintroduce the exact leakage this rebuild exists to prevent. If a
+        # class has too few components to seed all three splits, leave a split
+        # without it rather than split a component.
+        for empty in ("train", "val", "test"):
+            if comps_in_split[empty]:
+                continue
+            donor = max(("train", "val", "test"), key=lambda s: len(comps_in_split[s]))
+            if len(comps_in_split[donor]) <= 1:
+                logger.warning(
+                    "class %r: too few components to give split %r its own; "
+                    "leaving it without this class (splitting one would leak).",
+                    cls,
+                    empty,
+                )
+                continue
+            smallest = min(comps_in_split[donor], key=len)
+            comps_in_split[donor].remove(smallest)
+            comps_in_split[empty].append(smallest)
+
+        for split_name in ("train", "val", "test"):
+            for comp in comps_in_split[split_name]:
+                for gi in comp:
+                    split_rows[split_name].append(rows[gi])
 
     for s in split_rows:
         rng.shuffle(split_rows[s])
@@ -265,7 +313,7 @@ def print_summary(rows_by_split: dict[str, list[dict[str, str]]]) -> None:
     print("=" * 60)
     for split in ("train", "val", "test"):
         rows = rows_by_split[split]
-        class_counts = defaultdict(int)
+        class_counts: dict[str, int] = defaultdict(int)
         for r in rows:
             class_counts[r["class"]] += 1
         print(f"{split}: total={len(rows)} class_counts={dict(sorted(class_counts.items()))}")
