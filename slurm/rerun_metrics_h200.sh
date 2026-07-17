@@ -15,8 +15,13 @@ set -euo pipefail
 PROJECT_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$PROJECT_ROOT"
 
+# SLURM batch shells don't source Lmod init — set up the module environment
+# (disable nounset around /etc/profile, which references unset vars).
+set +u
+source /etc/profile
+set -u
 module purge
-module load cuda/12.8.0 python/3.12
+module load cuda/12.8.0 python/3.13.5
 source .venv/bin/activate
 
 export PYTHONPATH="$PROJECT_ROOT"
