@@ -16,6 +16,8 @@ import cv2
 import numpy as np
 
 from scripts.rebuild_splits_strict import (
+    _dhash,
+    _hamming,
     assign_components,
     build_components,
     canonical_stem,
@@ -139,6 +141,65 @@ def test_near_duplicate_across_source_images_is_merged(tmp_path: Path) -> None:
         ]
     )
     components = build_components(rows, near_threshold=6)["non_dfu"]
+
+    comp_of: dict[str, int] = {}
+    for cid, comp in enumerate(components):
+        for gi in comp:
+            comp_of[Path(rows[gi]["image"]).name] = cid
+
+    assert comp_of["mendeley_0001.png"] == comp_of["mendeley_0002.png"]
+    assert comp_of["mendeley_0003.png"] != comp_of["mendeley_0001.png"]
+
+
+def test_near_duplicate_differing_in_top_hash_bits_is_still_merged(tmp_path: Path) -> None:
+    # Regression guard for the OLD top-16-bit prefix-bucketing bug. That bug
+    # bucketed images by the high 16 bits of their dHash and only compared within
+    # a bucket, so two near-duplicates whose hashes differ in a top bit landed in
+    # different buckets, were never compared, and were left un-merged (leakage
+    # survived). An exact byte-copy (Hamming 0) cannot expose this — identical
+    # hashes share a bucket — so we craft a single-bit difference in the TOP 16
+    # bits. Full pairwise comparison must still merge them. The preconditions
+    # below assert the crafted images actually have that adversarial property, so
+    # the test cannot pass vacuously.
+    root = tmp_path / "mendeley"
+    root.mkdir(parents=True, exist_ok=True)
+
+    # 8 rows x 9 cols so _dhash's resize to (9, 8) is a no-op and each dHash bit
+    # is exactly the column-wise comparison we set here.
+    increasing = np.array([[10, 40, 70, 100, 130, 160, 190, 220, 250]] * 8, dtype=np.uint8)
+    a_img = increasing.copy()  # every dHash bit = 1
+    b_img = increasing.copy()
+    b_img[0, 0], b_img[0, 1] = 250, 10  # flips only dHash bit (0,0) — the MSB, a top-16 bit
+    c_img = increasing[:, ::-1].copy()  # strictly decreasing -> every dHash bit = 0
+
+    a = root / "mendeley_0001.png"
+    b = root / "mendeley_0002.png"
+    c = root / "mendeley_0003.png"
+    cv2.imwrite(str(a), a_img)
+    cv2.imwrite(str(b), b_img)
+    cv2.imwrite(str(c), c_img)
+
+    near_threshold = 6
+    ha, hb, hc = _dhash(a), _dhash(b), _dhash(c)
+    assert ha is not None
+    assert hb is not None
+    assert hc is not None
+    # a/b are near-duplicates (small Hamming distance) ...
+    assert 0 < _hamming(ha, hb) <= near_threshold
+    # ... but differ within the TOP 16 bits — exactly what prefix bucketing drops.
+    assert (ha >> 48) != (hb >> 48)
+    # c is genuinely distinct from both, so it must NOT be merged.
+    assert _hamming(ha, hc) > near_threshold
+    assert _hamming(hb, hc) > near_threshold
+
+    rows = enrich_rows(
+        [
+            {"image": str(a), "mask": "", "class": "non_dfu"},
+            {"image": str(b), "mask": "", "class": "non_dfu"},
+            {"image": str(c), "mask": "", "class": "non_dfu"},
+        ]
+    )
+    components = build_components(rows, near_threshold=near_threshold)["non_dfu"]
 
     comp_of: dict[str, int] = {}
     for cid, comp in enumerate(components):
