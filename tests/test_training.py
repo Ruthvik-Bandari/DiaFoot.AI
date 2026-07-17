@@ -1,5 +1,6 @@
 """DiaFoot.AI v2 — Training Pipeline Tests (Phase 3, Commits 13-15)."""
 
+from itertools import pairwise
 from pathlib import Path
 
 import torch
@@ -148,6 +149,29 @@ class TestCosineAnnealingWithWarmup:
             scheduler.step()
         lr_late = optimizer.param_groups[0]["lr"]
         assert lr_late < lr_mid  # Cosine decay
+
+    def test_cosine_lr_does_not_rebound_past_max_epochs(self) -> None:
+        # Past max_epochs the cosine argument must stay clamped at progress=1,
+        # pinning the LR at eta_min. Without clamping, cos(pi * progress) turns
+        # back upward for progress > 1, so the LR rebounds and undoes the anneal
+        # whenever training runs even a few epochs past max_epochs.
+        model = nn.Linear(10, 10)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+        eta_min = 1e-7
+        scheduler = CosineAnnealingWithWarmup(
+            optimizer, warmup_epochs=2, max_epochs=10, eta_min=eta_min
+        )
+        lrs = []
+        for _ in range(16):  # step well past max_epochs=10
+            optimizer.step()
+            scheduler.step()
+            lrs.append(optimizer.param_groups[0]["lr"])
+        # From the cosine peak onward the LR must never turn back up.
+        assert all(nxt <= cur + 1e-12 for cur, nxt in pairwise(lrs[1:])), (
+            f"LR rebounded during/after cosine decay: {lrs}"
+        )
+        # Once at/after max_epochs it stays pinned at eta_min.
+        assert max(lrs[9:]) <= eta_min + 1e-9, f"LR exceeded eta_min past max_epochs: {lrs[9:]}"
 
 
 class TestEMA:

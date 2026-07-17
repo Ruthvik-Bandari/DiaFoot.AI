@@ -47,9 +47,13 @@ class CosineAnnealingWithWarmup(_LRScheduler):
             alpha = (self.last_epoch + 1) / max(1, self.warmup_epochs)
             return [base_lr * alpha for base_lr in self.base_lrs]
 
-        # Cosine decay
-        progress = (self.last_epoch - self.warmup_epochs) / max(
-            1, self.max_epochs - self.warmup_epochs
+        # Cosine decay. Clamp progress to [0, 1]: once training reaches or passes
+        # max_epochs, hold at progress=1 (LR = eta_min). Without the clamp,
+        # cos(pi * progress) turns back upward for progress > 1 and the LR
+        # rebounds, undoing the anneal if training runs past max_epochs.
+        progress = min(
+            1.0,
+            (self.last_epoch - self.warmup_epochs) / max(1, self.max_epochs - self.warmup_epochs),
         )
         cosine_factor = 0.5 * (1 + math.cos(math.pi * progress))
         return [
