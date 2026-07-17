@@ -84,3 +84,34 @@ class TestDisagreementEscalation:
         assert result.has_wound is False
         assert result.defer_to_clinician is False
         assert result.classification == "Healthy"
+
+    def test_borderline_healthy_low_dfu_prob_segments_and_defers(self) -> None:
+        # Healthy argmax, confidence 0.85 (< 0.95, so no early exit) but dfu_prob
+        # 0.05 < fallback (0.10): before the gating fix segmentation never ran,
+        # so a real wound was missed with no defer. A non-confident Healthy must
+        # now be segmented, and the detected wound triggers escalation.
+        pipeline = InferencePipeline(
+            classifier=_FixedClassifier([0.85, 0.10, 0.05]),
+            segmenter=_WoundSegmenter(),
+            input_size=64,
+        )
+        result = pipeline.predict(_dummy_image())
+
+        assert result.has_wound is True
+        assert result.defer_to_clinician is True
+        assert result.defer_reason == "segmentation_classifier_disagreement"
+        assert result.classification != "Healthy"
+
+
+class TestPreprocess:
+    def test_2d_grayscale_image_does_not_crash(self) -> None:
+        # A 2-D grayscale image (H, W) with no channel axis must be handled,
+        # not crash with IndexError on image.shape[2].
+        pipeline = InferencePipeline(
+            classifier=_FixedClassifier([0.5, 0.3, 0.2]),
+            segmenter=_WoundSegmenter(),
+            input_size=64,
+        )
+        gray = np.full((32, 48), 128, dtype=np.uint8)
+        tensor = pipeline.preprocess(gray)
+        assert tuple(tensor.shape) == (1, 3, 64, 64)

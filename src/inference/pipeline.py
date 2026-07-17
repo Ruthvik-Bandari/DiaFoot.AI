@@ -91,7 +91,10 @@ class InferencePipeline:
         Returns:
             Normalized tensor (1, 3, input_size, input_size).
         """
-        if image.shape[2] == 3 and len(image.shape) == 3:
+        if image.ndim == 2:
+            # Grayscale (H, W) with no channel axis -> 3-channel RGB.
+            img = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        elif image.ndim == 3 and image.shape[2] == 3:
             img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         else:
             img = image
@@ -179,15 +182,20 @@ class InferencePipeline:
         # is uncertain or DFU probability is non-trivial.
         cond_dfu = pred_class == 2
         cond_nondfu_low = pred_class == 1 and confidence < self.confidence_threshold
+        # A non-confident Healthy prediction (below the early-exit threshold) is
+        # still segmented so a real wound is not silently missed. Confident
+        # Healthy (>= confidence_threshold) already returned via the early exit.
+        cond_healthy_low = pred_class == 0 and confidence < self.confidence_threshold
         cond_fallback = dfu_prob >= self.dfu_seg_fallback_prob
-        should_run_seg = cond_dfu or cond_nondfu_low or cond_fallback
+        should_run_seg = cond_dfu or cond_nondfu_low or cond_healthy_low or cond_fallback
 
         logger.info(
             "Segmentation decision: should_run_seg=%s (is_dfu=%s, nondfu_low_conf=%s, "
-            "dfu_fallback=%s)",
+            "healthy_low_conf=%s, dfu_fallback=%s)",
             should_run_seg,
             cond_dfu,
             cond_nondfu_low,
+            cond_healthy_low,
             cond_fallback,
         )
 
