@@ -107,9 +107,16 @@ class DFUDataset(Dataset):
             image_tensor = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
             mask_tensor = torch.from_numpy(mask).long()
 
-        # Class label
-        class_name = sample.get("class", "healthy")
-        label = CLASS_TO_IDX.get(class_name, 0)
+        # Class label — fail loudly on a missing or unrecognized class rather
+        # than silently mapping it to label 0 (healthy), which would mislabel a
+        # wound image as healthy.
+        class_name = sample.get("class")
+        if not isinstance(class_name, str) or class_name not in CLASS_TO_IDX:
+            raise ValueError(
+                f"Sample has missing or unknown class {class_name!r}; "
+                f"expected one of {sorted(CLASS_TO_IDX)}"
+            )
+        label = CLASS_TO_IDX[class_name]
 
         result: dict[str, torch.Tensor | int | dict] = {
             "image": image_tensor,

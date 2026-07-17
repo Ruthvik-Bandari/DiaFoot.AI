@@ -120,6 +120,20 @@ class TestDFUDataset:
         assert int(mask.sum().item()) == 0
         assert sample["label"] == CLASS_TO_IDX["healthy"]
 
+    def test_unknown_class_raises(self, tmp_path: Path) -> None:
+        # An unrecognized class string (typo / wrong case) must raise, not
+        # silently map to label 0 (healthy) and mislabel a wound as healthy.
+        image_path = tmp_path / "image.png"
+        split_csv = tmp_path / "split.csv"
+        _write_rgb_png(image_path)
+        _write_split_csv(
+            split_csv,
+            [{"image": str(image_path), "class": "DFU"}],  # wrong case
+        )
+        ds = DFUDataset(split_csv=split_csv)
+        with pytest.raises(ValueError, match="class"):
+            _ = ds[0]
+
     def test_transform_path_numpy_mask(self, tmp_path: Path) -> None:
         image_path = tmp_path / "image.png"
         mask_path = tmp_path / "mask.png"
