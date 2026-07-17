@@ -18,31 +18,17 @@ import csv
 import logging
 import random
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
 
-import cv2
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from src.data.dedup import canonical_stem
+from src.data.dedup import dhash as _dhash
+from src.data.dedup import hamming as _hamming
 
 logger = logging.getLogger(__name__)
-
-_AUG_TAIL = re.compile(
-    r"(_aug\d+|_flip|_hflip|_vflip|_rot\d+|_copy\d+|_dup\d+)$",
-    flags=re.IGNORECASE,
-)
-
-
-def canonical_stem(path_str: str) -> str:
-    stem = Path(path_str).stem.lower().replace("-", "_")
-    # Strip repeatedly: offline augmentation can stack suffixes (e.g.
-    # "_aug3_flip"), and a single pass would only remove the last token,
-    # letting a chained-suffix copy slip past grouping. Mirrors
-    # canonical_sample_id in src/data/leakage_audit.py.
-    while True:
-        stripped = _AUG_TAIL.sub("", stem)
-        if stripped == stem or not stripped:
-            break
-        stem = stripped
-    return stem
 
 
 def infer_source_id(class_name: str, image_path: Path) -> str:
@@ -80,22 +66,6 @@ def infer_patient_id(class_name: str, image_path: Path) -> str:
     # keep numeric suffixes for healthy/non_dfu (prevents collapsing to one patient)
     # e.g. male_normal_1383, wound_main_0010
     return stem
-
-
-def _dhash(path: Path, hash_size: int = 8) -> int | None:
-    img = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        return None
-    resized = cv2.resize(img, (hash_size + 1, hash_size), interpolation=cv2.INTER_AREA)
-    diff = resized[:, 1:] > resized[:, :-1]
-    value = 0
-    for bit in diff.flatten():
-        value = (value << 1) | int(bool(bit))
-    return value
-
-
-def _hamming(a: int, b: int) -> int:
-    return (a ^ b).bit_count()
 
 
 class UnionFind:

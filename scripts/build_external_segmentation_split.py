@@ -15,19 +15,17 @@ from __future__ import annotations
 
 import argparse
 import csv
-import re
+import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from src.data.dedup import canonical_stem
+
 EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"}
-_AUG_TAIL = re.compile(r"(_aug\d+|_flip|_hflip|_vflip|_rot\d+|_copy\d+|_dup\d+)$", re.IGNORECASE)
-
-
-def canonical_stem(path_str: str) -> str:
-    stem = Path(path_str).stem.lower().replace("-", "_")
-    return _AUG_TAIL.sub("", stem)
 
 
 def resize_with_padding(

@@ -223,3 +223,12 @@ def test_infer_patient_id_keeps_per_image_granularity_and_strips_stacked_suffixe
         == "male_normal_1483"
     )
     assert canonical_stem("male_normal_1483_aug3_flip") == "male_normal_1483"
+
+
+def test_canonical_stem_collapses_chained_augmentation_suffixes() -> None:
+    # Regression guard: a single-pass suffix strip only removes the LAST
+    # augmentation token, leaving chained suffixes (e.g. "_aug2_flip")
+    # partially attached. The shared src.data.dedup.canonical_stem strips
+    # repeatedly to a fixed point, so a stacked-suffix copy collapses to the
+    # same canonical stem as its source image.
+    assert canonical_stem("wound_aug2_flip") == canonical_stem("wound") == "wound"
