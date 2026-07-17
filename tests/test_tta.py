@@ -5,10 +5,32 @@ import torch
 import torch.nn as nn
 
 from src.inference.tta import (
+    _d4_transforms,
     compute_tta_improvement,
     tta_predict_classification,
     tta_predict_segmentation,
 )
+
+
+class TestD4Transforms:
+    def test_eight_distinct_transforms(self) -> None:
+        # num_augmentations=8 must yield 8 genuinely distinct views. The old
+        # rot180 == hvflip (torch.flip(x,[2,3])), so requesting 8 silently gave 7
+        # with one view double-counted, biasing the average and uncertainty.
+        x = torch.arange(16, dtype=torch.float32).reshape(1, 1, 4, 4)
+        pairs = _d4_transforms(8)
+        assert len(pairs) == 8
+        outs = [fwd(x) for fwd, _ in pairs]
+        for i in range(len(outs)):
+            for j in range(i + 1, len(outs)):
+                assert not torch.equal(outs[i], outs[j]), f"transforms {i} and {j} identical"
+
+    def test_inverse_restores_orientation(self) -> None:
+        # Each inverse must undo its forward so spatial predictions realign
+        # before averaging.
+        x = torch.randn(1, 2, 5, 5)
+        for fwd, inv in _d4_transforms(8):
+            torch.testing.assert_close(inv(fwd(x)), x)
 
 
 class SimpleSegModel(nn.Module):

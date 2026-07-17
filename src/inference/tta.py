@@ -6,12 +6,77 @@ Phase 4, Commit 23: TTA for improved predictions + uncertainty proxy.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
 import torch.nn as nn
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 logger = logging.getLogger(__name__)
+
+
+def _d4_transforms(
+    num_augmentations: int,
+) -> list[tuple[Callable[[torch.Tensor], torch.Tensor], Callable[[torch.Tensor], torch.Tensor]]]:
+    """Return (forward, inverse) transform pairs for D4-symmetry TTA.
+
+    Provides up to 8 distinct dihedral-group-of-the-square views: identity, three
+    rotations, two axis reflections, and two diagonal reflections. Each inverse
+    undoes its forward transform so spatial predictions realign before averaging
+    (reflections are their own inverse; rot90/rot270 invert to rot270/rot90).
+
+    Note rot180 is the same operation as flipping both axes (hvflip), so it is
+    represented once — requesting 8 augmentations yields 8 genuinely distinct
+    views rather than a duplicate.
+    """
+
+    def identity(x: torch.Tensor) -> torch.Tensor:
+        return x
+
+    def hflip(x: torch.Tensor) -> torch.Tensor:
+        return torch.flip(x, [3])
+
+    def vflip(x: torch.Tensor) -> torch.Tensor:
+        return torch.flip(x, [2])
+
+    def hvflip(x: torch.Tensor) -> torch.Tensor:  # equivalent to rot180
+        return torch.flip(x, [2, 3])
+
+    def rot90(x: torch.Tensor) -> torch.Tensor:
+        return torch.rot90(x, 1, [2, 3])
+
+    def rot90_inv(x: torch.Tensor) -> torch.Tensor:
+        return torch.rot90(x, -1, [2, 3])
+
+    def rot270(x: torch.Tensor) -> torch.Tensor:
+        return torch.rot90(x, 3, [2, 3])
+
+    def rot270_inv(x: torch.Tensor) -> torch.Tensor:
+        return torch.rot90(x, -3, [2, 3])
+
+    def transpose(x: torch.Tensor) -> torch.Tensor:  # main-diagonal reflection
+        return x.transpose(2, 3)
+
+    def anti_transpose(x: torch.Tensor) -> torch.Tensor:  # anti-diagonal reflection
+        return torch.flip(x.transpose(2, 3), [2, 3])
+
+    pairs: list[
+        tuple[Callable[[torch.Tensor], torch.Tensor], Callable[[torch.Tensor], torch.Tensor]]
+    ] = [
+        (identity, identity),
+        (hflip, hflip),
+        (vflip, vflip),
+        (hvflip, hvflip),
+        (rot90, rot90_inv),
+        (rot270, rot270_inv),
+        (transpose, transpose),
+        (anti_transpose, anti_transpose),
+    ]
+    n = max(1, min(num_augmentations, len(pairs)))
+    return pairs[:n]
 
 
 def tta_predict_segmentation(
@@ -27,52 +92,8 @@ def tta_predict_segmentation(
     image = image.to(device)
     predictions = []
 
-    def identity(x: torch.Tensor) -> torch.Tensor:
-        return x
-
-    def hflip(x: torch.Tensor) -> torch.Tensor:
-        return torch.flip(x, [3])
-
-    def vflip(x: torch.Tensor) -> torch.Tensor:
-        return torch.flip(x, [2])
-
-    def hvflip(x: torch.Tensor) -> torch.Tensor:
-        return torch.flip(x, [2, 3])
-
-    augmentations: list[tuple] = [
-        (identity, identity),
-        (hflip, hflip),
-        (vflip, vflip),
-        (hvflip, hvflip),
-    ]
-
-    if num_augmentations >= 8:
-
-        def rot90(x: torch.Tensor) -> torch.Tensor:
-            return torch.rot90(x, 1, [2, 3])
-
-        def rot90_inv(x: torch.Tensor) -> torch.Tensor:
-            return torch.rot90(x, -1, [2, 3])
-
-        def rot180(x: torch.Tensor) -> torch.Tensor:
-            return torch.rot90(x, 2, [2, 3])
-
-        def rot270(x: torch.Tensor) -> torch.Tensor:
-            return torch.rot90(x, 3, [2, 3])
-
-        def rot270_inv(x: torch.Tensor) -> torch.Tensor:
-            return torch.rot90(x, -3, [2, 3])
-
-        augmentations.extend(
-            [
-                (rot90, rot90_inv),
-                (rot180, rot180),
-                (rot270, rot270_inv),
-            ]
-        )
-
     with torch.no_grad():
-        for fwd_fn, inv_fn in augmentations[:num_augmentations]:
+        for fwd_fn, inv_fn in _d4_transforms(num_augmentations):
             augmented = fwd_fn(image)
             output = model(augmented)
             if isinstance(output, dict):
@@ -98,24 +119,10 @@ def tta_predict_classification(
     image = image.to(device)
     all_probs = []
 
-    transforms = [
-        lambda x: x,
-        lambda x: torch.flip(x, [3]),
-        lambda x: torch.flip(x, [2]),
-        lambda x: torch.flip(x, [2, 3]),
-    ]
-    if num_augmentations >= 8:
-        transforms.extend(
-            [
-                lambda x: torch.rot90(x, 1, [2, 3]),
-                lambda x: torch.rot90(x, 2, [2, 3]),
-                lambda x: torch.rot90(x, 3, [2, 3]),
-            ]
-        )
-
     with torch.no_grad():
-        for aug_fn in transforms[:num_augmentations]:
-            logits = model(aug_fn(image))
+        # Classification is orientation-invariant, so the inverse is unused.
+        for fwd_fn, _inv_fn in _d4_transforms(num_augmentations):
+            logits = model(fwd_fn(image))
             probs = torch.softmax(logits, dim=1)
             all_probs.append(probs.squeeze().cpu().numpy())
 
