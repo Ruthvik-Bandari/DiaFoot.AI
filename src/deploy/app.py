@@ -356,6 +356,17 @@ def _build_pipeline_from_checkpoints() -> InferencePipeline | None:
     )
     backbone = _getenv("DIAFOOT_BACKBONE", default=DEFAULT_BACKBONE)
     device = _resolve_device()
+    # LoRA adapters: enable when the checkpoints were LoRA fine-tuned (their
+    # state_dicts carry attn.qkv.lora_a/lora_b keys). Default off so merged/full
+    # checkpoints keep loading unchanged. Rank/alpha must match training.
+    use_lora = (_getenv("DIAFOOT_USE_LORA", default="false") or "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    lora_rank = _parse_int(os.getenv("DIAFOOT_LORA_RANK"), 8)
+    lora_alpha = _parse_int(os.getenv("DIAFOOT_LORA_ALPHA"), 16)
     dfu_seg_fallback_prob = _parse_probability(
         _getenv("DIAFOOT_DFU_SEG_FALLBACK_PROB"),
         DEFAULT_DFU_SEG_FALLBACK_PROB,
@@ -373,7 +384,13 @@ def _build_pipeline_from_checkpoints() -> InferencePipeline | None:
     from src.models.dinov2_classifier import DINOv2Classifier
 
     classifier = DINOv2Classifier(
-        backbone=backbone, num_classes=3, freeze_backbone=True, dropout=0.3
+        backbone=backbone,
+        num_classes=3,
+        freeze_backbone=True,
+        dropout=0.3,
+        use_lora=use_lora,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
     )
     cls_state = _load_state_dict_from_checkpoint(classifier_ckpt)
     classifier.load_state_dict(cls_state)
@@ -383,7 +400,14 @@ def _build_pipeline_from_checkpoints() -> InferencePipeline | None:
     if segmenter_ckpt.exists():
         from src.models.dinov2_segmenter import DINOv2Segmenter
 
-        segmenter = DINOv2Segmenter(backbone=backbone, num_classes=1, freeze_backbone=True)
+        segmenter = DINOv2Segmenter(
+            backbone=backbone,
+            num_classes=1,
+            freeze_backbone=True,
+            use_lora=use_lora,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+        )
         seg_state = _load_state_dict_from_checkpoint(segmenter_ckpt)
         segmenter.load_state_dict(seg_state)
     else:
