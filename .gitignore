@@ -99,3 +99,5 @@ frontend/package-lock.json
 requirements.local.txt
 render.yaml
 data/splits_leaky_backup/
+.gstack/
+.claude/
