@@ -24,7 +24,7 @@
 #SBATCH --gres=gpu:h200:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
-#SBATCH --time=24:00:00
+#SBATCH --time=08:00:00
 #SBATCH --array=0-14%4
 #SBATCH --output=logs/slurm/%A_%a_composition.out
 #SBATCH --error=logs/slurm/%A_%a_composition.err
@@ -64,6 +64,14 @@ COMP=${COMPOSITIONS[$(( IDX / 3 ))]}
 
 # Each task runs all 5 CV folds sequentially.
 for FOLD in 0 1 2 3 4; do
+  # Idempotent: skip a cell whose result JSON already exists, so re-submitting a
+  # timed-out/interrupted task does not redo completed folds.
+  RESULT="results/composition/${ARCH}_${COMP}_seed42_fold${FOLD}.json"
+  if [ -f "$RESULT" ]; then
+    echo "[$(date)] task ${IDX} | skip existing: ${RESULT}"
+    continue
+  fi
+
   # Save qualitative masks only on fold 0 (one set of prediction PNGs per
   # arch x composition is enough for the comparison figure).
   QUAL=""
