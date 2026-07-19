@@ -43,6 +43,12 @@ source .venv/bin/activate
 
 export PYTHONPATH="$PROJECT_ROOT"
 export NO_ALBUMENTATIONS_UPDATE=1
+# Explorer compute nodes have no internet. Pretrained weights must be pre-cached
+# on the login node (see docs/COMPOSITION_EXPERIMENT_RUNBOOK.md); offline mode
+# makes smp use the local cache immediately instead of retrying an unreachable
+# Hugging Face hub for minutes per cell.
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
 mkdir -p logs/slurm results/composition
 
 COMPOSITIONS=(dfu_only dfu_healthy dfu_nondfu all random_mixed)

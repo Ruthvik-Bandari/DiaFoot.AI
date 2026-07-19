@@ -153,10 +153,31 @@ git push origin main     # push as the repo-owner account
 
 ## Notes / gotchas
 
-- **Pre-warm ImageNet/DINOv2 weights** on a login node (internet) if compute
-  nodes are offline:
-  `python -c "import segmentation_models_pytorch as smp; smp.Unet(encoder_name='efficientnet-b4', encoder_weights='imagenet'); smp.Segformer(encoder_name='mit_b0', encoder_weights='imagenet')"`
-  and `python -c "import torch; torch.hub.load('facebookresearch/dinov2','dinov2_vitb14')"`.
+- **Offline compute nodes (Explorer):** the GPU nodes have no internet and the
+  login node OOM-kills heavy Python model builds, so pretrained weights must be
+  fetched with a lightweight `curl` on the login node into the shared torch cache.
+  The SLURM script sets `HF_HUB_OFFLINE=1` so smp loads them from cache instead of
+  retrying the unreachable hub. DINOv2 is already cached from prior training; the
+  smp encoder weights are fetched directly:
+  ```bash
+  mkdir -p ~/.cache/torch/hub/checkpoints
+  ls -la ~/.cache/torch/hub/checkpoints/           # check what's already present
+  # SegFormer MiT-B0:
+  curl -L -o ~/.cache/torch/hub/checkpoints/mit_b0.pth \
+    https://github.com/qubvel/segmentation_models.pytorch/releases/download/v0.0.2/mit_b0.pth
+  # U-Net++ EfficientNet-B4 (only if not already listed above):
+  curl -L -o ~/.cache/torch/hub/checkpoints/efficientnet-b4-6ed6700e.pth \
+    https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b4-6ed6700e.pth
+  ```
+  Then confirm all three architectures build offline on a compute node before the
+  full array:
+  ```bash
+  srun --partition=gpu --gres=gpu:1 --cpus-per-task=4 --mem=16G --time=00:15:00 \
+    env HF_HUB_OFFLINE=1 python -c "import segmentation_models_pytorch as smp, torch; \
+    smp.Unet(encoder_name='efficientnet-b4', encoder_weights='imagenet'); \
+    smp.Segformer(encoder_name='mit_b0', encoder_weights='imagenet'); \
+    torch.hub.load('facebookresearch/dinov2','dinov2_vitb14'); print('all three build offline OK')"
+  ```
 - **Wall-clock:** 75 cells at `%4` is ~1–1.5 days; DINOv2 (frozen backbone) cells
   are fast, U-Net++/SegFormer 50-epoch cells are the long pole. Raise `%` if quota allows.
 - **Patient grouping caveat (state in the paper):** the public sources lack true
