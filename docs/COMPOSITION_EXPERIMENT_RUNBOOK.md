@@ -103,8 +103,12 @@ sbatch slurm/run_composition_matrix.sh
 squeue -u "$USER"
 ```
 
-`--array=0-74%4` runs up to 4 cells at once; lower the `%4` if your GPU quota is
-smaller, raise it if you have more H200s.
+The job is a **15-task array** (5 compositions × 3 architectures); each task runs
+its 5 CV folds sequentially, producing all 75 cells while staying under the
+per-user submitted-job (QOS) limit. `%4` runs up to 4 tasks at once — lower it if
+your GPU quota is smaller, raise it if you have more H200s. If even 15 tasks trip
+the QOS limit, submit in halves: `sbatch --array=0-7%4 ...` then
+`sbatch --array=8-14%4 ...`.
 
 Optional single-cell dry run first (a few min on 1 GPU):
 

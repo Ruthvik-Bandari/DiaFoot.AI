@@ -2,11 +2,14 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # DiaFoot.AI — Training-data-composition study (full matrix, SLURM array)
 #
-# 75 cells = 5 compositions x 3 architectures x 5 CV folds. Each cell trains ONE
-# segmentation model under a controlled TRAINING composition on one CV fold and
-# evaluates it on the fixed, full, clean TEST set, writing one provenance-stamped
-# JSON to results/composition/. Aggregate afterwards with
-# scripts/aggregate_composition_results.py (CPU, login node OK).
+# 75 cells = 5 compositions x 3 architectures x 5 CV folds. To stay under the
+# cluster's per-user submitted-job (QOS) limit, this is a 15-task array (one task
+# per composition x architecture); each task runs its 5 CV folds SEQUENTIALLY.
+# Every cell trains ONE segmentation model under a controlled TRAINING composition
+# on one CV fold and evaluates it on the fixed, full, clean TEST set, writing one
+# provenance-stamped JSON to results/composition/. Aggregate afterwards with
+# scripts/aggregate_composition_results.py (CPU, login node OK). Per-cell JSONs are
+# written as folds finish, so a task that is interrupted keeps its completed folds.
 #
 # PREREQ: generate the shared folds first (once):
 #     python scripts/make_cv_folds.py --n-folds 5 --seed 42
@@ -21,8 +24,8 @@
 #SBATCH --gres=gpu:h200:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
-#SBATCH --time=08:00:00
-#SBATCH --array=0-74%4
+#SBATCH --time=24:00:00
+#SBATCH --array=0-14%4
 #SBATCH --output=logs/slurm/%A_%a_composition.out
 #SBATCH --error=logs/slurm/%A_%a_composition.err
 #SBATCH --mail-type=END,FAIL
@@ -53,35 +56,34 @@ mkdir -p logs/slurm results/composition
 
 COMPOSITIONS=(dfu_only dfu_healthy dfu_nondfu all random_mixed)
 ARCHS=(unetpp segformer dinov2)
-N_FOLDS=5
 
-# Decode array index -> (composition, arch, fold). Layout: fold fastest, then
-# arch, then composition (i = ((comp*3)+arch)*5 + fold).
+# Decode array index -> (composition, arch). 15 tasks = 5 comps x 3 archs.
 IDX=${SLURM_ARRAY_TASK_ID}
-FOLD=$(( IDX % N_FOLDS ))
-REM=$(( IDX / N_FOLDS ))
-ARCH=${ARCHS[$(( REM % 3 ))]}
-COMP=${COMPOSITIONS[$(( REM / 3 ))]}
+ARCH=${ARCHS[$(( IDX % 3 ))]}
+COMP=${COMPOSITIONS[$(( IDX / 3 ))]}
 
-# Save qualitative masks only on fold 0 (one set of prediction PNGs per
-# arch x composition is enough for the comparison figure).
-QUAL=""
-if [ "$FOLD" -eq 0 ]; then
-  QUAL="--save-qualitative --n-qualitative 8"
-fi
+# Each task runs all 5 CV folds sequentially.
+for FOLD in 0 1 2 3 4; do
+  # Save qualitative masks only on fold 0 (one set of prediction PNGs per
+  # arch x composition is enough for the comparison figure).
+  QUAL=""
+  if [ "$FOLD" -eq 0 ]; then
+    QUAL="--save-qualitative --n-qualitative 8"
+  fi
 
-echo "[$(date)] task ${IDX} | arch=${ARCH} comp=${COMP} fold=${FOLD}"
+  echo "[$(date)] task ${IDX} | arch=${ARCH} comp=${COMP} fold=${FOLD}"
 
-# shellcheck disable=SC2086  # intentional word-splitting of $QUAL
-"$PROJECT_ROOT/.venv/bin/python" scripts/run_composition_experiment.py \
-    --arch "${ARCH}" \
-    --composition "${COMP}" \
-    --fold "${FOLD}" \
-    --seed 42 \
-    --device cuda \
-    --epochs 50 \
-    --batch-size 16 \
-    --num-workers 8 \
-    $QUAL
+  # shellcheck disable=SC2086  # intentional word-splitting of $QUAL
+  "$PROJECT_ROOT/.venv/bin/python" scripts/run_composition_experiment.py \
+      --arch "${ARCH}" \
+      --composition "${COMP}" \
+      --fold "${FOLD}" \
+      --seed 42 \
+      --device cuda \
+      --epochs 50 \
+      --batch-size 16 \
+      --num-workers 8 \
+      $QUAL
+done
 
-echo "[$(date)] finished task ${IDX}"
+echo "[$(date)] finished task ${IDX} (arch=${ARCH} comp=${COMP}, folds 0-4)"
