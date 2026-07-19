@@ -69,7 +69,7 @@ function SidebarContent() {
   const accent = isLiveMode ? "#34D399" : "#FBBF24";
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", px: 2, py: 2.5 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", px: 2, pt: 2.5, pb: 3 }}>
       {/* Logo */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
         <Box
@@ -166,8 +166,8 @@ function SidebarContent() {
       <Box sx={{ mt: "auto", pt: 2 }}>
         <Box
           sx={{
-            p: 2,
-            borderRadius: 4,
+            p: 1.75,
+            borderRadius: 2.5,
             backgroundColor: "rgba(18,24,38,0.6)",
             border: "1px solid rgba(255,255,255,0.08)",
             backdropFilter: "blur(12px)",

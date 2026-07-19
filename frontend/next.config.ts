@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Keep the dev-only overlay out of the left sidebar/status capsule.
+  devIndicators: {
+    position: "bottom-right",
+  },
   images: {
     remotePatterns: [
       {
