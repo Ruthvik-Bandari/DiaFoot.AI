@@ -148,4 +148,4 @@ def validate_onnx(
         max_diff = float(np.max(np.abs(pt_numpy - ort_output[0])))
         logger.warning("ONNX validation failed: max diff = %f", max_diff)
 
-    return matches
+    return bool(matches)

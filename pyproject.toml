@@ -188,7 +188,13 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 plugins = ["pydantic.mypy"]
-disable_error_code = ["misc", "no-untyped-call", "unused-ignore", "type-arg"]
+# The type-check CI job installs no runtime deps and runs with
+# --ignore-missing-imports, so third-party symbols (torch, fastapi, ...) resolve
+# to Any. "untyped-decorator" is the decorator-side counterpart of the
+# already-disabled "no-untyped-call": with Any-typed libs, decorators like
+# @torch.no_grad() and FastAPI @app.get are unavoidably untyped. Disable it so
+# strict mode stays compatible with the ignore-missing-imports strategy.
+disable_error_code = ["misc", "no-untyped-call", "unused-ignore", "type-arg", "untyped-decorator"]
 
 [[tool.mypy.overrides]]
 module = [
