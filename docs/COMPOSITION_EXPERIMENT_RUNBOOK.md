@@ -1,10 +1,11 @@
 # Composition Study — Explorer Runbook
 
 Run the training-data-composition experiment on Northeastern Explorer, where the
-images and GPUs live. Produces the paper's composition table: for each
-(architecture × training composition × seed) cell, DFU-Dice with 95% CIs, the
-false-positive rate on empty ground truth, and paired significance vs DFU-only —
-all on the **fixed, clean test set**.
+images and GPUs live. Produces the paper's core result: with **architecture and
+hyperparameters fixed**, how does the *composition* of the training set affect
+diabetic-foot-ulcer segmentation? Every cell is evaluated on the **same fixed
+clean test set**, with DFU-Dice / IoU / HD95 / NSD, 5-fold cross-validation
+(mean ± std), and paired significance vs DFU-only.
 
 Every step is gated by the one before it. **Do not `sbatch` until the clean-split
 gate (step 3) passes** — training on leaky splits reproduces the exact bug this
@@ -12,30 +13,33 @@ study exists to avoid.
 
 ---
 
-## What runs (14 cells, `slurm/run_composition_matrix.sh`)
+## What runs (75 cells = 5 × 3 × 5)
 
-| Cells | Architecture | Composition | Seeds |
-|---|---|---|---|
-| 9 | U-Net++ (EffB4, scSE) | dfu_only · dfu+nonDFU · all | 41, 42, 43 |
-| 2 | U-Net++ | negatives 25% · 50% of pool | 42 |
-| 3 | DINOv2 ViT-B/14 (frozen + UPerNet) | dfu_only · dfu+nonDFU · all | 42 |
+| Axis | Values |
+|---|---|
+| Composition | `dfu_only` · `dfu_healthy` · `dfu_nondfu` · `all` · `random_mixed` (size-matched to DFU-only) |
+| Architecture | U-Net++ (EffB4-scSE) · SegFormer-B0 (MiT-B0) · DINOv2 ViT-B/14 + UPerNet |
+| CV fold | 0–4 (patient-grouped, shared across all cells) |
 
-Each cell is independent, writes its filtered splits + checkpoint to its own dir,
-and emits `results/composition/<run_tag>.json`.
+`slurm/run_composition_matrix.sh` is an array of 75 cells. Each writes its own
+filtered splits + checkpoint and emits `results/composition/<run_tag>.json`
+(metrics + 95% CIs + false-positive-on-empty + learning curve + provenance).
+Qualitative prediction masks are saved on fold 0 only (for the comparison figure).
 
 ---
 
 ## 0. Prereqs
 
 - The composition-experiment code is on the branch Explorer will pull (the new
-  `scripts/run_composition_experiment.py`, `scripts/aggregate_composition_results.py`,
-  `src/data/composition.py`, `src/evaluation/composition_report.py`,
-  `slurm/run_composition_matrix.sh`). **This requires the commit to be pushed to
-  the GitHub repo first** (you curate `main` — see below).
+  `scripts/run_composition_experiment.py`, `scripts/make_cv_folds.py`,
+  `scripts/aggregate_composition_results.py`, `src/data/composition.py`,
+  `src/evaluation/composition_report.py`, `slurm/run_composition_matrix.sh`).
+  **This requires the commit to be pushed to GitHub first** (you curate `main`).
 - Clean, leak-free splits + images already on Explorer from the honest re-run:
   `data/splits/{train,val,test}.csv` and `data/processed/{dfu,healthy,non_dfu}/{images,masks}/`.
-- The DINOv2 backbone is in the torch hub cache (`~/.cache/torch/hub/…`) from the
-  prior DINOv2 training — the compute nodes may not have internet.
+- The DINOv2 backbone is in the torch hub cache from the prior training (compute
+  nodes may lack internet). SegFormer/U-Net++ ImageNet weights download from the
+  login node on first use — pre-warm there if compute nodes are offline (see Notes).
 
 Set your repo location once (adjust to wherever the repo lives on Explorer):
 
@@ -47,11 +51,9 @@ cd "$DIAFOOT"
 ## 1. Get the code onto Explorer
 
 ```bash
-git fetch origin
-git checkout main
-git pull --ff-only
-git log --oneline -3      # expect the composition-experiment commit at/near the tip
-ls scripts/run_composition_experiment.py slurm/run_composition_matrix.sh   # sanity
+git fetch origin && git checkout main && git pull --ff-only
+git log --oneline -3
+ls scripts/run_composition_experiment.py scripts/make_cv_folds.py slurm/run_composition_matrix.sh
 ```
 
 ## 2. Load the environment (same modules/venv as the honest re-run)
@@ -61,13 +63,12 @@ source /etc/profile
 module purge && module load cuda/12.8.0 python/3.13.5
 source .venv/bin/activate
 export PYTHONPATH="$DIAFOOT"
-python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+python -c "import torch, segmentation_models_pytorch as smp; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), 'smp', smp.__version__)"
 ```
 
 ## 3. GATE — prove the splits are the clean set (do NOT skip)
 
 ```bash
-# 3a. Leakage audit must report has_any_leakage: false
 python scripts/run_leakage_audit.py --splits-dir data/splits \
     --output data/metadata/leakage_report_composition.json --verbose
 python - <<'PY'
@@ -77,22 +78,24 @@ flag = r.get("has_any_leakage", r.get("leakage", {}).get("has_any_leakage"))
 assert flag is False, f"LEAKAGE PRESENT ({flag}) — STOP, rebuild clean splits first"
 print("clean-split gate PASSED: has_any_leakage =", flag)
 PY
-
-# 3b. Record the exact test split this study is bound to (goes in the paper)
-python - <<'PY'
-import csv, hashlib, collections
-rows = list(csv.DictReader(open("data/splits/test.csv")))
-by = collections.Counter(r["class"] for r in rows)
-sha = hashlib.sha256(open("data/splits/test.csv","rb").read()).hexdigest()
-print(f"TEST n={len(rows)} by class={dict(by)}")
-print(f"test.csv sha256={sha}")
-PY
 ```
 
-If 3a fails, stop and rebuild clean splits (see `docs/HPC_HONEST_RERUN_RUNBOOK.md`
+If this fails, stop and rebuild clean splits (see `docs/HPC_HONEST_RERUN_RUNBOOK.md`
 step 2) before continuing.
 
-## 4. Submit the matrix
+## 4. Generate the shared CV folds (once)
+
+```bash
+python scripts/make_cv_folds.py --n-folds 5 --seed 42
+ls data/splits/cv/fold*/train.csv          # expect 5 folds
+cat data/splits/cv/folds_manifest.json | python -m json.tool | head -30
+```
+
+These patient-grouped folds partition the train+val pool and are shared by every
+cell, so all compositions/architectures see the identical fold split. (The
+held-out `test.csv` is never touched — every cell is scored on it.)
+
+## 5. Submit the matrix
 
 ```bash
 mkdir -p logs/slurm results/composition
@@ -100,26 +103,26 @@ sbatch slurm/run_composition_matrix.sh
 squeue -u "$USER"
 ```
 
-`--array=0-13%4` runs up to 4 cells at once; lower the `%4` if your GPU quota is
+`--array=0-74%4` runs up to 4 cells at once; lower the `%4` if your GPU quota is
 smaller, raise it if you have more H200s.
 
-Optional single-cell dry run before the full array (a few min on 1 GPU, 2 epochs):
+Optional single-cell dry run first (a few min on 1 GPU):
 
 ```bash
 python scripts/run_composition_experiment.py --arch unetpp --composition dfu_only \
-    --seed 42 --epochs 2 --device cuda --num-workers 8
-ls results/composition/   # expect unetpp_dfu_only_seed42.json
+    --fold 0 --seed 42 --epochs 2 --device cuda --num-workers 8
+ls results/composition/   # expect unetpp_dfu_only_seed42_fold0.json
 ```
 
-## 5. Monitor
+## 6. Monitor
 
 ```bash
 squeue -u "$USER"
-tail -f logs/slurm/*_0_composition.out      # a running cell
-ls results/composition/*.json | wc -l       # completed cells (target: 14)
+ls results/composition/*.json | wc -l        # completed cells (target: 75)
+tail -f logs/slurm/*_0_composition.out
 ```
 
-## 6. Aggregate into the paper table (CPU — login node is fine)
+## 7. Aggregate into the paper table (CPU — login node is fine)
 
 ```bash
 python scripts/aggregate_composition_results.py \
@@ -129,18 +132,20 @@ python scripts/aggregate_composition_results.py \
 cat results/composition_comparison.md
 ```
 
-## 7. Bring the results back
+The `.md` is the fold-averaged results table (DFU Dice mean ± std per
+composition × architecture); the `.json` also carries per-cell numbers and the
+paired-bootstrap significance of each composition vs DFU-only.
 
-The result artifacts are tiny (JSON + markdown). Commit them from Explorer and
-pull on the Mac (works even when interactive SSH/rsync is flaky). NOTE: `results/`
-is gitignored, so the composition outputs must be **force-added** (`-f`) — they are
-the paper's evidence and belong under version control:
+## 8. Bring the results back
+
+Result artifacts are tiny (JSON + markdown + a few mask PNGs). `results/` is
+gitignored, so **force-add** — these are the paper's evidence:
 
 ```bash
 git add -f results/composition results/composition_comparison.json \
-           results/composition_comparison.md
+           results/composition_comparison.md data/splits/cv/folds_manifest.json
 git add data/metadata/leakage_report_composition.json   # data/metadata is tracked
-git commit -m "results(composition): clean-split composition study (14 cells)"
+git commit -m "results(composition): clean-split CV composition study (75 cells)"
 git push origin main     # push as the repo-owner account
 ```
 
@@ -148,12 +153,15 @@ git push origin main     # push as the repo-owner account
 
 ## Notes / gotchas
 
-- **Push mechanics:** the repo owner is the personal GitHub account; push from the
-  account that owns `Ruthvik-Bandari/DiaFoot.AI`.
-- **DINOv2 offline:** if a DINOv2 cell fails to load the backbone, pre-warm the hub
-  cache on a login node (which has internet):
-  `python -c "import torch; torch.hub.load('facebookresearch/dinov2','dinov2_vitb14')"`.
+- **Pre-warm ImageNet/DINOv2 weights** on a login node (internet) if compute
+  nodes are offline:
+  `python -c "import segmentation_models_pytorch as smp; smp.Unet(encoder_name='efficientnet-b4', encoder_weights='imagenet'); smp.Segformer(encoder_name='mit_b0', encoder_weights='imagenet')"`
+  and `python -c "import torch; torch.hub.load('facebookresearch/dinov2','dinov2_vitb14')"`.
+- **Wall-clock:** 75 cells at `%4` is ~1–1.5 days; DINOv2 (frozen backbone) cells
+  are fast, U-Net++/SegFormer 50-epoch cells are the long pole. Raise `%` if quota allows.
+- **Patient grouping caveat (state in the paper):** the public sources lack true
+  patient IDs, so folds are grouped by the strongest available image-provenance id.
+  Because every fold is scored on the fixed clean test set, the reported metric is
+  unaffected by any residual intra-pool fold leakage.
 - **Reproducibility:** each cell's JSON carries the test-split SHA, checkpoint SHA,
-  seed, git commit, and per-class train counts — cite these in the methods section.
-- **Fair comparison:** every cell is evaluated on the *same* full clean test set;
-  the DFU-only numbers are the DFU slice of that identical set.
+  seed, fold, git commit, input size, and per-class train counts.

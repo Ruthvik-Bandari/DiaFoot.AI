@@ -36,8 +36,12 @@ NEGATIVE_CLASSES: tuple[str, ...] = ("healthy", "non_dfu")
 ALL_CLASSES: tuple[str, ...] = ("healthy", "non_dfu", "dfu")
 
 # Categorical composition presets (which classes are present in TRAINING).
+# These four are the class-subset conditions from the manuscript; "random_mixed"
+# is NOT here because it is a size-matched draw, not a class subset (see
+# :func:`random_mixed`).
 COMPOSITIONS: dict[str, tuple[str, ...]] = {
     "dfu_only": ("dfu",),
+    "dfu_healthy": ("dfu", "healthy"),
     "dfu_nondfu": ("dfu", "non_dfu"),
     "all": ("healthy", "non_dfu", "dfu"),
 }
@@ -128,6 +132,66 @@ def subsample_negatives(
         kept.extend(rng.sample(pool, keep_n))
 
     return kept
+
+
+def random_mixed(rows: Iterable[Row], seed: int = 42, sort_key: str = "image") -> list[Row]:
+    """Size-matched random draw across all classes (the ``random_mixed`` condition).
+
+    Draws ``N`` rows uniformly at random from the *entire* pool (all classes),
+    where ``N`` is the number of DFU rows in the pool. This is the manuscript's
+    key control: a training set the **same size** as DFU-only but with mixed
+    content, so any performance difference is attributable to composition, not
+    dataset size. Deterministic given ``seed`` (pool sorted by ``sort_key``
+    first for stable ordering).
+
+    If DFU rows are >= the whole pool (degenerate), the full pool is returned.
+    """
+    rows = list(rows)
+    n_dfu = sum(1 for r in rows if _class_of(r) == POSITIVE_CLASS)
+    pool = sorted(rows, key=lambda r: r.get(sort_key, ""))
+    if n_dfu >= len(pool):
+        return pool
+    rng = random.Random(seed)  # noqa: S311 — reproducible sampling, not crypto
+    return rng.sample(pool, n_dfu)
+
+
+def group_kfold(
+    rows: Iterable[Row],
+    n_folds: int = 5,
+    seed: int = 42,
+    group_key: str = "patient_id",
+) -> list[tuple[list[Row], list[Row]]]:
+    """Grouped k-fold partition of ``rows`` (returns ``[(train, val)]`` per fold).
+
+    Rows sharing a ``group_key`` value are always kept in the same fold, so a
+    group never straddles train/val within a fold. Groups are shuffled with a
+    seeded RNG then round-robined across folds (balances the group count per
+    fold). Deterministic given ``seed``.
+
+    Note on this dataset: the public sources lack true patient IDs
+    (``patient_id`` is ~unique per image), so this is the strongest available
+    provenance grouping, not a guarantee of patient independence — state that
+    honestly. Because the composition study evaluates every fold on a *fixed*
+    held-out test set (the fold's val split only drives early stopping), the
+    reported test metric is unaffected by any residual intra-pool fold leakage.
+    """
+    if n_folds < 2:
+        msg = f"n_folds must be >= 2, got {n_folds}"
+        raise ValueError(msg)
+    groups: dict[str, list[Row]] = {}
+    for r in rows:
+        key = r.get(group_key) or r.get("image") or ""
+        groups.setdefault(key, []).append(r)
+    keys = sorted(groups)
+    rng = random.Random(seed)  # noqa: S311 — reproducible fold assignment, not crypto
+    rng.shuffle(keys)
+    fold_of = {k: i % n_folds for i, k in enumerate(keys)}
+    folds: list[tuple[list[Row], list[Row]]] = []
+    for f in range(n_folds):
+        val = [r for k in keys if fold_of[k] == f for r in groups[k]]
+        train = [r for k in keys if fold_of[k] != f for r in groups[k]]
+        folds.append((train, val))
+    return folds
 
 
 def class_counts(rows: Iterable[Row]) -> dict[str, int]:

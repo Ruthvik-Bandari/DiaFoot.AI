@@ -43,6 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.data.augmentation import get_train_transforms, get_val_transforms
 from src.data.composition import (
     class_counts,
+    random_mixed,
     read_split_csv,
     select_composition,
     subsample_negatives,
@@ -57,11 +58,11 @@ from src.training.trainer import TrainConfig, Trainer
 
 logger = logging.getLogger("composition")
 
-# Per-architecture input size: U-Net++ (smp) requires H,W divisible by 32 (512);
-# DINOv2 requires divisibility by the patch size 14 (518). Using the wrong size
-# crashes the model, so it is chosen from the architecture, not left to a shared
-# default.
-ARCH_IMAGE_SIZE = {"unetpp": 512, "dinov2": 518}
+# Per-architecture input size: U-Net++ and SegFormer (smp) require H,W divisible
+# by 32 (512); DINOv2 requires divisibility by the patch size 14 (518). Using the
+# wrong size crashes the model, so it is chosen from the architecture, not left to
+# a shared default.
+ARCH_IMAGE_SIZE = {"unetpp": 512, "segformer": 512, "dinov2": 518}
 
 
 def _set_seed(seed: int) -> None:
@@ -84,11 +85,21 @@ def build_model(arch: str, encoder_weights: str | None = "imagenet") -> torch.nn
             classes=1,
             decoder_attention_type="scse",
         )
+    if arch == "segformer":
+        import segmentation_models_pytorch as smp
+
+        # SegFormer-B0 = MiT-B0 encoder + the SegFormer all-MLP decoder.
+        return smp.Segformer(
+            encoder_name="mit_b0",
+            encoder_weights=encoder_weights,
+            in_channels=3,
+            classes=1,
+        )
     if arch == "dinov2":
         from src.models.dinov2_segmenter import DINOv2Segmenter
 
         return DINOv2Segmenter(backbone="dinov2_vitb14", num_classes=1, freeze_backbone=True)
-    msg = f"unknown arch {arch!r}; expected 'unetpp' or 'dinov2'"
+    msg = f"unknown arch {arch!r}; expected 'unetpp', 'segformer', or 'dinov2'"
     raise ValueError(msg)
 
 
@@ -98,7 +109,9 @@ def make_composition_rows(
     neg_frac: float | None,
     seed: int,
 ) -> list[dict[str, str]]:
-    """Apply the categorical composition OR the negative-ratio to a row set."""
+    """Apply a categorical composition, the size-matched random mix, OR the negative-ratio."""
+    if composition == "random_mixed":
+        return random_mixed(rows, seed=seed)
     if composition is not None:
         return select_composition(rows, composition)
     if neg_frac is not None:
@@ -124,14 +137,65 @@ def pick_best_checkpoint(ckpt_dir: Path, mode: str = "min") -> Path:
     return min(ckpts, key=metric_of) if mode == "min" else max(ckpts, key=metric_of)
 
 
+def dfu_test_indices(test_ds: DFUDataset, n: int) -> list[int]:
+    """First ``n`` DFU-labelled indices of the test set (stable across cells).
+
+    Reads labels from the dataset's CSV rows (no image loading), so every
+    architecture/composition/fold saves predictions for the *same* wounds — a
+    prerequisite for the side-by-side qualitative comparison figure.
+    """
+    dfu = [i for i, s in enumerate(test_ds.samples) if s.get("class") == "dfu"]
+    return dfu[:n]
+
+
+def save_qualitative(
+    model: torch.nn.Module,
+    test_ds: DFUDataset,
+    indices: list[int],
+    device: str,
+    out_dir: Path,
+) -> None:
+    """Save predicted binary masks (PNG) for fixed test indices for the figure."""
+    import cv2
+    import numpy as np
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model = model.to(device).eval()
+    with torch.no_grad():
+        for idx in indices:
+            sample = test_ds[idx]
+            image = sample["image"].unsqueeze(0).to(device)
+            logits = model(image)
+            if isinstance(logits, dict):
+                logits = logits.get("seg_logits", logits)
+            pred = (torch.sigmoid(logits) > 0.5).squeeze().cpu().numpy().astype(np.uint8) * 255
+            cv2.imwrite(str(out_dir / f"pred_idx{idx:05d}.png"), pred)
+
+
 def main() -> None:
     """Train + evaluate one composition cell and write its result JSON."""
     parser = argparse.ArgumentParser(description="One cell of the composition study")
-    parser.add_argument("--arch", choices=["unetpp", "dinov2"], required=True)
+    parser.add_argument("--arch", choices=["unetpp", "segformer", "dinov2"], required=True)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--composition", choices=["dfu_only", "dfu_nondfu", "all"])
+    group.add_argument(
+        "--composition",
+        choices=["dfu_only", "dfu_healthy", "dfu_nondfu", "all", "random_mixed"],
+    )
     group.add_argument("--neg-frac", type=float, help="Fraction of the negative pool (0..1)")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--fold",
+        type=int,
+        default=None,
+        help="CV fold index; reads {cv-dir}/fold{N}/{train,val}.csv instead of the global pool",
+    )
+    parser.add_argument("--cv-dir", default="data/splits/cv")
+    parser.add_argument(
+        "--save-qualitative",
+        action="store_true",
+        help="Save predicted masks for a fixed set of test images (for the comparison figure)",
+    )
+    parser.add_argument("--n-qualitative", type=int, default=8)
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--num-workers", type=int, default=8)
@@ -161,20 +225,32 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
-    _set_seed(args.seed)
+    # Per-fold seed offset (matches the repo's CV convention) so each fold gets a
+    # distinct training seed AND a distinct random-mixed / subsample draw.
+    cell_seed = args.seed + (args.fold or 0)
+    _set_seed(cell_seed)
 
     comp_label = args.composition if args.composition else f"negfrac{args.neg_frac:.2f}"
-    run_tag = f"{args.arch}_{comp_label}_seed{args.seed}"
+    fold_tag = "" if args.fold is None else f"_fold{args.fold}"
+    run_tag = f"{args.arch}_{comp_label}_seed{args.seed}{fold_tag}"
     logger.info("=== composition cell: %s ===", run_tag)
 
     splits = Path(args.splits_dir)
+    # Pool source: a shared CV fold (train+val partition) when --fold is set,
+    # otherwise the global train/val split.
+    if args.fold is not None:
+        pool_dir = Path(args.cv_dir) / f"fold{args.fold}"
+        train_src, val_src = pool_dir / "train.csv", pool_dir / "val.csv"
+    else:
+        train_src, val_src = splits / "train.csv", splits / "val.csv"
+
     # Each cell gets its OWN filtered-split dir (concurrency-safe for array jobs).
     filtered_dir = splits / "_composition" / run_tag
     train_rows = make_composition_rows(
-        read_split_csv(splits / "train.csv"), args.composition, args.neg_frac, args.seed
+        read_split_csv(train_src), args.composition, args.neg_frac, cell_seed
     )
     val_rows = make_composition_rows(
-        read_split_csv(splits / "val.csv"), args.composition, args.neg_frac, args.seed
+        read_split_csv(val_src), args.composition, args.neg_frac, cell_seed
     )
     train_csv = filtered_dir / "train.csv"
     val_csv = filtered_dir / "val.csv"
@@ -239,7 +315,8 @@ def main() -> None:
         early_stopping_patience=15,
     )
     trainer = Trainer(model=model, config=train_config)
-    trainer.fit(train_loader, val_loader, loss_fn, optimizer, scheduler)
+    # Learning curves (saved for the appendix, per the manuscript instructions).
+    history = trainer.fit(train_loader, val_loader, loss_fn, optimizer, scheduler)
 
     # Evaluate the best checkpoint on the FULL clean test set.
     best_ckpt = pick_best_checkpoint(ckpt_dir, mode="min")
@@ -249,7 +326,14 @@ def main() -> None:
 
     device = args.device if torch.cuda.is_available() else "cpu"
     per_image, labels = run_segmentation_eval(model, test_loader, device)
-    summary = summarize_run(per_image, labels, seed=args.seed)
+    summary = summarize_run(per_image, labels, seed=cell_seed)
+
+    qualitative_dir = None
+    if args.save_qualitative:
+        qualitative_dir = Path(args.results_dir) / "qualitative" / run_tag
+        indices = dfu_test_indices(test_ds, args.n_qualitative)
+        save_qualitative(model, test_ds, indices, device, qualitative_dir)
+        logger.info("saved %d qualitative masks -> %s", len(indices), qualitative_dir)
 
     provenance = build_provenance(
         split_csv=test_csv,
@@ -258,6 +342,10 @@ def main() -> None:
         composition=comp_label,
         seed=args.seed,
         extra={
+            "fold": args.fold,
+            "cell_seed": cell_seed,
+            "image_size": image_size,
+            "lr": args.lr,
             "epochs": args.epochs,
             "batch_size": args.batch_size,
             "n_train_by_class": n_train_by_class,
@@ -272,7 +360,10 @@ def main() -> None:
         "arch": args.arch,
         "composition": comp_label,
         "seed": args.seed,
+        "fold": args.fold,
         "summary": summary,
+        "learning_curve": history,
+        "qualitative_dir": str(qualitative_dir) if qualitative_dir else None,
         "provenance": provenance,
     }
     out_path = Path(args.results_dir) / f"{run_tag}.json"

@@ -17,13 +17,19 @@ _SPEC.loader.exec_module(agg)
 
 
 def _run(
-    arch: str, comp: str, seed: int, dfu_dice: float, dfu_slice: list[float]
+    arch: str,
+    comp: str,
+    seed: int,
+    dfu_dice: float,
+    dfu_slice: list[float],
+    fold: int = 0,
 ) -> dict[str, Any]:
     return {
-        "run_tag": f"{arch}_{comp}_seed{seed}",
+        "run_tag": f"{arch}_{comp}_seed{seed}_fold{fold}",
         "arch": arch,
         "composition": comp,
         "seed": seed,
+        "fold": fold,
         "summary": {
             "dfu_only": {
                 "aggregate": {
@@ -68,45 +74,47 @@ def _run(
 
 
 def test_condense_run_pulls_citable_numbers() -> None:
-    c = agg.condense_run(_run("unetpp", "dfu_only", 42, 0.851, [0.85, 0.86, 0.84]))
+    c = agg.condense_run(_run("unetpp", "dfu_only", 42, 0.851, [0.85, 0.86, 0.84], fold=3))
     assert c["arch"] == "unetpp"
     assert c["dfu_dice"] == 0.851
-    assert c["dfu_dice_ci"] == [0.851 - 0.02, 0.851 + 0.02]
+    assert c["fold"] == 3
     assert c["n_train_by_class"] == {"dfu": 1483, "non_dfu": 1880, "healthy": 2311}
     assert c["fp_on_empty"] == "1/5"
-    assert c["split_csv_sha256"] == "def"
 
 
-def test_across_seed_summary_mean_std() -> None:
+def test_condition_summary_averages_across_folds() -> None:
     rows = [
-        agg.condense_run(_run("unetpp", "all", 41, 0.80, [0.8])),
-        agg.condense_run(_run("unetpp", "all", 42, 0.82, [0.82])),
-        agg.condense_run(_run("unetpp", "all", 43, 0.84, [0.84])),
+        agg.condense_run(_run("unetpp", "all", 42, 0.80 + 0.01 * f, [0.8], fold=f))
+        for f in range(5)
     ]
-    s = agg.across_seed_summary(rows)
-    assert s["n_seeds"] == 3
-    assert s["seeds"] == [41, 42, 43]
-    assert abs(s["dfu_dice_mean"] - 0.82) < 1e-9
+    s = agg.condition_summary(rows)
+    assert s["n_folds"] == 5
+    assert s["folds"] == [0, 1, 2, 3, 4]
+    assert abs(s["dfu_dice_mean"] - 0.82) < 1e-9  # mean of 0.80..0.84
     assert s["dfu_dice_std"] > 0
 
 
-def test_paired_vs_reference_compares_to_dfu_only() -> None:
+def test_paired_vs_reference_pairs_within_same_fold() -> None:
     runs = [
-        _run("unetpp", "dfu_only", 42, 0.851, [0.90, 0.88, 0.86, 0.92]),
-        _run("unetpp", "all", 42, 0.824, [0.80, 0.78, 0.79, 0.81]),  # lower, same images
+        _run("unetpp", "dfu_only", 42, 0.851, [0.90, 0.88, 0.86, 0.92], fold=1),
+        _run("unetpp", "all", 42, 0.824, [0.80, 0.78, 0.79, 0.81], fold=1),  # lower, same images
+        _run("unetpp", "all", 42, 0.83, [0.99, 0.99, 0.99, 0.99], fold=2),  # no ref at fold 2
     ]
     paired = agg.paired_vs_reference(runs)
+    # only the fold-1 pair has a matching dfu_only reference
     assert len(paired) == 1
     p = paired[0]
     assert p["composition"] == "all"
-    assert p["vs"] == "dfu_only"
-    # all - dfu_only should be negative (adding negatives lowered DFU dice here).
-    assert p["mean_delta"] < 0
+    assert p["fold"] == 1
+    assert p["mean_delta"] < 0  # adding negatives lowered DFU dice here
 
 
-def test_markdown_table_has_header_and_rows() -> None:
-    rows = [agg.condense_run(_run("unetpp", "dfu_only", 42, 0.851, [0.85]))]
-    md = agg.markdown_table(rows)
-    assert "DFU Dice [95% CI]" in md
+def test_markdown_table_renders_condition_summaries() -> None:
+    rows = [
+        agg.condense_run(_run("unetpp", "dfu_only", 42, 0.851, [0.85], fold=f)) for f in range(3)
+    ]
+    summary = agg.condition_summary(rows)
+    md = agg.markdown_table([summary])
+    assert "DFU Dice (mean±std)" in md
     assert "dfu_only" in md
     assert "1483/1880/2311" in md

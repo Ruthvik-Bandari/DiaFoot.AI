@@ -12,6 +12,8 @@ import pytest
 from src.data.composition import (
     class_counts,
     filter_by_classes,
+    group_kfold,
+    random_mixed,
     read_split_csv,
     select_composition,
     subsample_negatives,
@@ -41,9 +43,34 @@ def test_select_composition_dfu_nondfu() -> None:
     assert class_counts(out) == {"non_dfu": 10, "dfu": 8}
 
 
+def test_select_composition_dfu_healthy() -> None:
+    out = select_composition(_rows(), "dfu_healthy")
+    assert class_counts(out) == {"healthy": 20, "dfu": 8}
+
+
 def test_select_composition_all_keeps_everything() -> None:
     out = select_composition(_rows(), "all")
     assert class_counts(out) == {"healthy": 20, "non_dfu": 10, "dfu": 8}
+
+
+def test_random_mixed_size_matches_dfu_count() -> None:
+    # 8 DFU in the pool -> random_mixed draws exactly 8 rows total, across classes.
+    out = random_mixed(_rows(), seed=42)
+    assert len(out) == 8
+    # Drawn from the whole pool, so it should contain negatives (not pure DFU).
+    assert len(class_counts(out)) > 1
+
+
+def test_random_mixed_is_deterministic() -> None:
+    a = [r["image"] for r in random_mixed(_rows(), seed=42)]
+    b = [r["image"] for r in random_mixed(_rows(), seed=42)]
+    assert a == b
+
+
+def test_random_mixed_subset_of_pool() -> None:
+    pool = {r["image"] for r in _rows()}
+    out = {r["image"] for r in random_mixed(_rows(), seed=7)}
+    assert out <= pool
 
 
 def test_select_composition_unknown_raises() -> None:
@@ -96,6 +123,59 @@ def test_subsample_negatives_rejects_out_of_range() -> None:
 def test_missing_class_column_raises() -> None:
     with pytest.raises(KeyError, match="class"):
         select_composition([{"image": "x.png"}], "all")
+
+
+def _grouped_rows() -> list[dict[str, str]]:
+    """30 rows: 5 patients with 3 images each (grouped) + 15 singletons."""
+    rows: list[dict[str, str]] = []
+    for p in range(5):
+        for i in range(3):
+            rows.append({"image": f"p{p}_{i}.png", "class": "dfu", "patient_id": f"patient_{p}"})
+    for s in range(15):
+        rows.append({"image": f"s{s}.png", "class": "dfu", "patient_id": f"solo_{s}"})
+    return rows
+
+
+def test_group_kfold_returns_n_folds() -> None:
+    folds = group_kfold(_grouped_rows(), n_folds=5, seed=42)
+    assert len(folds) == 5
+
+
+def test_group_kfold_val_sets_partition_the_pool() -> None:
+    rows = _grouped_rows()
+    folds = group_kfold(rows, n_folds=5, seed=42)
+    seen: list[str] = []
+    for _train, val in folds:
+        seen += [r["image"] for r in val]
+    # every row appears in exactly one fold's validation split
+    assert sorted(seen) == sorted(r["image"] for r in rows)
+
+
+def test_group_kfold_no_patient_straddles_a_fold() -> None:
+    folds = group_kfold(_grouped_rows(), n_folds=5, seed=42)
+    for train, val in folds:
+        train_patients = {r["patient_id"] for r in train}
+        val_patients = {r["patient_id"] for r in val}
+        assert train_patients.isdisjoint(val_patients)
+
+
+def test_group_kfold_train_val_cover_pool() -> None:
+    rows = _grouped_rows()
+    for train, val in group_kfold(rows, n_folds=5, seed=42):
+        assert len(train) + len(val) == len(rows)
+
+
+def test_group_kfold_deterministic() -> None:
+    a = group_kfold(_grouped_rows(), seed=42)
+    b = group_kfold(_grouped_rows(), seed=42)
+    assert [[r["image"] for r in val] for _, val in a] == [
+        [r["image"] for r in val] for _, val in b
+    ]
+
+
+def test_group_kfold_rejects_one_fold() -> None:
+    with pytest.raises(ValueError, match="n_folds"):
+        group_kfold(_grouped_rows(), n_folds=1)
 
 
 def test_write_then_read_roundtrip(tmp_path: object) -> None:

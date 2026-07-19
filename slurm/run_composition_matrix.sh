@@ -2,17 +2,19 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # DiaFoot.AI — Training-data-composition study (full matrix, SLURM array)
 #
-# 14 cells. Each cell trains ONE segmentation model under a controlled TRAINING
-# composition and evaluates it on the fixed, full, clean test set, writing one
-# provenance-stamped JSON to results/composition/. After the array finishes,
-# aggregate with scripts/aggregate_composition_results.py (CPU, login node OK).
+# 75 cells = 5 compositions x 3 architectures x 5 CV folds. Each cell trains ONE
+# segmentation model under a controlled TRAINING composition on one CV fold and
+# evaluates it on the fixed, full, clean TEST set, writing one provenance-stamped
+# JSON to results/composition/. Aggregate afterwards with
+# scripts/aggregate_composition_results.py (CPU, login node OK).
+#
+# PREREQ: generate the shared folds first (once):
+#     python scripts/make_cv_folds.py --n-folds 5 --seed 42
 #
 #   Usage:  sbatch slurm/run_composition_matrix.sh
 #
-# Matrix:
-#   U-Net++  x {dfu_only, dfu_nondfu, all}  x seeds {41,42,43}   (9, error bars)
-#   U-Net++  x negative-ratio {0.25, 0.50}  x seed 42            (2, dose-response)
-#   DINOv2   x {dfu_only, dfu_nondfu, all}  x seed 42            (3, arch check)
+# Compositions:  dfu_only, dfu_healthy, dfu_nondfu, all, random_mixed
+# Architectures: unetpp (EffB4-scSE), segformer (MiT-B0), dinov2 (ViT-B/14 + UPerNet)
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=diafoot-composition
 #SBATCH --partition=gpu
@@ -20,7 +22,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
 #SBATCH --time=08:00:00
-#SBATCH --array=0-13%4
+#SBATCH --array=0-74%4
 #SBATCH --output=logs/slurm/%A_%a_composition.out
 #SBATCH --error=logs/slurm/%A_%a_composition.err
 #SBATCH --mail-type=END,FAIL
@@ -31,8 +33,7 @@ set -euo pipefail
 PROJECT_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$PROJECT_ROOT"
 
-# SLURM batch shells don't source Lmod init — set up the module environment
-# (disable nounset around /etc/profile, which references unset vars).
+# SLURM batch shells don't source Lmod init — set up the module environment.
 set +u
 source /etc/profile
 set -u
@@ -44,34 +45,37 @@ export PYTHONPATH="$PROJECT_ROOT"
 export NO_ALBUMENTATIONS_UPDATE=1
 mkdir -p logs/slurm results/composition
 
-# One arg-string per array index. run_composition_experiment.py picks the input
-# size per architecture (unetpp=512, dinov2=518) and writes each cell's filtered
-# splits + checkpoints to its OWN directory, so concurrent cells never collide.
-CELLS=(
-  "--arch unetpp --composition dfu_only   --seed 41"
-  "--arch unetpp --composition dfu_only   --seed 42"
-  "--arch unetpp --composition dfu_only   --seed 43"
-  "--arch unetpp --composition dfu_nondfu --seed 41"
-  "--arch unetpp --composition dfu_nondfu --seed 42"
-  "--arch unetpp --composition dfu_nondfu --seed 43"
-  "--arch unetpp --composition all        --seed 41"
-  "--arch unetpp --composition all        --seed 42"
-  "--arch unetpp --composition all        --seed 43"
-  "--arch unetpp --neg-frac 0.25          --seed 42"
-  "--arch unetpp --neg-frac 0.50          --seed 42"
-  "--arch dinov2 --composition dfu_only   --seed 42"
-  "--arch dinov2 --composition dfu_nondfu --seed 42"
-  "--arch dinov2 --composition all        --seed 42"
-)
+COMPOSITIONS=(dfu_only dfu_healthy dfu_nondfu all random_mixed)
+ARCHS=(unetpp segformer dinov2)
+N_FOLDS=5
 
-CELL="${CELLS[$SLURM_ARRAY_TASK_ID]}"
-echo "[$(date)] array task ${SLURM_ARRAY_TASK_ID} | cell: ${CELL}"
+# Decode array index -> (composition, arch, fold). Layout: fold fastest, then
+# arch, then composition (i = ((comp*3)+arch)*5 + fold).
+IDX=${SLURM_ARRAY_TASK_ID}
+FOLD=$(( IDX % N_FOLDS ))
+REM=$(( IDX / N_FOLDS ))
+ARCH=${ARCHS[$(( REM % 3 ))]}
+COMP=${COMPOSITIONS[$(( REM / 3 ))]}
 
-# shellcheck disable=SC2086  # intentional word-splitting of the arg string
-"$PROJECT_ROOT/.venv/bin/python" scripts/run_composition_experiment.py $CELL \
+# Save qualitative masks only on fold 0 (one set of prediction PNGs per
+# arch x composition is enough for the comparison figure).
+QUAL=""
+if [ "$FOLD" -eq 0 ]; then
+  QUAL="--save-qualitative --n-qualitative 8"
+fi
+
+echo "[$(date)] task ${IDX} | arch=${ARCH} comp=${COMP} fold=${FOLD}"
+
+# shellcheck disable=SC2086  # intentional word-splitting of $QUAL
+"$PROJECT_ROOT/.venv/bin/python" scripts/run_composition_experiment.py \
+    --arch "${ARCH}" \
+    --composition "${COMP}" \
+    --fold "${FOLD}" \
+    --seed 42 \
     --device cuda \
     --epochs 50 \
     --batch-size 16 \
-    --num-workers 8
+    --num-workers 8 \
+    $QUAL
 
-echo "[$(date)] finished task ${SLURM_ARRAY_TASK_ID}"
+echo "[$(date)] finished task ${IDX}"
