@@ -1,0 +1,93 @@
+{
+  "n_folds": 5,
+  "seed": 42,
+  "group_key": "patient_id",
+  "pool_size": 6890,
+  "source_train_csv": "data/splits/train.csv",
+  "source_val_csv": "data/splits/val.csv",
+  "source_train_sha256": "88e86662c9cd554bf1c30a8a26592db2a719f42466190c397b38fdd57a84af59",
+  "source_val_sha256": "722242ad687a6cd9b21d552639a7d5cc6a71a100f0679ef9ebcafce213f66eae",
+  "git_commit": "448f46f7be1eddc0dd61741eec78764f3ef4ab25",
+  "folds": [
+    {
+      "fold": 0,
+      "n_train": 5497,
+      "n_val": 1393,
+      "train_by_class": {
+        "dfu": 1427,
+        "healthy": 2218,
+        "non_dfu": 1852
+      },
+      "val_by_class": {
+        "non_dfu": 431,
+        "dfu": 374,
+        "healthy": 588
+      },
+      "n_val_groups": 1330
+    },
+    {
+      "fold": 1,
+      "n_train": 5502,
+      "n_val": 1388,
+      "train_by_class": {
+        "non_dfu": 1823,
+        "dfu": 1431,
+        "healthy": 2248
+      },
+      "val_by_class": {
+        "dfu": 370,
+        "non_dfu": 460,
+        "healthy": 558
+      },
+      "n_val_groups": 1330
+    },
+    {
+      "fold": 2,
+      "n_train": 5511,
+      "n_val": 1379,
+      "train_by_class": {
+        "non_dfu": 1848,
+        "dfu": 1422,
+        "healthy": 2241
+      },
+      "val_by_class": {
+        "dfu": 379,
+        "non_dfu": 435,
+        "healthy": 565
+      },
+      "n_val_groups": 1329
+    },
+    {
+      "fold": 3,
+      "n_train": 5528,
+      "n_val": 1362,
+      "train_by_class": {
+        "non_dfu": 1789,
+        "dfu": 1475,
+        "healthy": 2264
+      },
+      "val_by_class": {
+        "healthy": 542,
+        "dfu": 326,
+        "non_dfu": 494
+      },
+      "n_val_groups": 1329
+    },
+    {
+      "fold": 4,
+      "n_train": 5522,
+      "n_val": 1368,
+      "train_by_class": {
+        "non_dfu": 1820,
+        "dfu": 1449,
+        "healthy": 2253
+      },
+      "val_by_class": {
+        "non_dfu": 463,
+        "healthy": 553,
+        "dfu": 352
+      },
+      "n_val_groups": 1329
+    }
+  ]
+}
