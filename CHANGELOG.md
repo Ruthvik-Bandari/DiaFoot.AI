@@ -2,6 +2,41 @@
 
 All notable changes to DiaFoot.AI are documented in this file.
 
+## [2.1.0] — 2026-07-19
+
+### Training-data composition study + reproducible release
+
+Adds a controlled study of how training-data *composition* affects DFU segmentation, plus honest
+clean-split re-evaluation and public release artifacts. (The v2.0.0 headline Dice of 85.89% below is a
+DFU-only, single-skin-tone subgroup figure that predates the data-leakage fix — see `README.md` and
+`docs/PROJECT_REPORT.md` for the honest, whole-test-set numbers.)
+
+### Added
+- **Training-data composition study** — 5 compositions × 3 architectures (U-Net++, SegFormer-B0,
+  DINOv2) × 5-fold cross-validation (75 models). Finding, identical across all three architectures:
+  DFU+Healthy > DFU-only > All > DFU+Non-DFU > Random-mixed — *composition beats size*. A size-matched
+  Random-mixed control isolates composition from dataset size.
+- Composition harness: `src/data/composition.py`, `scripts/run_composition_experiment.py`,
+  `scripts/aggregate_composition_results.py`, `scripts/make_cv_folds.py`,
+  `src/evaluation/composition_report.py` (bootstrap CIs, FP-on-empty, paired bootstrap, provenance
+  hashes), and `docs/COMPOSITION_EXPERIMENT_RUNBOOK.md`.
+- Public releases (HuggingFace): per-cell model scores + model card
+  (`RuthvikBandari/dfu-segmentation-composition`) and a reproducible dataset benchmark
+  (`RuthvikBandari/dfu-segmentation-benchmark` — manifest, license-permitted masks, splits/CV, source
+  pointers). Both private pending paper submission.
+- Manuscript in preparation: "Beyond Bigger Datasets: How Training Data Composition Influences Diabetic
+  Foot Ulcer Segmentation" (SPIE Medical Imaging), with Prof. Mohammad Eslami (Harvard Medical School).
+
+### Changed
+- `README.md` and `docs/PROJECT_REPORT.md` (§5.3) updated with the all-fold composition results; the
+  dashboard composition card now shows the honest study (replacing the pre-clean-split ablation numbers).
+- Data sourcing clarified: four public datasets (FUSeg, AZH, Mendeley `hsj38fwnvr`, Kaggle); the single
+  Mendeley record supplies both healthy (`Normal`) and non-DFU (`Wound_Main`) images.
+
+### Fixed
+- Reported segmentation metrics are on leakage-audited clean splits (near-duplicate train↔test leakage
+  reduced from 96,829 pairs to 0), superseding earlier leakage-inflated figures.
+
 ## [2.0.0] — 2026-03-05
 
 ### Complete Rebuild: v1 → v2

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "diafootai"
-version = "2.0.0"
+version = "2.1.0"
 description = "Production-grade Diabetic Foot Ulcer Detection, Segmentation & Wagner Staging"
 readme = "README.md"
 license = { text = "MIT" }
