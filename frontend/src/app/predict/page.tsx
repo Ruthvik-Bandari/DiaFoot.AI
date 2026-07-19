@@ -10,39 +10,58 @@ import {
   AlertTitle,
   Box,
   Button,
-  CameraAltIcon,
   Card,
   CardContent,
-  CheckCircleIcon,
   Chip,
-  CloudUploadIcon,
-  CropFreeIcon,
-  ErrorIcon,
+  Grid,
   LinearProgress,
-  ReplayIcon,
   Skeleton,
-  StraightenIcon,
   Typography,
-  WarningIcon,
 } from "@/lib/mui";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import CropFreeIcon from "@mui/icons-material/CropFree";
+import ErrorIcon from "@mui/icons-material/Error";
+import ImageSearchIcon from "@mui/icons-material/ImageSearch";
+import InfoIcon from "@mui/icons-material/Info";
+import ReplayIcon from "@mui/icons-material/Replay";
+import StraightenIcon from "@mui/icons-material/Straighten";
+import TimerIcon from "@mui/icons-material/Timer";
+import WarningIcon from "@mui/icons-material/Warning";
 import { usePrediction, getIsDemoMode } from "@/lib/api";
 import { uploadFormSchema, type UploadFormData, type PredictionResponse } from "@/lib/api/schemas";
+import { GradientText, MetricRow, SectionHeader, StatTile } from "@/components/ui";
+
+/* ─────────────────────────────────────────────────────────────
+   Class → semantic color/icon mapping, shared by the badge and
+   the per-class confidence bars so everything stays in sync.
+   ───────────────────────────────────────────────────────────── */
+const CLASS_COLORS = {
+  success: "#34D399",
+  warning: "#FBBF24",
+  error: "#FB7185",
+  info: "#818CF8",
+} as const;
+
+type SemanticColor = keyof typeof CLASS_COLORS;
+
+const CLASS_META: Record<string, { color: SemanticColor; icon: React.ReactElement }> = {
+  Healthy: { color: "success", icon: <CheckCircleIcon sx={{ fontSize: 16 }} /> },
+  "Non-DFU": { color: "info", icon: <WarningIcon sx={{ fontSize: 16 }} /> },
+  DFU: { color: "error", icon: <ErrorIcon sx={{ fontSize: 16 }} /> },
+  "Manual Review Required": { color: "warning", icon: <WarningIcon sx={{ fontSize: 16 }} /> },
+};
 
 function ClassificationBadge({ classification }: { classification: string }) {
-  const config: Record<string, { color: "success" | "warning" | "error" | "info"; icon: React.ReactElement }> = {
-    Healthy: { color: "success", icon: <CheckCircleIcon sx={{ fontSize: 16 }} /> },
-    "Non-DFU": { color: "info", icon: <WarningIcon sx={{ fontSize: 16 }} /> },
-    DFU: { color: "error", icon: <ErrorIcon sx={{ fontSize: 16 }} /> },
-    "Manual Review Required": { color: "warning", icon: <WarningIcon sx={{ fontSize: 16 }} /> },
-  };
-  const c = config[classification];
+  const c = CLASS_META[classification];
 
   return (
     <Chip
       label={classification}
       color={c?.color ?? "info"}
       icon={c?.icon}
-      sx={{ fontSize: "1rem", fontWeight: 700, py: 2.5, px: 1 }}
+      sx={{ fontSize: "0.9rem", fontWeight: 700, py: 2.5, px: 1 }}
     />
   );
 }
@@ -52,7 +71,7 @@ function ConfidenceBar({ label, value, color }: { label: string; value: number; 
     <Box sx={{ mb: 1.5 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
         <Typography variant="caption" fontWeight={500}>{label}</Typography>
-        <Typography variant="caption" fontWeight={700} color={color}>
+        <Typography variant="caption" fontWeight={700} sx={{ color }}>
           {(value * 100).toFixed(1)}%
         </Typography>
       </Box>
@@ -61,36 +80,60 @@ function ConfidenceBar({ label, value, color }: { label: string; value: number; 
         value={value * 100}
         sx={{
           height: 8,
-          borderRadius: 4,
-          backgroundColor: "rgba(176,196,216,0.2)",
-          "& .MuiLinearProgress-bar": { backgroundColor: color, borderRadius: 4 },
+          borderRadius: 999,
+          backgroundColor: "rgba(255,255,255,0.08)",
+          "& .MuiLinearProgress-bar": { backgroundColor: color, borderRadius: 999 },
         }}
       />
     </Box>
   );
 }
 
-function MetricCard({ icon, label, value, unit }: { icon: React.ReactNode; label: string; value: string; unit?: string }) {
+/**
+ * Compact stat tile for a single wound metric. Delegates rendering to the
+ * shared `StatTile` primitive (animated `metric-figure`, icon accent, meter)
+ * so wound metrics visually match the rest of the design system.
+ */
+function MetricCard({
+  icon,
+  label,
+  value,
+  decimals = 0,
+  unit,
+  accent = "#2DD4BF",
+  meter,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  decimals?: number;
+  unit?: string;
+  accent?: string;
+  meter?: number;
+}) {
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent sx={{ p: 2.5, textAlign: "center" }}>
-        <Box sx={{ color: "primary.main", mb: 1 }}>{icon}</Box>
-        <Typography variant="h5" fontWeight={700} color="primary.dark">
-          {value}
-          {unit && <Typography component="span" variant="body2" color="text.secondary"> {unit}</Typography>}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">{label}</Typography>
-      </CardContent>
-    </Card>
+    <StatTile
+      label={label}
+      value={value}
+      decimals={decimals}
+      suffix={unit ?? ""}
+      icon={icon}
+      accent={accent}
+      meter={meter}
+    />
   );
 }
 
 function ResultsSkeleton() {
   return (
     <Box>
-      <Skeleton variant="rounded" height={60} sx={{ mb: 2 }} />
-      <Skeleton variant="rounded" height={160} sx={{ mb: 2 }} />
-      <Skeleton variant="rounded" height={200} />
+      <Skeleton variant="rounded" height={72} sx={{ mb: 2.5, borderRadius: 3 }} />
+      <Skeleton variant="rounded" height={190} sx={{ mb: 2.5, borderRadius: 3 }} />
+      <Box sx={{ display: "flex", gap: 2, mb: 2.5 }}>
+        <Skeleton variant="rounded" height={140} sx={{ flex: 1, borderRadius: 3 }} />
+        <Skeleton variant="rounded" height={140} sx={{ flex: 1, borderRadius: 3 }} />
+      </Box>
+      <Skeleton variant="rounded" height={320} sx={{ borderRadius: 3 }} />
     </Box>
   );
 }
@@ -111,8 +154,8 @@ function DeferBanner({ result }: { result: PredictionResponse }) {
           : "This case requires clinical review.";
 
   return (
-    <Alert severity="warning" sx={{ mb: 2 }} className="result-card">
-      <AlertTitle>Manual Review Required</AlertTitle>
+    <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 2.5 }} className="result-card">
+      <AlertTitle sx={{ fontWeight: 700 }}>Manual Review Required</AlertTitle>
       {message}
     </Alert>
   );
@@ -120,23 +163,47 @@ function DeferBanner({ result }: { result: PredictionResponse }) {
 
 function ClassificationCard({ result }: { result: PredictionResponse }) {
   const hasProbs = Object.keys(result.classification_probs ?? {}).length > 0;
+  const meta = CLASS_META[result.classification];
+  const accent = CLASS_COLORS[meta?.color ?? "info"];
 
   return (
-    <Card sx={{ mb: 2 }} className="result-card">
+    <Card className="result-card" sx={{ mb: 2.5 }}>
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Box>
-            <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              Classification Result
-            </Typography>
-            <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <ClassificationBadge classification={result.classification} />
-              {result.defer_to_clinician && result.classification_confidence < 0.80 && result.classification !== "Manual Review Required" && (
+        <SectionHeader
+          icon={meta?.icon ?? <WarningIcon />}
+          title="Classification Result"
+          subtitle="Stage 1 · DINOv2 triage classifier"
+          action={
+            <Chip
+              size="small"
+              variant="outlined"
+              icon={<TimerIcon sx={{ fontSize: 14 }} />}
+              label={`${Math.round(result.inference_time_ms)} ms`}
+            />
+          }
+        />
+
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <ClassificationBadge classification={result.classification} />
+            {result.defer_to_clinician &&
+              result.classification_confidence < 0.80 &&
+              result.classification !== "Manual Review Required" && (
                 <ClassificationBadge classification="Manual Review Required" />
               )}
-            </Box>
           </Box>
-          <Typography variant="h3" fontWeight={700} color="primary.main">
+          <Typography
+            className="metric-figure"
+            sx={{ fontSize: "2.4rem", fontWeight: 700, lineHeight: 1, color: accent }}
+          >
             {hasProbs ? `${(result.classification_confidence * 100).toFixed(1)}%` : "N/A"}
           </Typography>
         </Box>
@@ -148,7 +215,7 @@ function ClassificationCard({ result }: { result: PredictionResponse }) {
                 key={cls}
                 label={cls}
                 value={prob}
-                color={cls === "DFU" ? "#E74C3C" : cls === "Healthy" ? "#27AE60" : "#1C7293"}
+                color={CLASS_COLORS[CLASS_META[cls]?.color ?? "info"]}
               />
             ))
           ) : (
@@ -166,24 +233,29 @@ function WoundMetrics({ result }: { result: PredictionResponse }) {
   if (!result.has_wound) return null;
 
   return (
-    <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-      <Box sx={{ flex: 1 }} className="result-card">
+    <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+      <Grid size={{ xs: 12, sm: 6 }} className="result-card">
         <MetricCard
           icon={<CropFreeIcon />}
           label="Wound Coverage"
-          value={result.wound_coverage_pct.toFixed(2)}
+          value={result.wound_coverage_pct}
+          decimals={2}
           unit="%"
+          accent="#34D399"
+          meter={Math.min(1, Math.max(0, result.wound_coverage_pct / 100))}
         />
-      </Box>
-      <Box sx={{ flex: 1 }} className="result-card">
+      </Grid>
+      <Grid size={{ xs: 12, sm: 6 }} className="result-card">
         <MetricCard
           icon={<StraightenIcon />}
           label="Wound Area"
-          value={result.wound_area_mm2.toFixed(1)}
+          value={result.wound_area_mm2}
+          decimals={1}
           unit="mm²"
+          accent="#38BDF8"
         />
-      </Box>
-    </Box>
+      </Grid>
+    </Grid>
   );
 }
 
@@ -262,16 +334,27 @@ function WoundOverlay({ result, preview }: { result: PredictionResponse; preview
   if (!result.has_wound || !result.segmentation_mask_base64) return null;
 
   return (
-    <Card className="result-card" sx={{ mb: 2 }}>
+    <Card className="result-card" sx={{ mb: 2.5, overflow: "hidden" }}>
       <CardContent sx={{ p: 3 }}>
-        <Typography variant="h6" color="primary.dark" gutterBottom>
-          Wound Segmentation Overlay
-        </Typography>
-        <canvas
-          ref={canvasRef}
-          style={{ width: "100%", height: "auto", borderRadius: 8, display: "block" }}
+        <SectionHeader
+          icon={<CropFreeIcon />}
+          title="Segmentation Overlay"
+          subtitle="Stage 2 · DINOv2 + UPerNet wound mask"
         />
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+        <Box
+          sx={{
+            borderRadius: 3,
+            overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.08)",
+            backgroundColor: "rgba(0,0,0,0.2)",
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            style={{ width: "100%", height: "auto", display: "block" }}
+          />
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: "block" }}>
           Red overlay highlights the detected wound region.
         </Typography>
       </CardContent>
@@ -283,7 +366,7 @@ function WoundMissingNotice({ result, isDemoMode }: { result: PredictionResponse
   if (!result.has_wound || result.segmentation_mask_base64) return null;
 
   return (
-    <Card className="result-card">
+    <Card className="result-card" sx={{ mb: 2.5 }}>
       <CardContent sx={{ p: 3, textAlign: "center" }}>
         <Typography variant="body2" color="text.secondary">
           Wound detected but segmentation mask not available in response.
@@ -296,57 +379,29 @@ function WoundMissingNotice({ result, isDemoMode }: { result: PredictionResponse
 
 function DiagnosticsPanel({ diagnostics }: { diagnostics: Record<string, unknown> & { segmentation_ran?: boolean; segmentation_skip_reason?: string; seg_prob_min?: number; seg_prob_max?: number; seg_prob_mean?: number; pixels_above_threshold?: number; total_pixels?: number; seg_threshold_used?: number; confidence_threshold_used?: number; defer_threshold_used?: number } }) {
   return (
-    <Card className="result-card" sx={{ mt: 2 }}>
+    <Card className="result-card">
       <CardContent sx={{ p: 3 }}>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          Pipeline Diagnostics
-        </Typography>
-        <Box
-          component="table"
-          sx={{
-            width: "100%",
-            fontSize: "0.8rem",
-            "& td": { py: 0.5, px: 1, verticalAlign: "top" },
-            "& td:first-of-type": { fontWeight: 600, whiteSpace: "nowrap", color: "text.secondary" },
-          }}
-        >
-          <tbody>
-            <tr>
-              <td>Segmentation ran</td>
-              <td>{diagnostics.segmentation_ran ? "Yes" : "No"}</td>
-            </tr>
-            {diagnostics.segmentation_skip_reason && (
-              <tr>
-                <td>Skip reason</td>
-                <td>{String(diagnostics.segmentation_skip_reason)}</td>
-              </tr>
-            )}
-            {diagnostics.seg_prob_max != null && (
-              <>
-                <tr>
-                  <td>Seg prob range</td>
-                  <td>
-                    {Number(diagnostics.seg_prob_min).toFixed(4)} &mdash; {Number(diagnostics.seg_prob_max).toFixed(4)} (mean: {Number(diagnostics.seg_prob_mean).toFixed(4)})
-                  </td>
-                </tr>
-                <tr>
-                  <td>Pixels above threshold</td>
-                  <td>
-                    {String(diagnostics.pixels_above_threshold)} / {String(diagnostics.total_pixels)} (threshold: {Number(diagnostics.seg_threshold_used).toFixed(2)})
-                  </td>
-                </tr>
-              </>
-            )}
-            <tr>
-              <td>Confidence threshold</td>
-              <td>{Number(diagnostics.confidence_threshold_used).toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>Defer threshold</td>
-              <td>{Number(diagnostics.defer_threshold_used).toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </Box>
+        <SectionHeader icon={<InfoIcon />} title="Pipeline Diagnostics" subtitle="Internal thresholds & signal ranges" />
+        <MetricRow label="Segmentation ran" value={diagnostics.segmentation_ran ? "Yes" : "No"} />
+        {diagnostics.segmentation_skip_reason && (
+          <MetricRow label="Skip reason" value={String(diagnostics.segmentation_skip_reason)} />
+        )}
+        {diagnostics.seg_prob_max != null && (
+          <>
+            <MetricRow
+              label="Seg prob range"
+              mono
+              value={`${Number(diagnostics.seg_prob_min).toFixed(4)} – ${Number(diagnostics.seg_prob_max).toFixed(4)} (mean ${Number(diagnostics.seg_prob_mean).toFixed(4)})`}
+            />
+            <MetricRow
+              label="Pixels above threshold"
+              mono
+              value={`${String(diagnostics.pixels_above_threshold)} / ${String(diagnostics.total_pixels)} (≥ ${Number(diagnostics.seg_threshold_used).toFixed(2)})`}
+            />
+          </>
+        )}
+        <MetricRow label="Confidence threshold" mono value={Number(diagnostics.confidence_threshold_used).toFixed(2)} />
+        <MetricRow label="Defer threshold" mono value={Number(diagnostics.defer_threshold_used).toFixed(2)} />
       </CardContent>
     </Card>
   );
@@ -374,7 +429,8 @@ export default function PredictPage() {
 
   useGSAP(
     () => {
-      gsap.from(".upload-area", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" });
+      gsap.from(".hero-reveal", { y: 20, opacity: 0, duration: 0.6, ease: "power3.out" });
+      gsap.from(".upload-area", { y: 24, opacity: 0, duration: 0.6, delay: 0.12, ease: "power3.out" });
     },
     { scope: containerRef }
   );
@@ -449,30 +505,36 @@ export default function PredictPage() {
 
   return (
     <Box ref={containerRef}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.dark">
-          Analyze Image
+      <Box className="hero-reveal" sx={{ mb: 4 }}>
+        <Typography variant="overline" sx={{ color: "primary.light" }}>
+          DiaFoot.AI · Inference
         </Typography>
-        <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
-          Upload a foot image for automated classification and wound segmentation
+        <Typography variant="h3" sx={{ mt: 0.5, lineHeight: 1.1 }}>
+          Analyze a <GradientText>Foot Image</GradientText>
+        </Typography>
+        <Typography variant="subtitle1" sx={{ mt: 1, maxWidth: 620 }}>
+          Upload a photo for automated triage classification and wound-boundary segmentation
+          through the cascaded classifier → segmenter pipeline.
         </Typography>
       </Box>
 
       {isDemoMode && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert severity="warning" className="hero-reveal" sx={{ mb: 3 }}>
           <AlertTitle>Demo Mode</AlertTitle>
           API is not available. Showing simulated results for demonstration purposes.
         </Alert>
       )}
 
-      <Box sx={{ display: "flex", gap: 3, flexDirection: { xs: "column", lg: "row" }, maxWidth: 1200 }}>
-        {/* Upload Area */}
-        <Box sx={{ width: { xs: "100%", lg: 340 }, flexShrink: 0 }}>
-          <Card className="upload-area">
+      <Grid container spacing={3}>
+        {/* Upload panel */}
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Card className="upload-area" sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" color="primary.dark" gutterBottom>
-                Upload Image
-              </Typography>
+              <SectionHeader
+                icon={<CloudUploadIcon />}
+                title="Upload Image"
+                subtitle="JPEG, PNG, or WebP · Max 20MB"
+              />
 
               <form onSubmit={handleSubmit(onSubmit)}>
                 <Box
@@ -480,16 +542,16 @@ export default function PredictPage() {
                   onDragOver={(e) => e.preventDefault()}
                   sx={{
                     border: "2px dashed",
-                    borderColor: errors.image ? "error.main" : "divider",
-                    borderRadius: 3,
+                    borderColor: errors.image ? "error.main" : "rgba(45,212,191,0.35)",
+                    borderRadius: 4,
                     p: 4,
                     textAlign: "center",
                     cursor: "pointer",
-                    transition: "all 0.2s",
-                    backgroundColor: preview ? "transparent" : "rgba(6,90,130,0.02)",
+                    transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+                    background: preview ? "transparent" : "var(--grad-brand-soft)",
                     "&:hover": {
-                      borderColor: "primary.main",
-                      backgroundColor: "rgba(6,90,130,0.04)",
+                      borderColor: "rgba(45,212,191,0.65)",
+                      boxShadow: "var(--glow-teal)",
                     },
                     position: "relative",
                     minHeight: 280,
@@ -505,12 +567,26 @@ export default function PredictPage() {
                       component="img"
                       src={preview}
                       alt="Preview"
-                      sx={{ maxWidth: "100%", maxHeight: 260, borderRadius: 2, objectFit: "contain" }}
+                      sx={{ maxWidth: "100%", maxHeight: 260, borderRadius: 3, objectFit: "contain" }}
                     />
                   ) : (
                     <>
-                      <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 2 }} />
-                      <Typography variant="body1" fontWeight={500} color="primary.dark">
+                      <Box
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: "50%",
+                          display: "grid",
+                          placeItems: "center",
+                          mb: 2,
+                          color: "primary.light",
+                          backgroundColor: "rgba(45,212,191,0.1)",
+                          border: "1px solid rgba(45,212,191,0.3)",
+                        }}
+                      >
+                        <CloudUploadIcon sx={{ fontSize: 30 }} />
+                      </Box>
+                      <Typography variant="body1" fontWeight={600}>
                         Drop image here or click to browse
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
@@ -542,7 +618,7 @@ export default function PredictPage() {
                     startIcon={<CameraAltIcon />}
                     sx={{ py: 1.5 }}
                   >
-                    {mutation.isPending ? "Analyzing..." : "Analyze"}
+                    {mutation.isPending ? "Analyzing…" : "Analyze"}
                   </Button>
                   <Button
                     variant="outlined"
@@ -555,52 +631,66 @@ export default function PredictPage() {
                 </Box>
               </form>
 
-              {mutation.isPending && (
-                <LinearProgress sx={{ mt: 2, borderRadius: 2 }} />
-              )}
+              {mutation.isPending && <LinearProgress sx={{ mt: 2 }} />}
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 3, display: "block", lineHeight: 1.6 }}
+              >
+                Research prototype — not a medical device, not for clinical use.
+              </Typography>
             </CardContent>
           </Card>
-        </Box>
+        </Grid>
 
         {/* Results */}
-        <Box sx={{ flex: 1, minWidth: 0 }} ref={resultsRef}>
-          {mutation.isPending && <ResultsSkeleton />}
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <Box ref={resultsRef}>
+            {mutation.isPending && <ResultsSkeleton />}
 
-          {mutation.isError && (
-            <Alert severity="error">
-              <AlertTitle>Analysis Failed</AlertTitle>
-              {mutation.error instanceof Error
-                ? mutation.error.message
-                : "An error occurred during analysis. Please try again."}
-            </Alert>
-          )}
+            {mutation.isError && (
+              <Alert severity="error" sx={{ mb: 2.5 }}>
+                <AlertTitle>Analysis Failed</AlertTitle>
+                {mutation.error instanceof Error
+                  ? mutation.error.message
+                  : "An error occurred during analysis. Please try again."}
+              </Alert>
+            )}
 
-          {result && (
-            <Box>
-              <DeferBanner result={result} />
-              <ClassificationCard result={result} />
-              <WoundMetrics result={result} />
-              {preview && <WoundOverlay result={result} preview={preview} />}
-              <WoundMissingNotice result={result} isDemoMode={isDemoMode} />
-              {result.diagnostics && <DiagnosticsPanel diagnostics={result.diagnostics} />}
-            </Box>
-          )}
+            {result && (
+              <Box>
+                <DeferBanner result={result} />
+                <ClassificationCard result={result} />
+                <WoundMetrics result={result} />
+                {preview && <WoundOverlay result={result} preview={preview} />}
+                <WoundMissingNotice result={result} isDemoMode={isDemoMode} />
+                {result.diagnostics && <DiagnosticsPanel diagnostics={result.diagnostics} />}
+              </Box>
+            )}
 
-          {!mutation.isPending && !result && !mutation.isError && (
-            <Card sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
-              <CardContent sx={{ textAlign: "center" }}>
-                <CameraAltIcon sx={{ fontSize: 64, color: "divider", mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">
-                  Upload an image to see results
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  The model will classify the image and segment any detected wounds
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
-        </Box>
-      </Box>
+            {!mutation.isPending && !result && !mutation.isError && (
+              <Card
+                sx={{
+                  height: "100%",
+                  minHeight: 400,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CardContent sx={{ textAlign: "center" }}>
+                  <ImageSearchIcon sx={{ fontSize: 56, color: "text.secondary", mb: 2, opacity: 0.5 }} />
+                  <Typography variant="h6">Upload an image to see results</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 320, mx: "auto" }}>
+                    The model will classify the image and segment any detected wounds.
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+          </Box>
+        </Grid>
+      </Grid>
     </Box>
   );
 }

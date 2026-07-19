@@ -1,0 +1,100 @@
+:root {
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  /* Cinematic dark surface stack */
+  --bg-base: #060910;
+  --bg-elev: #0c111d;
+  --surface-glass: rgba(18, 24, 38, 0.62);
+  --surface-glass-strong: rgba(20, 27, 43, 0.86);
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(45, 212, 191, 0.35);
+
+  /* Brand gradient — teal → sky → indigo */
+  --grad-brand: linear-gradient(120deg, #2dd4bf 0%, #38bdf8 48%, #6366f1 100%);
+  --grad-brand-soft: linear-gradient(120deg, rgba(45, 212, 191, 0.16), rgba(99, 102, 241, 0.16));
+  --glow-teal: 0 0 0 1px rgba(45, 212, 191, 0.25), 0 8px 40px -8px rgba(45, 212, 191, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: #e6edf5;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Layered radial glows painted behind everything for depth */
+  background-image:
+    radial-gradient(58rem 58rem at 12% -8%, rgba(45, 212, 191, 0.12), transparent 60%),
+    radial-gradient(52rem 52rem at 108% 8%, rgba(99, 102, 241, 0.14), transparent 58%),
+    radial-gradient(46rem 46rem at 50% 120%, rgba(56, 189, 248, 0.08), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Tabular, monospaced figures for all metric numbers */
+.metric-figure {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  letter-spacing: -0.01em;
+}
+
+/* Custom scrollbar to match the dark shell */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 212, 191, 0.35);
+  background-clip: content-box;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.3);
+  color: #ffffff;
+}
+
+/* Ambient floating glow blobs (mounted by AppShell) */
+@keyframes drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(6%, 8%, 0) scale(1.15); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
+  50% { transform: translate3d(-8%, -6%, 0) scale(0.95); }
+}
+@keyframes sheen {
+  0% { background-position: -120% 0; }
+  100% { background-position: 220% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

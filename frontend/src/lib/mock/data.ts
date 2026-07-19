@@ -57,20 +57,20 @@ export const MOCK_DEFER_RESULT: PredictionResponse = {
 export const MOCK_HEALTH: HealthResponse = {
   status: "healthy",
   model_loaded: true,
-  version: "2.0.0",
+  version: "2.1.0",
 };
 
 export const MOCK_MODEL_INFO: ModelInfoResponse = {
-  classifier: "EfficientNet-V2-M (3-class triage)",
-  segmenter: "U-Net++ / EfficientNet-B4",
-  input_size: [512, 512],
+  classifier: "DINOv2 (dinov2_vitb14) 3-class triage",
+  segmenter: "DINOv2 (dinov2_vitb14) + UPerNet",
+  input_size: [518, 518],
   num_classes: 3,
-  confidence_threshold: 0.95,
+  confidence_threshold: 0.7,
   defer_threshold: 0.6,
   defer_threshold_source: "calibration",
   max_image_size_mb: 20.0,
   rate_limit_rpm: 100,
-  version: "2.0.0",
+  version: "2.1.0",
 };
 
 const MOCK_RESULTS = [MOCK_DFU_RESULT, MOCK_HEALTHY_RESULT, MOCK_DEFER_RESULT];

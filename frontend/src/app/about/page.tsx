@@ -28,27 +28,21 @@ import {
   Typography,
   WarningAmberIcon,
 } from "@/lib/mui";
+import { GradientText, MetricRow, SectionHeader } from "@/components/ui";
 
-interface InfoRowProps {
-  label: string;
-  value: string;
-}
-
-function InfoRow({ label, value }: InfoRowProps) {
-  return (
-    <Box sx={{ display: "flex", justifyContent: "space-between", py: 1 }}>
-      <Typography variant="body2" color="text.secondary">{label}</Typography>
-      <Typography variant="body2" fontWeight={600}>{value}</Typography>
-    </Box>
-  );
-}
-
-const ABLATION_DATA = [
-  { variant: "U-Net++ (DFU-only)", dice: "85.13%", iou: "77.51%", note: "Best" },
-  { variant: "U-Net++ (All classes)", dice: "82.35%", iou: "73.67%", note: "" },
-  { variant: "FUSegNet (DFU+nonDFU)", dice: "81.75%", iou: "73.00%", note: "" },
-  { variant: "U-Net++ v2 (DFU+nonDFU)", dice: "80.39%", iou: "70.72%", note: "" },
-  { variant: "U-Net++ (DFU+nonDFU)", dice: "79.03%", iou: "69.03%", note: "Worst" },
+const ARCHITECTURE_STAGES = [
+  {
+    stage: "Stage 1",
+    title: "Triage Classifier",
+    desc: "DINOv2 ViT-B/14 (frozen) + linear head → Healthy · Non-DFU · DFU",
+    color: "#2DD4BF",
+  },
+  {
+    stage: "Stage 2",
+    title: "Wound Segmenter",
+    desc: "DINOv2 ViT-B/14 (frozen) + UPerNet decoder → pixel-wise wound mask",
+    color: "#38BDF8",
+  },
 ];
 
 const CV_DATA = [
@@ -59,22 +53,31 @@ const CV_DATA = [
   { fold: "4", dice: "84.56%", iou: "77.69%" },
 ];
 
-const LIMITATIONS = [
-  "Classifier learns dataset shortcuts: EfficientNet achieves 100% internal but only 21% external accuracy (0% DFU sensitivity). DINOv2 (98.36%) is less extreme but the same risk applies.",
-  "Data leakage detected: 20,774 near-duplicate healthy foot pairs across train-val splits. Content overlap: 87 train-val, 9 train-test pairs.",
-  "Limited skin tone diversity: 929/1,057 test images labeled Unknown ITA. Fairness validated on single group only (Brown, n=285).",
-  "Wound area agreement evaluated on only 3 images. Statistically insufficient for clinical claims.",
-  "The software is intended for research and education, not for clinical diagnosis or treatment.",
+const ABLATION_DATA = [
+  { variant: "U-Net++ (DFU-only)", dice: "85.13%", iou: "77.51%", note: "Best" },
+  { variant: "U-Net++ (All classes)", dice: "82.35%", iou: "73.67%", note: "" },
+  { variant: "FUSegNet (DFU+nonDFU)", dice: "81.75%", iou: "73.00%", note: "" },
+  { variant: "U-Net++ v2 (DFU+nonDFU)", dice: "80.39%", iou: "70.72%", note: "" },
+  { variant: "U-Net++ (DFU+nonDFU)", dice: "79.03%", iou: "69.03%", note: "Worst" },
 ];
 
 const TECH_STACK = [
-  { component: "Deep Learning", tool: "PyTorch 2.10.0" },
-  { component: "Medical Imaging", tool: "MONAI 1.5.2" },
-  { component: "Segmentation", tool: "SMP 0.5.0" },
+  { component: "Deep Learning", tool: "PyTorch 2.13" },
+  { component: "Medical Imaging", tool: "MONAI 1.5" },
+  { component: "Segmentation", tool: "SMP 0.5" },
   { component: "Augmentation", tool: "Albumentations 1.4" },
-  { component: "API", tool: "FastAPI 0.133.0" },
+  { component: "API", tool: "FastAPI 0.139" },
   { component: "Inference", tool: "ONNX Runtime 1.21" },
   { component: "Compute", tool: "Northeastern HPC (H200/A100)" },
+];
+
+const SCOPE_NOTES = [
+  "Shortcut-learning risk: an EfficientNet baseline reached 100% internal accuracy but only 21% external (0% DFU sensitivity). The deployed DINOv2 classifier (98.4%) is far more robust, but external classification still does not generalize — re-validate on your own image source before any use.",
+  "Data leakage — found and fixed: an audit detected near-duplicate train↔test pairs; they were removed and the splits rebuilt. Re-audit confirms zero overlap across path, canonical-ID, content-hash, and perceptual-hash.",
+  "Segmentation mean vs. median: the mixed-set mean Dice (0.65–0.72) is dragged down by empty-mask healthy/non-DFU images; the median (0.93) and DFU-only mean (0.89) reflect real-wound performance.",
+  "Limited skin-tone diversity: fairness was validated primarily on one ITA group (Brown, n=285 for DFU). Broader-spectrum validation is still needed.",
+  "Wound-area agreement was evaluated on only 3 images — statistically insufficient for any clinical claim.",
+  "Research and education only. This is NOT a medical device and must not be used for diagnosis or treatment.",
 ];
 
 export default function AboutPage() {
@@ -82,12 +85,14 @@ export default function AboutPage() {
 
   useGSAP(
     () => {
+      gsap.from(".about-hero", { y: 24, opacity: 0, duration: 0.7, ease: "power3.out" });
       gsap.from(".about-section", {
         y: 25,
         opacity: 0,
         duration: 0.5,
         stagger: 0.12,
         ease: "power3.out",
+        delay: 0.15,
       });
     },
     { scope: containerRef }
@@ -95,50 +100,50 @@ export default function AboutPage() {
 
   return (
     <Box ref={containerRef}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.dark">About DiaFoot.AI</Typography>
-        <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
-          Project details, methodology, results, and limitations
+      {/* Header */}
+      <Box className="about-hero" sx={{ mb: 3 }}>
+        <Typography variant="overline" sx={{ color: "primary.light" }}>
+          DiaFoot.AI · Documentation
+        </Typography>
+        <Typography variant="h3" sx={{ mt: 0.5, lineHeight: 1.05 }}>
+          About <GradientText>DiaFoot.AI</GradientText>
+        </Typography>
+        <Typography variant="subtitle1" sx={{ mt: 1, maxWidth: 640 }}>
+          Project details, methodology, results, and limitations — the full story behind the
+          cascaded triage-and-segmentation pipeline.
         </Typography>
       </Box>
 
       {/* Disclaimer */}
-      <Alert
-        severity="error"
-        icon={<GavelIcon />}
-        className="about-section"
-        sx={{ mb: 3, borderRadius: 3 }}
-      >
+      <Alert severity="error" icon={<GavelIcon />} className="about-section" sx={{ mb: 4 }}>
         <AlertTitle sx={{ fontWeight: 700 }}>Regulatory & Ethical Notice</AlertTitle>
         <Typography variant="body2">
-          This is an academic project developed for educational purposes only (AAI6630, Northeastern University).
-          This software is <strong>NOT</strong> a medical device, is <strong>NOT</strong> FDA-cleared, and is{" "}
-          <strong>NOT</strong> intended for clinical use, diagnosis, treatment, or any medical decision-making.
-          Any use for clinical purposes is strictly prohibited.
+          This is an academic project developed for educational purposes only (AAI6630,
+          Northeastern University). This software is <strong>NOT</strong> a medical device, is{" "}
+          <strong>NOT</strong> FDA-cleared, and is <strong>NOT</strong> intended for clinical use,
+          diagnosis, treatment, or any medical decision-making. Any use for clinical purposes is
+          strictly prohibited.
         </Typography>
       </Alert>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2.5}>
         {/* Project Overview */}
         <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <SchoolIcon color="primary" />
-                <Typography variant="h6" color="primary.dark">Project Overview</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
-                DiaFoot.AI v2 is a production-grade multi-task pipeline for automated diabetic foot ulcer
-                (DFU) detection and wound boundary segmentation. It was built as a complete ground-up rebuild
-                of v1, which achieved seemingly strong metrics (91.73% Dice) but had zero clinical specificity
-                because it was trained exclusively on ulcer images.
+              <SectionHeader icon={<SchoolIcon />} title="Project Overview" subtitle="Who built this, and why" />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, lineHeight: 1.7 }}>
+                DiaFoot.AI v2 is a production-grade, multi-task pipeline for diabetic foot ulcer
+                (DFU) triage and wound-boundary segmentation. It is a ground-up rebuild of v1,
+                which posted strong-looking Dice but had near-zero clinical specificity because it
+                was trained only on ulcer images.
               </Typography>
-              <Divider sx={{ my: 2 }} />
-              <InfoRow label="Author" value="Ruthvik Bandari" />
-              <InfoRow label="Course" value="AAI6630 Computer Vision" />
-              <InfoRow label="University" value="Northeastern University" />
-              <InfoRow label="Date" value="April 2026" />
-              <InfoRow label="Version" value="2.0.0" />
+              <Divider sx={{ my: 1.5 }} />
+              <MetricRow label="Author" value="Ruthvik Bandari" />
+              <MetricRow label="Course" value="AAI6630 Computer Vision" />
+              <MetricRow label="University" value="Northeastern University" />
+              <MetricRow label="Date" value="July 2026" />
+              <MetricRow label="Version" mono value="2.1.0" />
             </CardContent>
           </Card>
         </Grid>
@@ -147,30 +152,38 @@ export default function AboutPage() {
         <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <ArchitectureIcon color="primary" />
-                <Typography variant="h6" color="primary.dark">Architecture</Typography>
-              </Box>
+              <SectionHeader icon={<ArchitectureIcon />} title="Architecture" subtitle="Cascaded two-stage pipeline" />
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7 }}>
-                Cascaded two-stage pipeline validated by data composition ablation:
+                Cascaded two-stage pipeline, validated by a data-composition ablation:
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {[
-                  { stage: "Stage 1", title: "Triage Classifier", desc: "DINOv2 ViT-B/14 (frozen) + linear head → Healthy | Non-DFU | DFU", color: "#1C7293" },
-                  { stage: "Stage 2", title: "Wound Segmenter", desc: "DINOv2 ViT-B/14 (frozen) + UPerNet decoder → pixel-wise wound mask", color: "#065A82" },
-                ].map((s) => (
+                {ARCHITECTURE_STAGES.map((s) => (
                   <Box
                     key={s.stage}
                     sx={{
                       p: 2,
-                      borderRadius: 2,
-                      backgroundColor: `${s.color}08`,
-                      borderLeft: `4px solid ${s.color}`,
+                      borderRadius: 2.5,
+                      backgroundColor: `${s.color}14`,
+                      border: `1px solid ${s.color}33`,
+                      borderLeft: `3px solid ${s.color}`,
                     }}
                   >
-                    <Chip label={s.stage} size="small" sx={{ mb: 0.5, backgroundColor: s.color, color: "#fff" }} />
-                    <Typography variant="body2" fontWeight={600}>{s.title}</Typography>
-                    <Typography variant="caption" color="text.secondary">{s.desc}</Typography>
+                    <Chip
+                      label={s.stage}
+                      size="small"
+                      sx={{
+                        mb: 1,
+                        backgroundColor: `${s.color}26`,
+                        color: s.color,
+                        border: `1px solid ${s.color}55`,
+                      }}
+                    />
+                    <Typography variant="body2" fontWeight={600} sx={{ color: "#E6EDF5" }}>
+                      {s.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                      {s.desc}
+                    </Typography>
                   </Box>
                 ))}
               </Box>
@@ -178,41 +191,65 @@ export default function AboutPage() {
           </Card>
         </Grid>
 
-        {/* Cross-Validation Results */}
+        {/* 5-Fold Cross-Validation */}
         <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <ScienceIcon color="primary" />
-                <Typography variant="h6" color="primary.dark">5-Fold Cross-Validation</Typography>
-              </Box>
-              <Box sx={{ textAlign: "center", mb: 2, p: 2, borderRadius: 2, backgroundColor: "rgba(6,90,130,0.04)" }}>
-                <Typography variant="h4" fontWeight={700} color="primary.main">
-                  85.33 ± 0.91%
+              <SectionHeader
+                icon={<ScienceIcon />}
+                title="5-Fold Cross-Validation"
+                subtitle="DFU wound segmentation (U-Net++)"
+              />
+              <Box
+                sx={{
+                  textAlign: "center",
+                  mb: 2.5,
+                  p: 2.5,
+                  borderRadius: 3,
+                  background: "var(--grad-brand-soft)",
+                  border: "1px solid rgba(45,212,191,0.22)",
+                }}
+              >
+                <Typography className="metric-figure" sx={{ fontSize: "2.3rem", fontWeight: 700, lineHeight: 1.1 }}>
+                  <GradientText>85.33 ± 0.91%</GradientText>
                 </Typography>
-                <Typography variant="caption" color="text.secondary">Dice Score (mean ± std)</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                  Dice score (mean ± std across folds)
+                </Typography>
               </Box>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Fold</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>Dice</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>IoU</TableCell>
+                      <TableCell>Fold</TableCell>
+                      <TableCell align="right">Dice</TableCell>
+                      <TableCell align="right">IoU</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {CV_DATA.map((row) => (
                       <TableRow key={row.fold}>
-                        <TableCell>{row.fold}</TableCell>
-                        <TableCell align="right">{row.dice}</TableCell>
-                        <TableCell align="right">{row.iou}</TableCell>
+                        <TableCell className="metric-figure">{row.fold}</TableCell>
+                        <TableCell align="right" className="metric-figure">{row.dice}</TableCell>
+                        <TableCell align="right" className="metric-figure">{row.iou}</TableCell>
                       </TableRow>
                     ))}
-                    <TableRow sx={{ backgroundColor: "rgba(6,90,130,0.04)" }}>
+                    <TableRow sx={{ backgroundColor: "rgba(45,212,191,0.08)" }}>
                       <TableCell sx={{ fontWeight: 700 }}>Mean ± Std</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>85.33 ± 0.91%</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>78.48 ± 0.95%</TableCell>
+                      <TableCell
+                        align="right"
+                        className="metric-figure"
+                        sx={{ fontWeight: 700, color: "primary.light" }}
+                      >
+                        85.33 ± 0.91%
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        className="metric-figure"
+                        sx={{ fontWeight: 700, color: "primary.light" }}
+                      >
+                        78.48 ± 0.95%
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -221,44 +258,55 @@ export default function AboutPage() {
           </Card>
         </Grid>
 
-        {/* Data Ablation */}
+        {/* Data Composition Ablation */}
         <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <StorageIcon color="primary" />
-                <Typography variant="h6" color="primary.dark">Data Composition Ablation</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Core finding: DFU-only training outperforms all mixed-data variants.
-              </Typography>
+              <SectionHeader
+                icon={<StorageIcon />}
+                title="Data Composition Ablation"
+                subtitle="Core finding: DFU-only training beats every mixed-data variant"
+              />
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Model / Data</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>Dice</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>IoU</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Note</TableCell>
+                      <TableCell>Model / Data</TableCell>
+                      <TableCell align="right">Dice</TableCell>
+                      <TableCell align="right">IoU</TableCell>
+                      <TableCell>Note</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {ABLATION_DATA.map((row) => (
                       <TableRow
                         key={row.variant}
-                        sx={row.note === "Best" ? { backgroundColor: "rgba(39,174,96,0.06)" } : {}}
+                        sx={
+                          row.note === "Best"
+                            ? { backgroundColor: "rgba(52,211,153,0.08)" }
+                            : row.note === "Worst"
+                              ? { backgroundColor: "rgba(251,113,133,0.08)" }
+                              : {}
+                        }
                       >
                         <TableCell>{row.variant}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: row.note === "Best" ? 700 : 400 }}>
+                        <TableCell
+                          align="right"
+                          className="metric-figure"
+                          sx={{ fontWeight: row.note === "Best" ? 700 : 400 }}
+                        >
                           {row.dice}
                         </TableCell>
-                        <TableCell align="right">{row.iou}</TableCell>
+                        <TableCell align="right" className="metric-figure">
+                          {row.iou}
+                        </TableCell>
                         <TableCell>
                           {row.note && (
                             <Chip
                               label={row.note}
                               size="small"
-                              color={row.note === "Best" ? "success" : row.note === "Worst" ? "error" : "default"}
+                              color={row.note === "Best" ? "success" : "error"}
+                              variant="outlined"
                             />
                           )}
                         </TableCell>
@@ -275,14 +323,9 @@ export default function AboutPage() {
         <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <StorageIcon color="primary" />
-                <Typography variant="h6" color="primary.dark">Tech Stack</Typography>
-              </Box>
+              <SectionHeader icon={<StorageIcon />} title="Tech Stack" subtitle="What runs under the hood" />
               {TECH_STACK.map((item) => (
-                <Box key={item.component}>
-                  <InfoRow label={item.component} value={item.tool} />
-                </Box>
+                <MetricRow key={item.component} label={item.component} mono value={item.tool} />
               ))}
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -308,29 +351,30 @@ export default function AboutPage() {
           </Card>
         </Grid>
 
-        {/* Honest Limitations */}
+        {/* Scope Notes */}
         <Grid size={{ xs: 12, lg: 6 }} className="about-section">
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <WarningAmberIcon sx={{ color: "#F39C12" }} />
-                <Typography variant="h6" color="primary.dark">Scope Notes</Typography>
-              </Box>
-              {LIMITATIONS.map((lim, i) => (
+              <SectionHeader
+                icon={<WarningAmberIcon />}
+                title="Scope Notes"
+                subtitle="What we found, fixed, and still can't claim"
+              />
+              {SCOPE_NOTES.map((note, i) => (
                 <Box
-                  key={i}
+                  key={note.slice(0, 24)}
                   sx={{
                     p: 1.5,
                     mb: 1,
-                    borderRadius: 1.5,
-                    backgroundColor: i % 2 === 0 ? "rgba(243,156,18,0.04)" : "transparent",
+                    borderRadius: 2,
+                    backgroundColor: i % 2 === 0 ? "rgba(251,191,36,0.06)" : "transparent",
                   }}
                 >
                   <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                    <Typography component="span" fontWeight={700} color="warning.dark">
+                    <Typography component="span" fontWeight={700} sx={{ color: "warning.light" }}>
                       {i + 1}.{" "}
                     </Typography>
-                    {lim}
+                    {note}
                   </Typography>
                 </Box>
               ))}
@@ -338,43 +382,21 @@ export default function AboutPage() {
           </Card>
         </Grid>
 
-        {/* Dataset + Peer Feedback */}
+        {/* Dataset */}
         <Grid size={{ xs: 12 }} className="about-section">
           <Card>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <GroupIcon color="primary" />
-                <Typography variant="h6" color="primary.dark">Dataset & Peer Feedback</Typography>
-              </Box>
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, lg: 4 }}>
-                  <Typography variant="subtitle2" color="primary.main" gutterBottom>Dataset</Typography>
-                  <InfoRow label="Processed" value="8,105 images" />
-                  <InfoRow label="In splits" value="6,996 images" />
-                  <InfoRow label="DFU" value="1,010 (FUSeg + AZH)" />
-                  <InfoRow label="Healthy" value="3,300" />
-                  <InfoRow label="Non-DFU" value="2,686" />
-                  <InfoRow label="Splits" value="4,894 / 1,045 / 1,057" />
+              <SectionHeader icon={<GroupIcon />} title="Dataset" subtitle="Leakage-audited splits" />
+              <Grid container spacing={{ xs: 0, sm: 5 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <MetricRow label="Total" mono value="8,105 images" />
+                  <MetricRow label="DFU" mono value="2,119 (FUSeg + AZH)" />
+                  <MetricRow label="Healthy" mono value="3,300" />
                 </Grid>
-                <Grid size={{ xs: 12, lg: 8 }}>
-                  <Typography variant="subtitle2" color="primary.main" gutterBottom>
-                    Peer Feedback → Implementation
-                  </Typography>
-                  {[
-                    { from: "Sudeep K.S.", feedback: "Handle skin tone diversity → ITA-stratified fairness audit" },
-                    { from: "Shivam Dubey", feedback: "Add attention mechanisms → scSE in decoder" },
-                    { from: "Yash Jain", feedback: "Benchmark stronger segmentation baselines → integrated MedSAM2 and nnU-Net with matched-split evaluation" },
-                    { from: "Yucheng Yan", feedback: "Prioritize ablation → Data composition as core experiment" },
-                    { from: "Om Patel", feedback: "Implement TTA → 16-augmentation TTA (+3.88% Dice overall)" },
-                    { from: "Ching-Yi Mao", feedback: "Address algorithmic bias → ITA audit + honest disclosure" },
-                  ].map((fb) => (
-                    <Box key={fb.from} sx={{ display: "flex", gap: 1, mb: 0.8 }}>
-                      <Chip label={fb.from} size="small" sx={{ minWidth: 100 }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.8 }}>
-                        {fb.feedback}
-                      </Typography>
-                    </Box>
-                  ))}
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <MetricRow label="Non-DFU" mono value="2,686" />
+                  <MetricRow label="Splits (train/val/test)" mono value="5,782 / 1,162 / 1,161" />
+                  <MetricRow label="Basis" value="Leakage-audited" valueColor="#5EEAD4" />
                 </Grid>
               </Grid>
             </CardContent>

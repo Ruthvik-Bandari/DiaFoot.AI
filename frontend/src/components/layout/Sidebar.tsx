@@ -7,9 +7,7 @@ import {
   CameraAltIcon,
   Chip,
   DashboardIcon,
-  Divider,
   Drawer,
-  FavoriteIcon,
   InfoIcon,
   List,
   ListItemButton,
@@ -20,7 +18,7 @@ import {
 import { useHealth, getIsDemoMode } from "@/lib/api";
 
 /** Sidebar width in pixels — used by layout for main content offset. */
-const SIDEBAR_WIDTH = 240;
+const SIDEBAR_WIDTH = 256;
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -41,44 +39,81 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
+function StatusDot({ color, pulse }: { color: string; pulse?: boolean }) {
+  return (
+    <Box
+      sx={{
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        backgroundColor: color,
+        boxShadow: `0 0 10px ${color}`,
+        flexShrink: 0,
+        ...(pulse && {
+          "@keyframes pulseDot": {
+            "0%,100%": { opacity: 1 },
+            "50%": { opacity: 0.35 },
+          },
+          animation: "pulseDot 2s ease-in-out infinite",
+        }),
+      }}
+    />
+  );
+}
+
 function SidebarContent() {
   const pathname = usePathname();
   const { data: health, isError: healthError } = useHealth();
   const isDemoMode = getIsDemoMode();
   const isLiveMode = !isDemoMode && !!health && !healthError;
+  const accent = isLiveMode ? "#34D399" : "#FBBF24";
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", px: 2, py: 2.5 }}>
       {/* Logo */}
-      <Box sx={{ px: 2, py: 2.5, display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
         <Box
           sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 2,
-            background: "linear-gradient(135deg, #065A82 0%, #00A896 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            width: 42,
+            height: 42,
+            borderRadius: 3,
+            display: "grid",
+            placeItems: "center",
+            background: "var(--grad-brand)",
+            boxShadow: "0 8px 24px -6px rgba(45,212,191,0.6)",
             flexShrink: 0,
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: "1.05rem",
+            color: "#04110E",
           }}
         >
-          <FavoriteIcon sx={{ color: "#fff", fontSize: 20 }} />
+          DF
         </Box>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h6" sx={{ fontSize: "1rem", lineHeight: 1.2, color: "#065A82" }} noWrap>
-            DiaFoot.AI
+          <Typography
+            sx={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 700,
+              fontSize: "1.1rem",
+              lineHeight: 1.1,
+              color: "#F1F5F9",
+            }}
+            noWrap
+          >
+            DiaFoot<Box component="span" sx={{ color: "primary.main" }}>.AI</Box>
           </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem" }} noWrap>
-            v2.0.0 — Wound Analysis
+          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.66rem", letterSpacing: "0.04em" }} noWrap>
+            v2.1.0 · DFU Intelligence
           </Typography>
         </Box>
       </Box>
 
-      <Divider sx={{ mx: 1.5 }} />
-
       {/* Navigation */}
-      <List sx={{ px: 1, py: 1.5 }}>
+      <Typography variant="overline" sx={{ color: "text.secondary", px: 1, mb: 0.5, display: "block" }}>
+        Navigate
+      </Typography>
+      <List sx={{ p: 0 }}>
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -88,94 +123,92 @@ function SidebarContent() {
               href={item.href}
               selected={isActive}
               sx={{
-                borderRadius: 2,
+                position: "relative",
+                borderRadius: 3,
                 mb: 0.5,
                 px: 2,
-                py: 1,
-                "&.Mui-selected": {
-                  backgroundColor: "rgba(6,90,130,0.08)",
-                  color: "#065A82",
-                  "& .MuiListItemIcon-root": { color: "#065A82" },
+                py: 1.15,
+                overflow: "hidden",
+                transition: "background-color .2s ease, color .2s ease",
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  left: 0,
+                  top: "22%",
+                  bottom: "22%",
+                  width: 3,
+                  borderRadius: 999,
+                  background: "var(--grad-brand)",
+                  opacity: isActive ? 1 : 0,
+                  transition: "opacity .2s ease",
                 },
-                "&:hover": {
-                  backgroundColor: "rgba(6,90,130,0.04)",
+                "&.Mui-selected, &.Mui-selected:hover": {
+                  backgroundColor: "rgba(45,212,191,0.10)",
+                  color: "#5EEAD4",
+                  "& .MuiListItemIcon-root": { color: "#5EEAD4" },
                 },
+                "&:hover": { backgroundColor: "rgba(255,255,255,0.04)" },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 36, color: isActive ? "#065A82" : "text.secondary" }}>
+              <ListItemIcon sx={{ minWidth: 38, color: isActive ? "#5EEAD4" : "text.secondary" }}>
                 {item.icon}
               </ListItemIcon>
               <ListItemText
                 primary={item.label}
-                primaryTypographyProps={{
-                  fontSize: "0.85rem",
-                  fontWeight: isActive ? 600 : 400,
-                }}
+                slotProps={{ primary: { fontSize: "0.9rem", fontWeight: isActive ? 600 : 500 } }}
               />
             </ListItemButton>
           );
         })}
       </List>
 
-      {/* Status indicator */}
-      <Box sx={{ mt: "auto", px: 2, pb: 2 }}>
-        <Box sx={{ display: "flex", gap: 0.75, mb: 1, flexWrap: "wrap" }}>
-          <Chip
-            size="small"
-            label={isLiveMode ? "Live Backend" : "Demo / Offline"}
-            color={isLiveMode ? "success" : "warning"}
-            variant={isLiveMode ? "filled" : "outlined"}
-            sx={{ fontSize: "0.7rem" }}
-          />
-          <Chip
-            size="small"
-            label={health?.model_loaded ? "Model Loaded" : "Model Unknown"}
-            color={health?.model_loaded ? "success" : "default"}
-            variant="outlined"
-            sx={{ fontSize: "0.7rem" }}
-          />
-        </Box>
-
+      {/* Status panel */}
+      <Box sx={{ mt: "auto", pt: 2 }}>
         <Box
           sx={{
-            p: 1.5,
-            borderRadius: 2,
-            backgroundColor: isDemoMode ? "rgba(243,156,18,0.08)" : "rgba(39,174,96,0.08)",
-            border: `1px solid ${isDemoMode ? "rgba(243,156,18,0.2)" : "rgba(39,174,96,0.2)"}`,
+            p: 2,
+            borderRadius: 4,
+            backgroundColor: "rgba(18,24,38,0.6)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            backdropFilter: "blur(12px)",
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.25 }}>
-            <Box
-              sx={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                backgroundColor: isDemoMode ? "#F39C12" : "#27AE60",
-                flexShrink: 0,
-              }}
-            />
-            <Typography variant="caption" fontWeight={600} sx={{ fontSize: "0.7rem" }} color={isDemoMode ? "warning.dark" : "success.dark"}>
-              {isDemoMode ? "Demo Mode" : "API Connected"}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+            <StatusDot color={accent} pulse={isLiveMode} />
+            <Typography variant="subtitle2" sx={{ fontSize: "0.78rem", color: accent }}>
+              {isLiveMode ? "Live Backend" : isDemoMode ? "Demo Mode" : "Backend Offline"}
             </Typography>
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
-            {isDemoMode ? "Using simulated results" : `Model: ${health?.version ?? "..."}`}
-          </Typography>
+
+          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 1.5 }}>
+            <Chip
+              size="small"
+              label={health?.model_loaded ? "Model loaded" : "No model"}
+              color={health?.model_loaded ? "success" : "default"}
+              variant="outlined"
+              sx={{ fontSize: "0.66rem", height: 22 }}
+            />
+            <Chip
+              size="small"
+              label={`v${health?.version ?? "—"}`}
+              variant="outlined"
+              sx={{ fontSize: "0.66rem", height: 22 }}
+            />
+          </Box>
+
           <Typography
             variant="caption"
-            color="text.secondary"
-            sx={{ fontSize: "0.6rem", display: "block", mt: 0.5, wordBreak: "break-all" }}
+            sx={{ color: "text.secondary", fontSize: "0.62rem", display: "block", wordBreak: "break-all", fontFamily: "var(--font-mono)" }}
           >
-            API: {API_BASE}
+            {API_BASE}
           </Typography>
         </Box>
 
         <Typography
           variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mt: 1.5, fontSize: "0.6rem", textAlign: "center" }}
+          sx={{ display: "block", mt: 1.5, fontSize: "0.6rem", textAlign: "center", color: "text.secondary", lineHeight: 1.5 }}
         >
-          Academic project only — not for clinical use
+          Academic project · not a medical device
         </Typography>
       </Box>
     </Box>
@@ -185,13 +218,16 @@ function SidebarContent() {
 const drawerPaperSx = {
   width: SIDEBAR_WIDTH,
   boxSizing: "border-box" as const,
-  background: "linear-gradient(180deg, #FFFFFF 0%, #F0F7FA 100%)",
+  backgroundColor: "rgba(9,12,20,0.72)",
+  backdropFilter: "blur(18px)",
+  WebkitBackdropFilter: "blur(18px)",
+  borderRight: "1px solid rgba(255,255,255,0.08)",
 };
 
 export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   return (
     <>
-      {/* Mobile / tablet: temporary drawer */}
+      {/* Mobile: temporary drawer */}
       <Drawer
         variant="temporary"
         open={mobileOpen}

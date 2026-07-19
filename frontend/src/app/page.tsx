@@ -24,80 +24,7 @@ import {
 } from "@/lib/mui";
 import Link from "next/link";
 import { getIsDemoMode, useModelInfo, useHealth } from "@/lib/api";
-
-interface StatCardProps {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  color: string;
-}
-
-function StatCard({ title, value, subtitle, icon, color }: StatCardProps) {
-  return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <Box>
-            <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              {title}
-            </Typography>
-            <Typography variant="h4" sx={{ mt: 0.5, color, fontWeight: 700 }}>
-              {value}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-              {subtitle}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              backgroundColor: `${color}14`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Box sx={{ color }}>{icon}</Box>
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-}
-
-const KEY_STATS: StatCardProps[] = [
-  {
-    title: "Classification Accuracy",
-    value: "98.36%",
-    subtitle: "DINOv2 ViT-B/14 (frozen backbone)",
-    icon: <VerifiedIcon />,
-    color: "#065A82",
-  },
-  {
-    title: "DFU Segmentation Dice",
-    value: "89.12%",
-    subtitle: "DINOv2 + UPerNet (10 epochs, frozen)",
-    icon: <SpeedIcon />,
-    color: "#00A896",
-  },
-  {
-    title: "DFU Sensitivity",
-    value: "96.58%",
-    subtitle: "calibrated defer at 99.72% accuracy",
-    icon: <BalanceIcon />,
-    color: "#27AE60",
-  },
-  {
-    title: "Dataset Size",
-    value: "6,996",
-    subtitle: "DFU + Healthy + Non-DFU (in splits)",
-    icon: <DatasetIcon />,
-    color: "#1C7293",
-  },
-];
+import { GradientText, MetricRow, SectionHeader, StatTile } from "@/components/ui";
 
 export default function DashboardPage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -107,29 +34,15 @@ export default function DashboardPage() {
     isError: modelInfoError,
     error: modelInfoErrorValue,
   } = useModelInfo();
-  const {
-    data: health,
-    isError: healthError,
-    error: healthErrorValue,
-  } = useHealth();
+  const { data: health, isError: healthError, error: healthErrorValue } = useHealth();
   const isDemoMode = getIsDemoMode();
+  const isLive = !isDemoMode && !!health && !healthError;
 
   useGSAP(
     () => {
-      gsap.from(".stat-card", {
-        y: 30,
-        opacity: 0,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: "power3.out",
-      });
-      gsap.from(".info-section", {
-        y: 20,
-        opacity: 0,
-        duration: 0.5,
-        delay: 0.5,
-        ease: "power2.out",
-      });
+      gsap.from(".hero-reveal", { y: 24, opacity: 0, duration: 0.7, ease: "power3.out" });
+      gsap.from(".stat-card", { y: 28, opacity: 0, duration: 0.6, stagger: 0.08, ease: "power3.out", delay: 0.15 });
+      gsap.from(".info-reveal", { y: 22, opacity: 0, duration: 0.55, stagger: 0.1, ease: "power2.out", delay: 0.45 });
     },
     { scope: containerRef }
   );
@@ -137,48 +50,74 @@ export default function DashboardPage() {
   return (
     <Box ref={containerRef}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary.dark">
-          Dashboard
+      <Box className="hero-reveal" sx={{ mb: 3 }}>
+        <Typography variant="overline" sx={{ color: "primary.light" }}>
+          DiaFoot.AI · v2.1.0
         </Typography>
-        <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
-          DiaFoot.AI v2 — Diabetic Foot Ulcer Detection & Segmentation
+        <Typography variant="h3" sx={{ mt: 0.5, lineHeight: 1.05 }}>
+          Diabetic Foot Ulcer <GradientText>Intelligence</GradientText>
+        </Typography>
+        <Typography variant="subtitle1" sx={{ mt: 1, maxWidth: 620 }}>
+          A cascaded DINOv2 pipeline for foot-image triage and wound-boundary segmentation —
+          evaluated on leakage-audited splits with honest, reproducible metrics.
         </Typography>
       </Box>
 
       {isDemoMode && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <AlertTitle>Demo Mode Enabled</AlertTitle>
-          Backend responses are mocked. Disable `NEXT_PUBLIC_ENABLE_DEMO_MODE` for real inference.
+        <Alert severity="warning" sx={{ mb: 3 }} className="hero-reveal">
+          <AlertTitle>Demo mode</AlertTitle>
+          Backend responses are simulated. Disable <code>NEXT_PUBLIC_ENABLE_DEMO_MODE</code> for real inference.
         </Alert>
       )}
-
-      {(healthError || modelInfoError) && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          <AlertTitle>Backend Connection Issue</AlertTitle>
+      {(healthError || modelInfoError) && !isDemoMode && (
+        <Alert severity="error" sx={{ mb: 3 }} className="hero-reveal">
+          <AlertTitle>Backend connection issue</AlertTitle>
           {(healthErrorValue as Error | undefined)?.message ||
             (modelInfoErrorValue as Error | undefined)?.message ||
-            "Unable to fetch backend status. Check NEXT_PUBLIC_API_URL and backend availability."}
+            "Unable to reach the backend. Check NEXT_PUBLIC_API_URL and that the API is running."}
         </Alert>
       )}
 
-      {/* CTA */}
+      {/* Hero CTA band */}
       <Card
+        className="hero-reveal"
         sx={{
           mb: 4,
-          background: "linear-gradient(135deg, #065A82 0%, #1C7293 50%, #00A896 100%)",
-          color: "#fff",
-          border: "none",
+          overflow: "hidden",
+          border: "1px solid rgba(45,212,191,0.22)",
+          background:
+            "radial-gradient(120% 140% at 0% 0%, rgba(45,212,191,0.16), transparent 45%), radial-gradient(120% 140% at 100% 100%, rgba(99,102,241,0.18), transparent 45%), rgba(14,19,31,0.7)",
         }}
       >
-        <CardContent sx={{ p: 4, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Box>
-            <Typography variant="h5" fontWeight={700} color="inherit">
-              Ready to Analyze
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 1, opacity: 0.85, maxWidth: 480 }}>
-              Upload a foot image to get instant classification, wound segmentation, and clinical metrics.
-              The model uses a cascaded pipeline: triage classifier → wound segmenter.
+        <CardContent
+          sx={{
+            p: { xs: 3, md: 4 },
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            alignItems: { xs: "flex-start", md: "center" },
+            justifyContent: "space-between",
+            gap: 3,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
+              <Chip
+                size="small"
+                label={isLive ? "Live backend" : isDemoMode ? "Demo mode" : "Backend offline"}
+                color={isLive ? "success" : "warning"}
+                variant="outlined"
+              />
+              <Chip
+                size="small"
+                label={health?.model_loaded ? "Model loaded" : "Model not loaded"}
+                color={health?.model_loaded ? "success" : "default"}
+                variant="outlined"
+              />
+            </Box>
+            <Typography variant="h5">Ready to analyze</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 520 }}>
+              Upload a foot image for instant triage classification, wound segmentation, and calibrated
+              clinical-style metrics through the cascaded classifier → segmenter pipeline.
             </Typography>
           </Box>
           <Button
@@ -187,109 +126,148 @@ export default function DashboardPage() {
             component={Link}
             href="/predict"
             startIcon={<CameraAltIcon />}
-            sx={{
-              backgroundColor: "#fff",
-              color: "#065A82",
-              fontWeight: 700,
-              px: 4,
-              py: 1.5,
-              "&:hover": { backgroundColor: "rgba(255,255,255,0.9)" },
-            }}
+            sx={{ flexShrink: 0, px: 3.5, py: 1.5 }}
           >
-            Start Analysis
+            Start analysis
           </Button>
         </CardContent>
       </Card>
 
-      {/* Key Metrics */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {KEY_STATS.map((stat) => (
-          <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={stat.title}>
-            <Box className="stat-card">
-              <StatCard {...stat} />
-            </Box>
-          </Grid>
-        ))}
+      {/* Key metrics */}
+      <Grid container spacing={2.5} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Box className="stat-card">
+            <StatTile
+              label="Classification Accuracy"
+              value={98.36}
+              decimals={2}
+              suffix="%"
+              sublabel="DINOv2 ViT-B/14 · 3-class triage"
+              icon={<VerifiedIcon />}
+              accent="#2DD4BF"
+              meter={0.9836}
+              delayMs={150}
+            />
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Box className="stat-card">
+            <StatTile
+              label="DFU Segmentation Dice"
+              value={89.12}
+              decimals={2}
+              suffix="%"
+              sublabel="DFU-only slice (n=263) · +UPerNet"
+              icon={<SpeedIcon />}
+              accent="#38BDF8"
+              meter={0.8912}
+              delayMs={230}
+            />
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Box className="stat-card">
+            <StatTile
+              label="DFU Sensitivity"
+              value={96.58}
+              decimals={2}
+              suffix="%"
+              sublabel="defer @0.95 → 99.7% accuracy on kept"
+              icon={<BalanceIcon />}
+              accent="#34D399"
+              meter={0.9658}
+              delayMs={310}
+            />
+          </Box>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <Box className="stat-card">
+            <StatTile
+              label="Dataset Size"
+              value={8105}
+              thousands
+              sublabel="train+val+test · leakage-audited"
+              icon={<DatasetIcon />}
+              accent="#818CF8"
+              meter={0.86}
+              delayMs={390}
+            />
+          </Box>
+        </Grid>
       </Grid>
 
-      {/* Model Info */}
-      <Box className="info-section">
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, lg: 6 }}>
-            <Card>
+      {/* Info cards */}
+      <Grid container spacing={2.5}>
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Box className="info-reveal" sx={{ height: "100%" }}>
+            <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                  <MemoryIcon color="primary" />
-                  <Typography variant="h6" color="primary.dark">
-                    Model Architecture
-                  </Typography>
-                </Box>
+                <SectionHeader icon={<MemoryIcon />} title="Model Architecture" subtitle="Live from /model/info" />
                 {modelLoading ? (
                   <Box>
-                    <Skeleton variant="text" width="80%" height={28} />
-                    <Skeleton variant="text" width="60%" height={28} />
-                    <Skeleton variant="text" width="70%" height={28} />
+                    <Skeleton variant="text" height={30} />
+                    <Skeleton variant="text" width="70%" height={30} />
+                    <Skeleton variant="text" width="55%" height={30} />
                   </Box>
                 ) : (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary">Classifier</Typography>
-                      <Typography variant="body2" fontWeight={600}>{modelInfo?.classifier ?? "—"}</Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary">Segmenter</Typography>
-                      <Typography variant="body2" fontWeight={600}>{modelInfo?.segmenter ?? "—"}</Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary">Input Size</Typography>
-                      <Typography variant="body2" fontWeight={600}>{modelInfo ? `${modelInfo.input_size[0]}×${modelInfo.input_size[1]}` : "—"}</Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary">Status</Typography>
-                      <Chip
-                        label={health?.model_loaded ? "Loaded" : "Not Loaded"}
-                        size="small"
-                        color={health?.model_loaded ? "success" : "error"}
-                      />
-                    </Box>
-                  </Box>
+                  <>
+                    <MetricRow label="Classifier" value={modelInfo?.classifier ?? "—"} />
+                    <MetricRow label="Segmenter" value={modelInfo?.segmenter ?? "—"} />
+                    <MetricRow
+                      label="Input size"
+                      mono
+                      value={modelInfo ? `${modelInfo.input_size[0]}×${modelInfo.input_size[1]}` : "—"}
+                    />
+                    <MetricRow
+                      label="Status"
+                      value={
+                        <Chip
+                          size="small"
+                          label={health?.model_loaded ? "Loaded" : "Not loaded"}
+                          color={health?.model_loaded ? "success" : "error"}
+                          variant="outlined"
+                        />
+                      }
+                    />
+                  </>
                 )}
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
+        </Grid>
 
-          <Grid size={{ xs: 12, lg: 6 }}>
-            <Card>
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Box className="info-reveal" sx={{ height: "100%" }}>
+            <Card sx={{ height: "100%" }}>
               <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                  <ScienceIcon color="primary" />
-                  <Typography variant="h6" color="primary.dark">
-                    Key Experiments
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Transfer Learning</Typography>
-                    <Typography variant="body2" fontWeight={600}>DINOv2 ViT-B/14 (Meta, self-supervised)</Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Data Ablation</Typography>
-                    <Typography variant="body2" fontWeight={600}>DFU-only wins (85.13% vs 79.03%)</Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Calibration</Typography>
-                    <Typography variant="body2" fontWeight={600}>ECE 0.0075 after temperature scaling</Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Fairness Gap</Typography>
-                    <Typography variant="body2" fontWeight={600}>0.00% on DFU images</Typography>
-                  </Box>
-                </Box>
+                <SectionHeader icon={<ScienceIcon />} title="Key Experiments" subtitle="What the study established" />
+                <MetricRow label="Transfer learning" value="DINOv2 ViT-B/14 (frozen)" />
+                <MetricRow label="Data ablation" value="DFU-only wins" valueColor="#5EEAD4" />
+                <MetricRow label="Ablation Δ Dice" mono value="85.13% vs 79.03%" />
+                <MetricRow label="Calibration (ECE)" mono value="0.039 → 0.007" />
+                <MetricRow label="Fairness gap (DFU)" mono value="0.00" valueColor="#6EE7B7" />
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         </Grid>
-      </Box>
+
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Box className="info-reveal" sx={{ height: "100%" }}>
+            <Card sx={{ height: "100%" }}>
+              <CardContent sx={{ p: 3 }}>
+                <SectionHeader icon={<SpeedIcon />} title="Segmentation — test set" subtitle="Dice by slice" />
+                <MetricRow label="DFU wounds only (n=263)" mono value="0.891" valueColor="#5EEAD4" />
+                <MetricRow label="Full mixed (n=1,161) mean" mono value="0.72" />
+                <MetricRow label="Full mixed — median" mono value="0.93" />
+                <MetricRow label="5-fold CV (DFU)" mono value="0.853 ± 0.009" />
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: "block", lineHeight: 1.6 }}>
+                  Mixed-set mean is pulled down by empty-mask healthy/non-DFU images; on real wounds the model is strong.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        </Grid>
+      </Grid>
     </Box>
   );
 }
