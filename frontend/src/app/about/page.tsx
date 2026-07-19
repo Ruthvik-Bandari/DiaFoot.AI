@@ -53,12 +53,12 @@ const CV_DATA = [
   { fold: "4", dice: "84.56%", iou: "77.69%" },
 ];
 
-const ABLATION_DATA = [
-  { variant: "U-Net++ (DFU-only)", dice: "85.13%", iou: "77.51%", note: "Best" },
-  { variant: "U-Net++ (All classes)", dice: "82.35%", iou: "73.67%", note: "" },
-  { variant: "FUSegNet (DFU+nonDFU)", dice: "81.75%", iou: "73.00%", note: "" },
-  { variant: "U-Net++ v2 (DFU+nonDFU)", dice: "80.39%", iou: "70.72%", note: "" },
-  { variant: "U-Net++ (DFU+nonDFU)", dice: "79.03%", iou: "69.03%", note: "Worst" },
+const COMPOSITION_DATA = [
+  { variant: "DFU + Healthy", dice: "87.9%", iou: "80.9%", note: "Best" },
+  { variant: "DFU-only", dice: "87.2%", iou: "79.9%", note: "" },
+  { variant: "All (DFU + Healthy + Non-DFU)", dice: "84.6%", iou: "77.0%", note: "" },
+  { variant: "DFU + Non-DFU", dice: "83.4%", iou: "75.4%", note: "" },
+  { variant: "Random-mixed (size-matched)", dice: "79.5%", iou: "70.4%", note: "Worst" },
 ];
 
 const TECH_STACK = [
@@ -280,8 +280,8 @@ export default function AboutPage() {
             <CardContent sx={{ p: 3 }}>
               <SectionHeader
                 icon={<StorageIcon />}
-                title="Data Composition Ablation"
-                subtitle="Core finding: DFU-only training beats every mixed-data variant"
+                title="Training-Data Composition Study"
+                subtitle="Composition beats size — disease-focused training wins (U-Net++, 5-fold CV)"
               />
               <TableContainer>
                 <Table size="small">
@@ -294,7 +294,7 @@ export default function AboutPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {ABLATION_DATA.map((row) => (
+                    {COMPOSITION_DATA.map((row) => (
                       <TableRow
                         key={row.variant}
                         sx={
@@ -331,6 +331,15 @@ export default function AboutPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mt: 1.5, lineHeight: 1.55 }}
+              >
+                Ranking is identical across all three architectures (U-Net++, SegFormer-B0, DINOv2);
+                the size-matched Random-mixed control isolates composition from dataset size. DFU-Dice,
+                mean over five folds on a fixed, leakage-controlled test set.
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

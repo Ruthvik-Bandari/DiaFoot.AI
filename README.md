@@ -90,6 +90,29 @@ The mixed-set **mean** Dice is much lower than the median because healthy/non-DF
 empty ground-truth masks: a single false-positive pixel scores Dice ≈ 0 on those, dragging the
 mean down. On actual wounds the model is strong (median 0.93, DFU-only mean 0.89).
 
+### Training-data composition study
+
+A separate controlled study (manuscript in preparation, SPIE Medical Imaging) fixes the architecture
+and varies only the *composition* of the training set, under 5-fold cross-validation on a fixed,
+leakage-controlled test set. The ranking is **identical across all three architectures** (U-Net++,
+SegFormer-B0, DINOv2):
+
+> **DFU+Healthy > DFU-only > All > DFU+Non-DFU > Random-mixed** — *composition beats size.*
+
+| Composition (U-Net++) | Train imgs | DFU Dice | DFU IoU | FP-on-empty |
+|---|---|---|---|---|
+| DFU + Healthy | 3,645 | **0.879 ± 0.003** | **0.809** | 0.009 |
+| DFU-only | 1,427 | 0.872 ± 0.004 | 0.799 | 0.083 |
+| All (DFU+Healthy+Non-DFU) | 5,497 | 0.846 ± 0.010 | 0.770 | 0.015 |
+| DFU + Non-DFU | 3,279 | 0.834 ± 0.011 | 0.754 | 0.221 |
+| Random-mixed (size-matched) | 1,427 | 0.795 ± 0.013 | 0.704 | 0.016 |
+
+The size-matched **Random-mixed** control (same image budget as DFU-only) is the worst, so the gains
+come from *what* is trained on, not *how much*. Adding **in-domain healthy negatives** helps and keeps
+false positives on ulcer-free skin below ~1%; adding **other wound types** hurts and inflates them
+(the "non-DFU" pool itself contains ~16% diabetic images, so this harm is a conservative estimate).
+Full results across all three architectures: `results/composition_comparison.md`.
+
 ### Generalization, fairness, deployment
 
 | Check | Result |

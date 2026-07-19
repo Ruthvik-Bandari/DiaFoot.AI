@@ -242,8 +242,8 @@ export default function DashboardPage() {
               <CardContent sx={{ p: 3 }}>
                 <SectionHeader icon={<ScienceIcon />} title="Key Experiments" subtitle="What the study established" />
                 <MetricRow label="Transfer learning" value="DINOv2 ViT-B/14 (frozen)" />
-                <MetricRow label="Data ablation" value="DFU-only wins" valueColor="#5EEAD4" />
-                <MetricRow label="Ablation Δ Dice" mono value="85.13% vs 79.03%" />
+                <MetricRow label="Data composition" value="Composition > size" valueColor="#5EEAD4" />
+                <MetricRow label="Composition Δ Dice" mono value="87.9% vs 79.5%" />
                 <MetricRow label="Calibration (ECE)" mono value="0.039 → 0.007" />
                 <MetricRow label="Fairness gap (DFU)" mono value="0.00" valueColor="#6EE7B7" />
               </CardContent>

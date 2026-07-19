@@ -238,18 +238,37 @@ Dice on an empty mask is 0 if the model predicts even one false-positive pixel. 
 near-zero scores collapse the mean while the median (dominated by real wounds) stays high. Judge
 wound-outlining quality from the DFU-only mean (0.891) and the median (0.929).
 
-### 5.3 Architecture / data-composition comparison (DFU Dice)
+### 5.3 Training-data composition study (5 compositions × 3 architectures × 5-fold CV)
 
-| Model / data | DFU Dice | DFU IoU | NSD@5mm |
-|---|---|---|---|
-| U-Net++ (DFU-only) | 0.851 | 0.775 | 0.952 |
-| U-Net++ (All classes) | 0.824 | 0.737 | 0.933 |
-| FUSegNet (DFU + non-DFU) | 0.818 | 0.730 | 0.923 |
-| U-Net++ v2 (DFU + non-DFU, fixed) | 0.804 | 0.707 | 0.908 |
-| U-Net++ (DFU + non-DFU) | 0.790 | 0.690 | 0.912 |
+A controlled study fixes the architecture and varies only the training-set *composition*, evaluated on
+a single fixed, leakage-controlled test set every fold (5-fold CV; DFU-Dice over ~318 DFU test images).
+The ranking is **identical across all three architectures**: **DFU+Healthy > DFU-only > All >
+DFU+Non-DFU > Random-mixed** — *composition beats size*. The size-matched Random-mixed control (same
+image budget as DFU-only) is worst, and adding non-DFU wounds inflates false positives on healthy skin.
 
-Training on DFU-only gives the highest DFU Dice, but that model cannot triage; the deployed
-cascade accepts a small DFU-Dice cost for the ability to reject healthy/non-DFU inputs.
+| Architecture | Composition | Train imgs | DFU Dice (mean ± std) | DFU IoU | FP-on-empty |
+|---|---|---|---|---|---|
+| U-Net++ | DFU + Healthy | 3,645 | **0.879 ± 0.003** | **0.809** | 0.009 |
+| U-Net++ | DFU-only | 1,427 | 0.872 ± 0.004 | 0.799 | 0.083 |
+| U-Net++ | All | 5,497 | 0.846 ± 0.010 | 0.770 | 0.015 |
+| U-Net++ | DFU + Non-DFU | 3,279 | 0.834 ± 0.011 | 0.754 | 0.221 |
+| U-Net++ | Random-mixed | 1,427 | 0.795 ± 0.013 | 0.704 | 0.016 |
+| SegFormer-B0 | DFU + Healthy | 3,645 | **0.856 ± 0.002** | **0.778** | 0.008 |
+| SegFormer-B0 | DFU-only | 1,427 | 0.844 ± 0.004 | 0.763 | 0.089 |
+| SegFormer-B0 | All | 5,497 | 0.799 ± 0.003 | 0.706 | 0.010 |
+| SegFormer-B0 | DFU + Non-DFU | 3,279 | 0.791 ± 0.007 | 0.696 | 0.448 |
+| SegFormer-B0 | Random-mixed | 1,427 | 0.717 ± 0.022 | 0.611 | 0.022 |
+| DINOv2 + dec. | DFU + Healthy | 3,645 | **0.843 ± 0.004** | **0.759** | 0.009 |
+| DINOv2 + dec. | DFU-only | 1,427 | 0.835 ± 0.004 | 0.750 | 0.025 |
+| DINOv2 + dec. | All | 5,497 | 0.809 ± 0.005 | 0.717 | 0.010 |
+| DINOv2 + dec. | DFU + Non-DFU | 3,279 | 0.792 ± 0.010 | 0.697 | 0.058 |
+| DINOv2 + dec. | Random-mixed | 1,427 | 0.752 ± 0.019 | 0.645 | 0.019 |
+
+This is the subject of a manuscript in preparation (SPIE Medical Imaging). Full per-cell metrics
+(bootstrap CIs, HD95, NSD, paired-vs-DFU-only deltas, provenance hashes) are in `results/composition/`
+and `results/composition_comparison.{json,md}`. Note this study uses a composition-specific split
+regime (pool of 6,890 + a fixed test set), separate from the deployed cascade's splits in §5.1–5.2, so
+the two sets of numbers are not directly comparable.
 
 ### 5.4 Clinical wound-area agreement (n = 3, indicative only)
 
