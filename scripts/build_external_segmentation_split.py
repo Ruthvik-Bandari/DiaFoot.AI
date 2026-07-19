@@ -24,28 +24,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.data.dedup import canonical_stem
-
-EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"}
-
-
-def resize_with_padding(
-    img: np.ndarray, target: int = 512, interp: int = cv2.INTER_AREA
-) -> np.ndarray:
-    h, w = img.shape[:2]
-    if h <= 0 or w <= 0:
-        raise ValueError("Invalid image size")
-    scale = target / max(h, w)
-    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
-    resized = cv2.resize(img, (nw, nh), interpolation=interp)
-
-    if img.ndim == 2:
-        canvas = np.zeros((target, target), dtype=img.dtype)
-    else:
-        canvas = np.zeros((target, target, img.shape[2]), dtype=img.dtype)
-
-    yo, xo = (target - nh) // 2, (target - nw) // 2
-    canvas[yo : yo + nh, xo : xo + nw] = resized
-    return canvas
+from src.data.external_split import EXTS, resize_with_padding
 
 
 def load_internal_canonical_stems(splits_dir: Path) -> set[str]:

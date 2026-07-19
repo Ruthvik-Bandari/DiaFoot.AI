@@ -14,17 +14,14 @@ import logging
 import sys
 from pathlib import Path
 
-import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.data.augmentation import get_val_transforms
 from src.data.torch_dataset import DFUDataset
-from src.evaluation.metrics import (
-    aggregate_metrics,
-    compute_segmentation_metrics,
-)
+from src.evaluation.metrics import aggregate_metrics
+from src.evaluation.segmentation_eval import run_segmentation_eval
 
 
 def evaluate_checkpoint(
@@ -34,27 +31,8 @@ def evaluate_checkpoint(
     device: str,
 ) -> dict:
     """Evaluate a single model checkpoint."""
-    model = model.to(device).eval()
-
-    all_metrics = []
-    dfu_metrics = []
-
-    with torch.no_grad():
-        for batch in test_loader:
-            images = batch["image"].to(device)
-            masks = batch["mask"].numpy()
-            labels = batch["label"].numpy()
-
-            logits = model(images)
-            if isinstance(logits, dict):
-                logits = logits.get("seg_logits", logits)
-            preds = (torch.sigmoid(logits) > 0.5).squeeze(1).cpu().numpy().astype(np.uint8)
-
-            for i in range(len(images)):
-                m = compute_segmentation_metrics(preds[i], masks[i])
-                all_metrics.append(m)
-                if labels[i] == 2:
-                    dfu_metrics.append(m)
+    all_metrics, labels = run_segmentation_eval(model, test_loader, device)
+    dfu_metrics = [m for m, lbl in zip(all_metrics, labels, strict=True) if lbl == 2]
 
     overall = aggregate_metrics(all_metrics)
     dfu_only = aggregate_metrics(dfu_metrics)

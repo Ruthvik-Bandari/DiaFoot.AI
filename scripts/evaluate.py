@@ -38,9 +38,9 @@ from src.evaluation.classification_metrics import (
 )
 from src.evaluation.metrics import (
     aggregate_metrics,
-    compute_segmentation_metrics,
     print_segmentation_report,
 )
+from src.evaluation.segmentation_eval import run_segmentation_eval
 
 
 def _load_classifier(checkpoint_path: str, backbone: str, device: str) -> torch.nn.Module:
@@ -148,29 +148,9 @@ def evaluate_segmentation(
     )
     test_loader = torch.utils.data.DataLoader(test_ds, batch_size=8, shuffle=False, num_workers=4)
 
-    all_metrics = []
-    dfu_metrics = []
-    non_dfu_metrics = []
-
-    with torch.no_grad():
-        for batch in test_loader:
-            images = batch["image"].to(device)
-            masks = batch["mask"].numpy()
-            labels = batch["label"].numpy()
-
-            logits = model(images)
-            preds = (torch.sigmoid(logits) > 0.5).squeeze(1).cpu().numpy().astype(np.uint8)
-
-            for i in range(len(images)):
-                pred_mask = preds[i]
-                gt_mask = masks[i]
-                m = compute_segmentation_metrics(pred_mask, gt_mask)
-                all_metrics.append(m)
-
-                if labels[i] == 2:
-                    dfu_metrics.append(m)
-                elif labels[i] == 1:
-                    non_dfu_metrics.append(m)
+    all_metrics, labels = run_segmentation_eval(model, test_loader, device)
+    dfu_metrics = [m for m, lbl in zip(all_metrics, labels, strict=True) if lbl == 2]
+    non_dfu_metrics = [m for m, lbl in zip(all_metrics, labels, strict=True) if lbl == 1]
 
     # Overall results
     summary = aggregate_metrics(all_metrics)

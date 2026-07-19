@@ -17,37 +17,16 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
+import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
 
-EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-
-def resize_with_padding(img: np.ndarray, target: int = 512) -> np.ndarray:
-    h, w = img.shape[:2]
-    if h == 0 or w == 0:
-        raise ValueError("Invalid empty image")
-    scale = target / max(h, w)
-    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
-    resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_AREA)
-    canvas = np.zeros((target, target, 3), dtype=np.uint8)
-    yo, xo = (target - nh) // 2, (target - nw) // 2
-    canvas[yo : yo + nh, xo : xo + nw] = resized
-    return canvas
-
-
-def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        while True:
-            chunk = f.read(1024 * 1024)
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
+from src.data.dedup import sha256
+from src.data.external_split import EXTS, resize_with_padding
 
 
 def load_internal_images(splits_dir: Path) -> set[Path]:
@@ -99,7 +78,7 @@ def main() -> None:
     internal_hashes: set[str] = set()
     for p in sorted(internal_images):
         if p.exists():
-            internal_hashes.add(sha256_file(p))
+            internal_hashes.add(sha256(p))
 
     normal_imgs = collect_images(normal_dir)
     ulcer_imgs = collect_images(ulcer_dir)
@@ -133,7 +112,7 @@ def main() -> None:
         ("dfu", ulcer_imgs, "dfu_patches_ulcer"),
     ):
         for img in imgs:
-            digest = sha256_file(img)
+            digest = sha256(img)
             if digest in internal_hashes:
                 removed_overlap += 1
                 continue
