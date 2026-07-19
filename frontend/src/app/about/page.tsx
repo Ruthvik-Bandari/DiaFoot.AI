@@ -71,13 +71,29 @@ const TECH_STACK = [
   { component: "Compute", tool: "Northeastern HPC (H200/A100)" },
 ];
 
-const SCOPE_NOTES = [
-  "Shortcut-learning risk: an EfficientNet baseline reached 100% internal accuracy but only 21% external (0% DFU sensitivity). The deployed DINOv2 classifier (98.4%) is far more robust, but external classification still does not generalize — re-validate on your own image source before any use.",
-  "Data leakage — found and fixed: an audit detected near-duplicate train↔test pairs; they were removed and the splits rebuilt. Re-audit confirms zero overlap across path, canonical-ID, content-hash, and perceptual-hash.",
-  "Segmentation mean vs. median: the mixed-set mean Dice (0.65–0.72) is dragged down by empty-mask healthy/non-DFU images; the median (0.93) and DFU-only mean (0.89) reflect real-wound performance.",
-  "Limited skin-tone diversity: fairness was validated primarily on one ITA group (Brown, n=285 for DFU). Broader-spectrum validation is still needed.",
-  "Wound-area agreement was evaluated on only 3 images — statistically insufficient for any clinical claim.",
-  "Research and education only. This is NOT a medical device and must not be used for diagnosis or treatment.",
+const SCOPE_NOTES: { text: string; fix?: string }[] = [
+  {
+    text: "Shortcut-learning risk: an EfficientNet baseline reached 100% internal accuracy but only 21% external (0% DFU sensitivity). The deployed DINOv2 classifier (98.4%) is far more robust, but external classification still does not generalize — re-validate on your own image source before any use.",
+    fix: "a larger, multi-site image set spanning varied capture devices, lighting, and patient populations would curb shortcut learning and improve cross-source generalization.",
+  },
+  {
+    text: "Data leakage — found and fixed: an audit detected near-duplicate train↔test pairs; they were removed and the splits rebuilt. Re-audit confirms zero overlap across path, canonical-ID, content-hash, and perceptual-hash.",
+  },
+  {
+    text: "Segmentation mean vs. median: the mixed-set mean Dice (0.65–0.72) is dragged down by empty-mask healthy/non-DFU images; the median (0.93) and DFU-only mean (0.89) reflect real-wound performance.",
+    fix: "more annotated wound images would further strengthen real-wound segmentation (the mean-vs-median gap itself is a mixed-set metric artifact).",
+  },
+  {
+    text: "Limited skin-tone diversity: fairness was validated primarily on one ITA group (Brown, n=285 for DFU). Broader-spectrum validation is still needed.",
+    fix: "a dataset spanning the full ITA skin-tone spectrum with reliable tone labels would let fairness be validated across every group, not just Brown.",
+  },
+  {
+    text: "Wound-area agreement was evaluated on only 3 images — statistically insufficient for any clinical claim.",
+    fix: "images paired with ground-truth physical measurements (a ruler or scale reference in-frame) would enable area-agreement validation at clinical sample sizes.",
+  },
+  {
+    text: "Research and education only. This is NOT a medical device and must not be used for diagnosis or treatment.",
+  },
 ];
 
 export default function AboutPage() {
@@ -362,7 +378,7 @@ export default function AboutPage() {
               />
               {SCOPE_NOTES.map((note, i) => (
                 <Box
-                  key={note.slice(0, 24)}
+                  key={note.text.slice(0, 24)}
                   sx={{
                     p: 1.5,
                     mb: 1,
@@ -374,8 +390,16 @@ export default function AboutPage() {
                     <Typography component="span" fontWeight={700} sx={{ color: "warning.light" }}>
                       {i + 1}.{" "}
                     </Typography>
-                    {note}
+                    {note.text}
                   </Typography>
+                  {note.fix && (
+                    <Box sx={{ mt: 1, pl: 1.25, borderLeft: "2px solid rgba(45,212,191,0.5)" }}>
+                      <Typography variant="caption" sx={{ color: "primary.light", lineHeight: 1.55, display: "block" }}>
+                        <Box component="span" sx={{ fontWeight: 700 }}>With proper clinical images: </Box>
+                        {note.fix}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               ))}
             </CardContent>
