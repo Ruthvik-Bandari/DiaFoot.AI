@@ -272,8 +272,13 @@ Read these before using DiaFoot.AI for anything beyond research.
 
 ## Documentation
 
+**Start here:** [PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md) — the complete, single-source
+documentation for the whole project (pipeline, dataset, curation, models, the composition study, the
+AICR B200 training run, evaluation, repo map, API, reproduction, limitations).
+
 | Doc | Diataxis quadrant | For |
 |---|---|---|
+| [PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md) | Overview | Everything, end to end (master document) |
 | [tutorial-getting-started.md](docs/tutorial-getting-started.md) | Tutorial | Install → first prediction, from zero |
 | [howto-run-data-pipeline.md](docs/howto-run-data-pipeline.md) | How-to | Clean data, build leak-free splits |
 | [howto-train.md](docs/howto-train.md) | How-to | Train and evaluate a model |
@@ -282,6 +287,8 @@ Read these before using DiaFoot.AI for anything beyond research.
 | [reference-api.md](docs/reference-api.md) | Reference | REST endpoints and schemas |
 | [reference-architecture.md](docs/reference-architecture.md) | Reference | `src/` package/module map |
 | [explanation-pipeline-design.md](docs/explanation-pipeline-design.md) | Explanation | Why cascaded multi-task; the leakage story |
+| [PROJECT_REPORT.md](docs/PROJECT_REPORT.md) | Report | Full project report |
+| [COMPOSITION_EXPERIMENT_RUNBOOK.md](docs/COMPOSITION_EXPERIMENT_RUNBOOK.md) | Runbook | Explorer copy-paste steps for the study |
 | [HPC_HONEST_RERUN_RUNBOOK.md](docs/HPC_HONEST_RERUN_RUNBOOK.md) | How-to | Reproduce the honest re-run on HPC |
 
 ---
