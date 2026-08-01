@@ -1,52 +1,38 @@
 {
-  "total": 6996,
-  "train": 4894,
-  "val": 1045,
-  "test": 1057,
+  "total": 8105,
+  "train": 5674,
+  "val": 1216,
+  "test": 1215,
   "class_distribution": {
     "train": {
-      "dfu": 704,
-      "healthy": 2310,
-      "non_dfu": 1880
+      "non_dfu": 1880,
+      "healthy": 2311,
+      "dfu": 1483
     },
     "val": {
-      "dfu": 148,
+      "non_dfu": 403,
       "healthy": 495,
-      "non_dfu": 402
+      "dfu": 318
     },
     "test": {
-      "dfu": 158,
-      "healthy": 495,
-      "non_dfu": 404
+      "non_dfu": 403,
+      "healthy": 494,
+      "dfu": 318
     }
   },
   "ita_distribution": {
     "train": {
-      "Brown": 50,
-      "Dark": 443,
-      "Intermediate": 9,
-      "Light": 12,
-      "Tan": 11,
-      "Unknown": 4330,
-      "Very Light": 39
+      "unknown": 4549,
+      "brown": 1122,
+      "tan": 3
     },
     "val": {
-      "Brown": 10,
-      "Dark": 94,
-      "Intermediate": 2,
-      "Light": 2,
-      "Tan": 2,
-      "Unknown": 927,
-      "Very Light": 8
+      "unknown": 963,
+      "brown": 253
     },
     "test": {
-      "Brown": 12,
-      "Dark": 96,
-      "Intermediate": 3,
-      "Light": 4,
-      "Tan": 4,
-      "Unknown": 929,
-      "Very Light": 9
+      "unknown": 972,
+      "brown": 243
     }
   }
 }
