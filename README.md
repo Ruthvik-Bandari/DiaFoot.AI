@@ -18,7 +18,7 @@ leakage-audited splits, not cherry-picked subgroups.
 ## Table of contents
 
 - [What it does](#what-it-does)
-- [Results (honest, clean splits)](#results-honest-clean-splits)
+- [Results](#results)
 - [Architecture](#architecture)
 - [Install](#install)
 - [Quickstart](#quickstart)
@@ -55,18 +55,36 @@ low-confidence or low-quality images to human review instead of guessing. See
 
 ---
 
-## Results (honest, clean splits)
+## Results
 
-All numbers below are on **leakage-audited train/val/test splits** (train 5,782 / val 1,162 /
-test 1,161 images), re-verified after a data-leakage audit found and removed near-duplicate
-train↔test pairs. Zero overlap remains across path, canonical-id, content-hash, and
-perceptual-near-duplicate checks.
+### Which split each number comes from
+
+This repository contains **two** splits, and the difference matters when reading the tables below.
+
+| Split | Counts (train / val / test) | Near-duplicate train×test pairs | Audit artifact |
+|---|---|---|---|
+| **Baseline** (pre-rebuild) | 5,782 / 1,162 / 1,161 | **96,829** | [`leakage_report_baseline.json`](data/metadata/leakage_report_baseline.json) |
+| **Rebuilt** (leak-free, current) | 5,674 / 1,216 / 1,215 | **0** | [`leakage_report.json`](data/metadata/leakage_report.json) — `has_any_leakage: false` |
+
+The rebuilt split is what `data/splits/` holds and what the configs point at. It is clean across
+all four checks: path overlap, canonical-id overlap, content hash, and perceptual near-duplicates.
+
+> **Read the cascade tables as provisional.** The triage and segmentation numbers in the next two
+> sections were measured on the **baseline** split (test n=1,161, DFU n=263), not the rebuilt one
+> (test n=1,215, DFU n=318). That split is the one the baseline audit flags with 96,829
+> near-duplicate train×test pairs, so **those figures are optimistic and are pending a re-run on
+> the clean split**. Their per-run result JSONs are not committed either. The re-run procedure is
+> in [HPC_HONEST_RERUN_RUNBOOK.md](docs/HPC_HONEST_RERUN_RUNBOOK.md).
+>
+> The [composition study](#training-data-composition-study) below is the part with full
+> provenance: 75 trained models, per-fold result JSONs committed under
+> [`results/composition/`](results/composition/), on the leakage-controlled split.
 
 > **Note on older numbers.** `CHANGELOG.md` (v2.0.0, 2026-03-05) headlines a Dice of 85.89%.
-> That figure is the **DFU-only, single-skin-tone subgroup** and predates the leakage fix. The
-> honest, whole-test-set numbers are below. Where a metric is subgroup-specific, it says so.
+> That figure is the **DFU-only, single-skin-tone subgroup** and predates the leakage fix.
 
-### Triage classification — test set (n=1,161)
+
+### Triage classification — baseline split, test set (n=1,161)
 
 | Metric | Value |
 |---|---|
@@ -78,7 +96,7 @@ perceptual-near-duplicate checks.
 | Calibration ECE (before → after temp. scaling) | 0.039 → 0.007 |
 | Defer @ 0.95 confidence | 93.5% coverage, **99.7% accuracy on kept cases** |
 
-### Wound segmentation — test set
+### Wound segmentation — baseline split, test set
 
 | Slice | Dice | IoU | HD95 (px) | NSD@5mm |
 |---|---|---|---|---|
@@ -258,15 +276,20 @@ configurable rate limit. Low-quality or low-confidence inputs return
 Read these before using DiaFoot.AI for anything beyond research.
 
 1. **Not a medical device.** No regulatory clearance. Do not use for diagnosis or treatment.
-2. **Triage classifier does not generalize across image sources.** External accuracy drops to
+2. **The cascade metrics are on the pre-rebuild split.** Triage accuracy, AUROC and DFU Dice were
+   measured on the baseline split that carries 96,829 near-duplicate train×test pairs, and their
+   per-run JSONs are not committed. Treat them as optimistic until re-run on `data/splits/`. The
+   composition study is unaffected — it ran on the leakage-controlled split with committed
+   per-fold artifacts.
+3. **Triage classifier does not generalize across image sources.** External accuracy drops to
    ~21% and DFU sensitivity to 0%. Re-validate on your own data source before any use.
-3. **Segmentation mean vs median gap.** Aggregate mean Dice on mixed data is pulled down by
+4. **Segmentation mean vs median gap.** Aggregate mean Dice on mixed data is pulled down by
    empty-mask false positives; judge wound performance from DFU-only / median numbers.
-4. **Fairness gap on the mixed set (0.114).** DFU-only is fair (0.00 gap), but the full-set gap
+5. **Fairness gap on the mixed set (0.114).** DFU-only is fair (0.00 gap), but the full-set gap
    indicates the model behaves differently on some skin tones for non-wound cases.
-5. **Small clinical-agreement sample.** Wound-area agreement (r 0.9997) is on n=3 — indicative,
+6. **Small clinical-agreement sample.** Wound-area agreement (r 0.9997) is on n=3 — indicative,
    not validated.
-6. **Some components are implemented but untrained** (MedSAM2 LoRA, nnU-Net v2).
+7. **Some components are implemented but untrained** (MedSAM2 LoRA, nnU-Net v2).
 
 ---
 
