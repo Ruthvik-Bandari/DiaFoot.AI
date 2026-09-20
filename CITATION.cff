@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software or its composition study, please cite it as below."
+title: "DiaFoot.AI: cascaded multi-task diabetic foot ulcer analysis"
+abstract: >-
+  A cascaded triage, segmentation and wound-measurement pipeline for diabetic
+  foot images, together with a controlled study of how training-data
+  composition affects segmentation quality across three architectures under
+  five-fold cross-validation on leakage-controlled splits.
+type: software
+authors:
+  - family-names: Bandari
+    given-names: Ruthvik Nath
+    affiliation: "Northeastern University"
+repository-code: "https://github.com/Ruthvik-Bandari/DiaFoot.AI"
+license: MIT
+keywords:
+  - medical-imaging
+  - semantic-segmentation
+  - diabetic-foot-ulcer
+  - data-leakage
+  - reproducibility
