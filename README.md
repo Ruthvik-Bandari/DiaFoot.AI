@@ -1,12 +1,13 @@
 # DiaFoot.AI
 
-**Production-grade Diabetic Foot Ulcer (DFU) detection, segmentation, and Wagner staging.**
+**Research code for Diabetic Foot Ulcer (DFU) detection, segmentation, and Wagner staging.**
 
 DiaFoot.AI is a multi-task computer-vision pipeline for diabetic foot images. It does three
 things in sequence: it **triages** a foot photo into `Healthy` / `Non-DFU` / `DFU`, it
 **segments** the wound region when one is present, and it **measures** wound area in mm².
-It is built to be honest about what it can and cannot do — the results below come from clean,
-leakage-audited splits, not cherry-picked subgroups.
+It is built to be honest about what it can and cannot do. The training-data composition study
+below comes from clean, leakage-audited splits. The cascade and generalization tables come from
+the earlier baseline split and are labelled as provisional where they appear.
 
 - **Package:** `diafootai` (v2.0.0), Python 3.12–3.13, PyTorch 2.10
 - **Author:** Ruthvik Bandari
@@ -110,7 +111,8 @@ mean down. On actual wounds the model is strong (median 0.93, DFU-only mean 0.89
 
 ### Training-data composition study
 
-A separate controlled study (manuscript in preparation, SPIE Medical Imaging) fixes the architecture
+A separate controlled study (accepted at SPIE Medical Imaging 2027; presenting in Vancouver,
+February 14 to 17, 2027) fixes the architecture
 and varies only the *composition* of the training set, under 5-fold cross-validation on a fixed,
 leakage-controlled test set. The ranking is **identical across all three architectures** (U-Net++,
 SegFormer-B0, DINOv2):
@@ -131,7 +133,10 @@ false positives on ulcer-free skin below ~1%; adding **other wound types** hurts
 (the "non-DFU" pool itself contains ~16% diabetic images, so this harm is a conservative estimate).
 Full results across all three architectures: `results/composition_comparison.md`.
 
-### Generalization, fairness, deployment
+### Generalization, fairness, deployment (baseline split, provisional)
+
+> These checks come from the March 2026 checkpoint trained on the **baseline** split, before the
+> leakage rebuild. Treat every row as provisional, pending a re-run on the clean split.
 
 | Check | Result |
 |---|---|
@@ -154,10 +159,10 @@ image source without re-validating. See [Limitations](#limitations).
 
 ![System architecture](docs/diagrams/architecture.svg)
 
-Two model families are implemented. The deployed API uses the **DINOv2 path**; the U-Net++ /
+Two model families are implemented. The API serves the **DINOv2 path**; the U-Net++ /
 FUSegNet paths exist for research and ablation comparison.
 
-| Stage | Deployed model | Alternatives (research) |
+| Stage | Served model | Alternatives (research) |
 |---|---|---|
 | Triage classifier | DINOv2 ViT + 3-class head, LoRA fine-tuned | EfficientNet-V2-M |
 | Wound segmenter | DINOv2 + UPerNet decoder | U-Net++ (EfficientNet-B4, scSE), FUSegNet (EfficientNet-B7, P-scSE), nnU-Net v2 |
